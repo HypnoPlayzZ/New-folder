@@ -30,12 +30,13 @@ const csvUpload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 const port = process.env.PORT || 8001;
-const mongoURI = process.env.MONGODB_URI
-const jwtSecret = process.env.JWT_SECRET
+const mongoURI = process.env.MONGODB_URI;
+const jwtSecret = process.env.JWT_SECRET;
 
 // --- CORS Configuration ---
 const allowedOrigins = [
-    'https://new-folder-ynyn.vercel.app/', // Your Customer Frontend
+    'https://new-folder-six-wine.vercel.app', // Your Customer Frontend
+    'https://new-folder-ynyn.vercel.app', // Another possible customer frontend URL
     // IMPORTANT: Add your deployed admin frontend URL here once it's available
     'http://localhost:5173', 
     'http://localhost:5174'  
@@ -62,8 +63,6 @@ mongoose.connect(mongoURI)
         seedAdminUser();
     })
     .catch(err => console.error('MongoDB connection error:', err));
-
-// ... (The rest of your server.js file remains the same)
 
 // --- Mongoose Schemas ---
 const PriceSchema = new mongoose.Schema({
