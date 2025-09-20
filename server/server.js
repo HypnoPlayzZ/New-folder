@@ -35,7 +35,7 @@ const jwtSecret = process.env.JWT_SECRET;
 
 // --- CORS Configuration ---
 const allowedOrigins = [
-    'https://new-folder-six-wine.vercel.app', // Your Customer Frontend
+    'https://new-folder-ynyn.vercel.app/', // Your Customer Frontend
     // IMPORTANT: Add your deployed admin frontend URL here once it's available
     'http://localhost:5173', 
     'http://localhost:5174'  
