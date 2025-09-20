@@ -30,8 +30,8 @@ const csvUpload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 const port = process.env.PORT || 8001;
-const mongoURI = process.env.MONGODB_URI;
-const jwtSecret = process.env.JWT_SECRET;
+const mongoURI = process.env.MONGODB_URI
+const jwtSecret = process.env.JWT_SECRET
 
 // --- CORS Configuration ---
 const allowedOrigins = [
@@ -54,6 +54,7 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
+
 // --- Database Connection ---
 mongoose.connect(mongoURI)
     .then(() => {
@@ -61,6 +62,8 @@ mongoose.connect(mongoURI)
         seedAdminUser();
     })
     .catch(err => console.error('MongoDB connection error:', err));
+
+// ... (The rest of your server.js file remains the same)
 
 // --- Mongoose Schemas ---
 const PriceSchema = new mongoose.Schema({
