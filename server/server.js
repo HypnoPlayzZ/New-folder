@@ -30,9 +30,28 @@ const csvUpload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
 const port = process.env.PORT || 8001;
-const mongoURI = process.env.MONGODB_URI
-const jwtSecret = process.env.JWT_SECRET
-app.use(cors());
+const mongoURI = process.env.MONGODB_URI;
+const jwtSecret = process.env.JWT_SECRET;
+
+// --- CORS Configuration ---
+const allowedOrigins = [
+    'https://new-folder-six-wine.vercel.app', // Your Customer Frontend
+    // IMPORTANT: Add your deployed admin frontend URL here once it's available
+    'http://localhost:5173', 
+    'http://localhost:5174'  
+];
+
+const corsOptions = {
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    }
+};
+
+app.use(cors(corsOptions));
 app.use(express.json());
 
 // --- Database Connection ---
