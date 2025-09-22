@@ -11,6 +11,23 @@ import csv from 'csv-parser';
 import stream from 'stream';
 
 // --- Configuration ---
+cloudinary.config({
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
+});
+
+const imageStorage = new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: 'steamy-bites-menu',
+        allowed_formats: ['jpg', 'png', 'jpeg'],
+    },
+});
+
+const imageUpload = multer({ storage: imageStorage });
+const csvUpload = multer({ storage: multer.memoryStorage() });
+
 const app = express();
 const port = process.env.PORT || 8001;
 const mongoURI = process.env.MONGODB_URI;
@@ -19,8 +36,8 @@ const jwtSecret = process.env.JWT_SECRET;
 // --- CORS Configuration ---
 const allowedOrigins = [
     'https://new-folder-six-wine.vercel.app', // Your Customer Frontend
-    'https://new-folder-ynyn.vercel.app',     // Your Customer Frontend (from previous log)
-    'https://new-folder-e329.vercel.app',     // Your NEW Admin Frontend
+    'https://new-folder-ynyn.vercel.app',     // Your Customer Frontend
+    'https://new-folder-e329.vercel.app',     // Your Admin Frontend
     'http://localhost:5173', 
     'http://localhost:5174'  
 ];
@@ -38,14 +55,18 @@ const corsOptions = {
 app.use(cors(corsOptions));
 app.use(express.json());
 
-
 // --- Database Connection ---
-mongoose.connect(mongoURI)
-    .then(() => {
-        console.log('MongoDB connected successfully');
-        seedAdminUser();
-    })
-    .catch(err => console.error('MongoDB connection error:', err));
+if (mongoURI) {
+    mongoose.connect(mongoURI)
+        .then(() => {
+            console.log('MongoDB connected successfully');
+            seedAdminUser();
+        })
+        .catch(err => console.error('MongoDB connection error:', err));
+} else {
+    console.error('MongoDB connection string is missing. Please set the MONGODB_URI environment variable.');
+}
+
 
 // --- Mongoose Schemas ---
 const PriceSchema = new mongoose.Schema({
