@@ -2,7 +2,7 @@ import axios from 'axios';
 
 // Create an Axios instance for the admin portal
 const api = axios.create({
-    baseURL: 'https://steamy-bites.vercel.app/api', // Or your live backend URL
+    baseURL: 'https://new-folder-946c.vercel.app/api', // Or your live backend URL
 });
 
 // Use an interceptor to attach the admin token to all requests
