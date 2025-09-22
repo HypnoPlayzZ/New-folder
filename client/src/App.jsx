@@ -81,7 +81,7 @@ function App() {
       }
   };
 
-  const submitOrder = (finalTotal, appliedCoupon = null, address) => {
+  const submitOrder = (finalTotal, appliedCoupon = null) => {
     const orderDetails = {
         items: cartItems.map(item => ({ 
             menuItemId: item._id, 
@@ -97,8 +97,7 @@ function App() {
             discountType: appliedCoupon.discountType,
             discountValue: appliedCoupon.discountValue
         } : undefined,
-        customerName: auth.customer.name,
-        address: address
+        customerName: auth.customer.name
     };
 
     api.post('/orders', orderDetails)
