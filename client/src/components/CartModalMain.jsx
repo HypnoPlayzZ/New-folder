@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, ListGroup, CloseButton, Alert, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { api } from '../api';
 
-const RESTAURANT_LOCATION = { lat: 28.638857664659906, lon: 77.21848294937813 }; // Your exact restaurant location
+const RESTAURANT_LOCATION = { lat: 28.64630385823499 , lon:  77.2791159661413 }; // Your exact restaurant location
 const DELIVERY_RADIUS_KM = 2.5;
 
 // Haversine formula to calculate distance

@@ -2,19 +2,19 @@ import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 // Import the separated components
-import { api } from './api.js';
-import LoginPage from './pages/LoginPage.jsx';
-import AdminDashboard from './pages/AdminDashboard.jsx';
-import CustomerDashboard from './pages/CustomerDashboard.jsx';
-import RegisterPage from './pages/RegisterPage.jsx';
-import AdminRegisterPage from './pages/AdminRegisterPage.jsx';
-import MenuPage from './pages/MenuPage.jsx';
-import AdminLoginPage from './pages/AdminLoginPage.jsx';
-import { AboutPage, ContactPage } from './pages/StaticPage.jsx';
-import CartModal from './components/CartModalMain.jsx';
-import Header from './components/HeaderMain.jsx';
-import Footer from './components/FooterMain.jsx';
-import { GlobalStyles } from './styles/GlobalStyles.jsx';
+import { api } from './src/api.js';
+import LoginPage from './src/pages/LoginPage.jsx';
+import AdminDashboard from './src/pages/AdminDashboard.jsx';
+import CustomerDashboard from './src/pages/CustomerDashboard.jsx';
+import RegisterPage from './src/pages/RegisterPage.jsx';
+import AdminRegisterPage from './src/pages/AdminRegisterPage.jsx';
+import MenuPage from './src/pages/MenuPage.jsx';
+import AdminLoginPage from './src/pages/AdminLoginPage.jsx';
+import { AboutPage, ContactPage } from './src/pages/StaticPage.jsx';
+import CartModal from './src/components/CartModalMain.jsx';
+import Header from './src/components/HeaderMain.jsx';
+import Footer from './src/components/FooterMain.jsx';
+import { GlobalStyles } from './src/styles/GlobalStyles.jsx';
 
 
 // --- Main App ---
@@ -81,7 +81,7 @@ function App() {
       }
   };
 
-  const submitOrder = (finalTotal, appliedCoupon = null, address) => {
+  const submitOrder = (finalTotal, appliedCoupon = null) => {
     const orderDetails = {
         items: cartItems.map(item => ({ 
             menuItemId: item._id, 
@@ -97,8 +97,7 @@ function App() {
             discountType: appliedCoupon.discountType,
             discountValue: appliedCoupon.discountValue
         } : undefined,
-        customerName: auth.customer.name,
-        address: address
+        customerName: auth.customer.name
     };
 
     api.post('/orders', orderDetails)
