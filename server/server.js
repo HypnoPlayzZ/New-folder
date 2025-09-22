@@ -284,7 +284,7 @@ app.post('/api/auth/admin/login', async (req, res) => {
 
 
 // Customer Routes (Protected)
-app.post('/api/orders', authMiddleware, async (req, res) => {
+app.post('/api/order', authMiddleware, async (req, res) => {
     try {
         const newOrder = new Order({ ...req.body, user: req.user.userId });
         const savedOrder = await newOrder.save();
