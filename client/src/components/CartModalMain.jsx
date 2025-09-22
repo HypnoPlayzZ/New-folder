@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, ListGroup, CloseButton, Alert, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { api } from '../api';
 
-const RESTAURANT_LOCATION = { lat: 28.6330, lon: 77.2194 }; // Centered in Delhi, India
+const RESTAURANT_LOCATION = { lat: 28.638857664659906, lon: 77.21848294937813 }; // Your exact restaurant location
 const DELIVERY_RADIUS_KM = 2.5;
 
 // Haversine formula to calculate distance
@@ -26,7 +26,6 @@ const CartModal = ({ show, handleClose, cartItems, setCartItems, submitOrder, is
     const [isFetchingLocation, setIsFetchingLocation] = useState(false);
     const [deliveryCheck, setDeliveryCheck] = useState({ isDeliverable: null, message: '' });
     
-    // Check if the page is loaded in a secure context (https)
     const isSecureContext = window.isSecureContext;
 
     useEffect(() => {
