@@ -2,10 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { Modal, Button, Form, ListGroup, CloseButton, Alert, OverlayTrigger, Tooltip } from 'react-bootstrap';
 import { api } from '../api';
 
-const RESTAURANT_LOCATION = { lat: 28.64630385823499 , lon:  77.2791159661413 }; // Your exact restaurant location
+const RESTAURANT_LOCATION = { lat: 28.64, lon: 77.27 }; // Your updated, exact restaurant location
 const DELIVERY_RADIUS_KM = 2.5;
 
-// Haversine formula to calculate distance
+// Haversine formula to calculate distance between two lat/lon points
 function getDistanceFromLatLonInKm(lat1, lon1, lat2, lon2) {
     const R = 6371; // Radius of the earth in km
     const dLat = (lat2 - lat1) * (Math.PI / 180);
@@ -39,6 +39,7 @@ const CartModal = ({ show, handleClose, cartItems, setCartItems, submitOrder, is
     }, [show, cartItems]);
 
     useEffect(() => {
+        // Check delivery radius whenever the address (from GPS) changes
         const coords = address.split(',').map(s => parseFloat(s.trim()));
         if (coords.length === 2 && !isNaN(coords[0]) && !isNaN(coords[1])) {
             const distance = getDistanceFromLatLonInKm(RESTAURANT_LOCATION.lat, RESTAURANT_LOCATION.lon, coords[0], coords[1]);
@@ -48,7 +49,7 @@ const CartModal = ({ show, handleClose, cartItems, setCartItems, submitOrder, is
                 setDeliveryCheck({ isDeliverable: false, message: `Sorry, you're ${distance.toFixed(1)} km away. We only deliver within ${DELIVERY_RADIUS_KM} km.` });
             }
         } else {
-             setDeliveryCheck({ isDeliverable: !!address.trim(), message: '' });
+             setDeliveryCheck({ isDeliverable: !!address.trim(), message: '' }); // Allow manual address entry
         }
     }, [address]);
 
