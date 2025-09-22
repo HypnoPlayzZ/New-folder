@@ -12,17 +12,17 @@ import stream from 'stream';
 
 // --- Configuration ---
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const imageStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder: 'steamy-bites-menu',
-        allowed_formats: ['jpg', 'png', 'jpeg'],
-    },
+    cloudinary: cloudinary,
+    params: {
+        folder: 'steamy-bites-menu',
+        allowed_formats: ['jpg', 'png', 'jpeg'],
+    },
 });
 
 const imageUpload = multer({ storage: imageStorage });
@@ -67,18 +67,6 @@ if (mongoURI) {
     console.error('MongoDB connection string is missing. Please set the MONGODB_URI environment variable.');
 }
 
-// --- Mongoose Schemas and the rest of your server logic... ---
-// ... (The rest of your server.js file remains unchanged)
-
-
-
-// --- Database Connection ---
-mongoose.connect(mongoURI)
-    .then(() => {
-        console.log('MongoDB connected successfully');
-        seedAdminUser();
-    })
-    .catch(err => console.error('MongoDB connection error:', err));
 
 // --- Mongoose Schemas ---
 const PriceSchema = new mongoose.Schema({
