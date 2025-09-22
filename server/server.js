@@ -12,17 +12,17 @@ import stream from 'stream';
 
 // --- Configuration ---
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const imageStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder: 'steamy-bites-menu',
-        allowed_formats: ['jpg', 'png', 'jpeg'],
-    },
+    cloudinary: cloudinary,
+    params: {
+        folder: 'steamy-bites-menu',
+        allowed_formats: ['jpg', 'png', 'jpeg'],
+    },
 });
 
 const imageUpload = multer({ storage: imageStorage });
@@ -36,7 +36,7 @@ const jwtSecret = process.env.JWT_SECRET;
 // --- CORS Configuration ---
 const allowedOrigins = [
     'https://new-folder-six-wine.vercel.app', // Your Customer Frontend
-    'https://new-folder-ynyn.vercel.app',     // Your Customer Frontend
+    'https://new-folder-ynyn.vercel.app',     // Your other Customer Frontend URL
     'https://new-folder-e329.vercel.app',     // Your Admin Frontend
     'http://localhost:5173', 
     'http://localhost:5174'  
@@ -54,6 +54,22 @@ const corsOptions = {
 
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// --- Database Connection ---
+if (mongoURI) {
+    mongoose.connect(mongoURI)
+        .then(() => {
+            console.log('MongoDB connected successfully');
+            seedAdminUser();
+        })
+        .catch(err => console.error('MongoDB connection error:', err));
+} else {
+    console.error('MongoDB connection string is missing. Please set the MONGODB_URI environment variable.');
+}
+
+// --- Mongoose Schemas and the rest of your server logic... ---
+// ... (The rest of your server.js file remains unchanged)
+
 
 
 // --- Database Connection ---
