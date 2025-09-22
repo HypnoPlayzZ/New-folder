@@ -56,7 +56,7 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // --- Database Connection ---
-if (mongoURI) {
+if (mongoURI) { 
     mongoose.connect(mongoURI)
         .then(() => {
             console.log('MongoDB connected successfully');
@@ -286,11 +286,38 @@ app.post('/api/auth/admin/login', async (req, res) => {
 // Customer Routes (Protected)
 app.post('/api/orders', authMiddleware, async (req, res) => {
     try {
-        const newOrder = new Order({ ...req.body, user: req.user.userId });
+        console.log("Incoming order body:", req.body);
+        console.log("Authenticated user:", req.user);
+
+        const newOrder = new Order({
+            ...req.body,
+            user: req.user.userId || req.user.id // safer fallback
+        });
+
         const savedOrder = await newOrder.save();
         res.status(201).json(savedOrder);
+
     } catch (error) {
-        res.status(500).json({ message: 'Error placing order', error: error.message });
+        console.error("Order placement error:", error);
+
+        if (error.name === "ValidationError") {
+            return res.status(400).json({
+                message: "Validation failed",
+                error: error.message
+            });
+        }
+
+        if (error.name === "CastError") {
+            return res.status(400).json({
+                message: "Invalid ID format",
+                error: error.message
+            });
+        }
+
+        res.status(500).json({
+            message: "Error placing order",
+            error: error.message
+        });
     }
 });
 app.get('/api/my-orders', authMiddleware, async (req, res) => {
