@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
-// Import the separated components
+// Import the separated components with corrected paths
 import { api } from './api.js';
 import LoginPage from './pages/LoginPage.jsx';
 import AdminDashboard from './pages/AdminDashboard.jsx';
@@ -98,7 +98,7 @@ function App() {
             discountValue: appliedCoupon.discountValue
         } : undefined,
         customerName: auth.customer.name,
-        address: address // Include the address in the order details
+        address: address
     };
 
     api.post('/orders', orderDetails)
