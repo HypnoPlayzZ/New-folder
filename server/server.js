@@ -27,17 +27,17 @@ for (const varName of requiredEnvVars) {
 }
 
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const imageStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder: 'steamy-bites-menu',
-        allowed_formats: ['jpg', 'png', 'jpeg'],
-    },
+    cloudinary: cloudinary,
+    params: {
+        folder: 'steamy-bites-menu',
+        allowed_formats: ['jpg', 'png', 'jpeg'],
+    },
 });
 
 const imageUpload = multer({ storage: imageStorage });
@@ -72,14 +72,11 @@ app.use(express.json());
 
 // --- Database Connection ---
 mongoose.connect(mongoURI)
-    .then(() => {
-        console.log('MongoDB connected successfully');
-        seedAdminUser();
-    })
-    .catch(err => console.error('MongoDB connection error:', err));
-
-// ... (The rest of your server.js, including schemas and routes, remains unchanged)
-
+    .then(() => {
+        console.log('MongoDB connected successfully');
+        seedAdminUser();
+    })
+    .catch(err => console.error('MongoDB connection error:', err));
 
 // --- Mongoose Schemas ---
 const PriceSchema = new mongoose.Schema({
@@ -157,18 +154,17 @@ const Coupon = mongoose.model('Coupon', CouponSchema);
 
 // --- Middleware ---
 const authMiddleware = (req, res, next) => {
-  const authHeader = req.headers['authorization'];
-  if (!authHeader) return res.status(401).json({ message: 'No token' });
-
-  const token = authHeader.split(' ')[1];
-  try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = decoded;
-    next();
-  } catch (err) {
-    res.status(401).json({ message: 'Invalid token' });
-  }
+    const token = req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Authentication required' });
+    try {
+        const decoded = jwt.verify(token, jwtSecret);
+        req.user = decoded;
+        next();
+    } catch (error) {
+        res.status(401).json({ message: 'Invalid token' });
+    }
 };
+
 const adminMiddleware = async (req, res, next) => {
     try {
         const user = await User.findById(req.user.userId);
@@ -300,38 +296,15 @@ app.post('/api/auth/admin/login', async (req, res) => {
 // Customer Routes (Protected)
 app.post('/api/orders', authMiddleware, async (req, res) => {
     try {
-        console.log("Incoming order body:", req.body);
-        console.log("Authenticated user:", req.user);
-
-        const newOrder = new Order({
-            ...req.body,
-            user: req.user.userId || req.user.id // safer fallback
-        });
-
+        const newOrder = new Order({ ...req.body, user: req.user.userId });
         const savedOrder = await newOrder.save();
         res.status(201).json(savedOrder);
-
     } catch (error) {
         console.error("Order placement error:", error);
-
-        if (error.name === "ValidationError") {
-            return res.status(400).json({
-                message: "Validation failed",
-                error: error.message
-            });
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ message: 'Order validation failed', error: error.message });
         }
-
-        if (error.name === "CastError") {
-            return res.status(400).json({
-                message: "Invalid ID format",
-                error: error.message
-            });
-        }
-
-        res.status(500).json({
-            message: "Error placing order",
-            error: error.message
-        });
+        res.status(500).json({ message: 'Error placing order', error: error.message });
     }
 });
 app.get('/api/my-orders', authMiddleware, async (req, res) => {
