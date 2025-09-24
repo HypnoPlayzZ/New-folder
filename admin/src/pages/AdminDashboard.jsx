@@ -105,12 +105,15 @@ const LiveOrderManager = () => {
         }
     };
 
+
 const fetchOrders = () => {
-  apiAdmin.get('/admin/orders')
-    .then(response => {
+  apiAdmin.get("/admin/orders")
+    .then((response) => {
       const fetchedOrders = response.data;
-      const newOrdersCount = fetchedOrders.filter(o => o.status === 'Received').length;
-      const previousNewOrdersCount = orders.filter(o => o.status === 'Received').length;
+      // your logic...
+    })
+    .catch((error) => console.error("Error fetching orders:", error));
+};
 
       if (!initialLoad && newOrdersCount > 0 && newOrdersCount > previousNewOrdersCount) {
         playNotificationSound();
