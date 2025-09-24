@@ -105,26 +105,27 @@ const LiveOrderManager = () => {
         }
     };
 
-    const fetchOrders = () => {
-        api.get('/admin/orders')
-            .then(response => {
-                const fetchedOrders = response.data;
-                const newOrdersCount = fetchedOrders.filter(o => o.status === 'Received').length;
-                const previousNewOrdersCount = orders.filter(o => o.status === 'Received').length;
+    import { apiAdmin } from '../apiAdmin'; // adjust path if needed
 
-                if (!initialLoad && newOrdersCount > 0 && newOrdersCount > previousNewOrdersCount) {
-                    playNotificationSound();
-                } else if (newOrdersCount === 0) {
-                    stopNotificationSound();
-                }
-                
-                setOrders(fetchedOrders);
-                if (initialLoad) setInitialLoad(false);
-            })
-            .catch(error => console.error("Error fetching orders:", error))
-            .finally(() => setLoading(false));
-    };
+const fetchOrders = () => {
+  apiAdmin.get('/admin/orders')
+    .then(response => {
+      const fetchedOrders = response.data;
+      const newOrdersCount = fetchedOrders.filter(o => o.status === 'Received').length;
+      const previousNewOrdersCount = orders.filter(o => o.status === 'Received').length;
 
+      if (!initialLoad && newOrdersCount > 0 && newOrdersCount > previousNewOrdersCount) {
+        playNotificationSound();
+      } else if (newOrdersCount === 0) {
+        stopNotificationSound();
+      }
+
+      setOrders(fetchedOrders);
+      if (initialLoad) setInitialLoad(false);
+    })
+    .catch(error => console.error("Error fetching orders:", error))
+    .finally(() => setLoading(false));
+};
     useEffect(() => {
         fetchOrders();
         const pollInterval = setInterval(fetchOrders, 5000);
