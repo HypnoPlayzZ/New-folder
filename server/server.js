@@ -22,7 +22,7 @@ const requiredEnvVars = [
 for (const varName of requiredEnvVars) {
     if (!process.env[varName]) {
         console.error(`FATAL ERROR: Environment variable ${varName} is not set.`);
-        process.exit(1); // Exit the process with an error code
+        process.exit(1);
     }
 }
 
@@ -50,9 +50,9 @@ const jwtSecret = process.env.JWT_SECRET;
 
 // --- CORS Configuration ---
 const allowedOrigins = [
-    'https://new-folder-six-wine.vercel.app', // Your Customer Frontend
-    'https://new-folder-ynyn.vercel.app',     // Your other Customer Frontend URL
-    'https://new-folder-e329.vercel.app',     // Your Admin Frontend
+    'https://new-folder-six-wine.vercel.app',
+    'https://new-folder-ynyn.vercel.app',
+    'https://new-folder-e329.vercel.app',
     'http://localhost:5173', 
     'http://localhost:5174'  
 ];
@@ -325,6 +325,10 @@ app.get('/api/my-complaints', authMiddleware, async (req, res) => {
 // --- Admin Router ---
 const adminRouter = express.Router();
 app.use('/api/admin', authMiddleware, adminMiddleware, adminRouter);
+
+// ... (Rest of your server.js remains the same)
+
+
 
 adminRouter.post('/register', async (req, res) => {
     try {
