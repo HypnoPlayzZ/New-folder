@@ -10,19 +10,34 @@ import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import csv from 'csv-parser';
 import stream from 'stream';
 
-// --- Configuration ---
+// --- Configuration & Environment Variable Check ---
+const requiredEnvVars = [
+    'MONGODB_URI',
+    'JWT_SECRET',
+    'CLOUDINARY_CLOUD_NAME',
+    'CLOUDINARY_API_KEY',
+    'CLOUDINARY_API_SECRET'
+];
+
+for (const varName of requiredEnvVars) {
+    if (!process.env[varName]) {
+        console.error(`FATAL ERROR: Environment variable ${varName} is not set.`);
+        process.exit(1); // Exit the process with an error code
+    }
+}
+
 cloudinary.config({
-    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-    api_key: process.env.CLOUDINARY_API_KEY,
-    api_secret: process.env.CLOUDINARY_API_SECRET,
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
 const imageStorage = new CloudinaryStorage({
-    cloudinary: cloudinary,
-    params: {
-        folder: 'steamy-bites-menu',
-        allowed_formats: ['jpg', 'png', 'jpeg'],
-    },
+    cloudinary: cloudinary,
+    params: {
+        folder: 'steamy-bites-menu',
+        allowed_formats: ['jpg', 'png', 'jpeg'],
+    },
 });
 
 const imageUpload = multer({ storage: imageStorage });
@@ -56,16 +71,14 @@ app.use(cors(corsOptions));
 app.use(express.json());
 
 // --- Database Connection ---
-if (mongoURI) { 
-    mongoose.connect(mongoURI)
-        .then(() => {
-            console.log('MongoDB connected successfully');
-            seedAdminUser();
-        })
-        .catch(err => console.error('MongoDB connection error:', err));
-} else {
-    console.error('MongoDB connection string is missing. Please set the MONGODB_URI environment variable.');
-}
+mongoose.connect(mongoURI)
+    .then(() => {
+        console.log('MongoDB connected successfully');
+        seedAdminUser();
+    })
+    .catch(err => console.error('MongoDB connection error:', err));
+
+// ... (The rest of your server.js, including schemas and routes, remains unchanged)
 
 
 // --- Mongoose Schemas ---
