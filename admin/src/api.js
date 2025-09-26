@@ -1,13 +1,17 @@
 import axios from 'axios';
 
-// Create an Axios instance for the admin portal
 const api = axios.create({
-    baseURL: 'https://steamybitesbackend.onrender.com/api', // Or your live backend URL
+    baseURL: 'https://steamybitesbackend.onrender.com/api', 
 });
 
-// Use an interceptor to attach the admin token to all requests
+// This interceptor intelligently adds the correct token to every request.
 api.interceptors.request.use(config => {
-    const token = localStorage.getItem('admin_token');
+    const adminToken = localStorage.getItem('admin_token');
+    const customerToken = localStorage.getItem('customer_token');
+
+    // Prioritize the admin token if it exists, otherwise use the customer token.
+    const token = adminToken || customerToken;
+
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
