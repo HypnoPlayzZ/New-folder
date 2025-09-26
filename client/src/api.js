@@ -4,14 +4,9 @@ const api = axios.create({
     baseURL: 'https://steamybitesbackend.onrender.com/api', 
 });
 
-// This interceptor intelligently adds the correct token to every request.
 api.interceptors.request.use(config => {
-    const customerToken = localStorage.getItem('customer_token');
-     const adminToken = localStorage.getItem('admin_token');
-
-    // Prioritize the admin token if it exists, otherwise use the customer token.
-    const token = customerToken || adminToken;
-
+    // This function specifically looks for the customer token
+    const token = localStorage.getItem('customer_token');
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
     }
@@ -19,3 +14,4 @@ api.interceptors.request.use(config => {
 });
 
 export { api };
+
