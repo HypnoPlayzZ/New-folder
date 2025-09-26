@@ -59,14 +59,18 @@ const allowedOrigins = [
 
 const corsOptions = {
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        if (
+            !origin || 
+            allowedOrigins.includes(origin) || 
+            /\.vercel\.app$/.test(new URL(origin).hostname)  // any Vercel subdomain
+        ) {
             callback(null, true);
         } else {
+            console.error("Blocked by CORS:", origin);
             callback(new Error('Not allowed by CORS'));
         }
     }
 };
-
 app.use(cors(corsOptions));
 app.use(express.json());
 
