@@ -6,11 +6,11 @@ const api = axios.create({
 
 // This interceptor intelligently adds the correct token to every request.
 api.interceptors.request.use(config => {
-    const adminToken = localStorage.getItem('admin_token');
     const customerToken = localStorage.getItem('customer_token');
+     const adminToken = localStorage.getItem('admin_token');
 
     // Prioritize the admin token if it exists, otherwise use the customer token.
-    const token = adminToken || customerToken;
+    const token = customerToken || adminToken;
 
     if (token) {
         config.headers.Authorization = `Bearer ${token}`;
@@ -19,4 +19,3 @@ api.interceptors.request.use(config => {
 });
 
 export { api };
-
