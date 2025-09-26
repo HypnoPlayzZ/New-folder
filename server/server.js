@@ -10,7 +10,22 @@ import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import csv from 'csv-parser';
 import stream from 'stream';
 
-// --- Configuration ---
+// --- Configuration & Environment Variable Check ---
+const requiredEnvVars = [
+    'MONGODB_URI',
+    'JWT_SECRET',
+    'CLOUDINARY_CLOUD_NAME',
+    'CLOUDINARY_API_KEY',
+    'CLOUDINARY_API_SECRET'
+];
+
+for (const varName of requiredEnvVars) {
+    if (!process.env[varName]) {
+        console.error(`FATAL ERROR: Environment variable ${varName} is not set.`);
+        process.exit(1);
+    }
+}
+
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
     api_key: process.env.CLOUDINARY_API_KEY,
@@ -35,38 +50,37 @@ const jwtSecret = process.env.JWT_SECRET;
 
 // --- CORS Configuration ---
 const allowedOrigins = [
-    'https://new-folder-six-wine.vercel.app', // Your Customer Frontend
-    'https://new-folder-ynyn.vercel.app',     // Your other Customer Frontend URL
-    'https://new-folder-e329.vercel.app',     // Your Admin Frontend
+    'https://new-folder-six-wine.vercel.app',
+    'https://new-folder-ynyn.vercel.app',
+    'https://new-folder-e329.vercel.app',
     'http://localhost:5173', 
     'http://localhost:5174'  
 ];
 
 const corsOptions = {
     origin: (origin, callback) => {
-        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+        if (
+            !origin || 
+            allowedOrigins.includes(origin) || 
+            /\.vercel\.app$/.test(new URL(origin).hostname)  // any Vercel subdomain
+        ) {
             callback(null, true);
         } else {
+            console.error("Blocked by CORS:", origin);
             callback(new Error('Not allowed by CORS'));
         }
     }
 };
-
 app.use(cors(corsOptions));
 app.use(express.json());
 
 // --- Database Connection ---
-if (mongoURI) { 
-    mongoose.connect(mongoURI)
-        .then(() => {
-            console.log('MongoDB connected successfully');
-            seedAdminUser();
-        })
-        .catch(err => console.error('MongoDB connection error:', err));
-} else {
-    console.error('MongoDB connection string is missing. Please set the MONGODB_URI environment variable.');
-}
-
+mongoose.connect(mongoURI)
+    .then(() => {
+        console.log('MongoDB connected successfully');
+        seedAdminUser();
+    })
+    .catch(err => console.error('MongoDB connection error:', err));
 
 // --- Mongoose Schemas ---
 const PriceSchema = new mongoose.Schema({
@@ -286,38 +300,15 @@ app.post('/api/auth/admin/login', async (req, res) => {
 // Customer Routes (Protected)
 app.post('/api/orders', authMiddleware, async (req, res) => {
     try {
-        console.log("Incoming order body:", req.body);
-        console.log("Authenticated user:", req.user);
-
-        const newOrder = new Order({
-            ...req.body,
-            user: req.user.userId || req.user.id // safer fallback
-        });
-
+        const newOrder = new Order({ ...req.body, user: req.user.userId });
         const savedOrder = await newOrder.save();
         res.status(201).json(savedOrder);
-
     } catch (error) {
         console.error("Order placement error:", error);
-
-        if (error.name === "ValidationError") {
-            return res.status(400).json({
-                message: "Validation failed",
-                error: error.message
-            });
+        if (error.name === 'ValidationError') {
+            return res.status(400).json({ message: 'Order validation failed', error: error.message });
         }
-
-        if (error.name === "CastError") {
-            return res.status(400).json({
-                message: "Invalid ID format",
-                error: error.message
-            });
-        }
-
-        res.status(500).json({
-            message: "Error placing order",
-            error: error.message
-        });
+        res.status(500).json({ message: 'Error placing order', error: error.message });
     }
 });
 app.get('/api/my-orders', authMiddleware, async (req, res) => {
@@ -338,6 +329,10 @@ app.get('/api/my-complaints', authMiddleware, async (req, res) => {
 // --- Admin Router ---
 const adminRouter = express.Router();
 app.use('/api/admin', authMiddleware, adminMiddleware, adminRouter);
+
+// ... (Rest of your server.js remains the same)
+
+
 
 adminRouter.post('/register', async (req, res) => {
     try {
