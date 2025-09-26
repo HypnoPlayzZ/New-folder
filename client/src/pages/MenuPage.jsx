@@ -225,3 +225,4 @@ const MenuPage = ({ onAddToCart }) => {
 };
 
 export default MenuPage;
+
