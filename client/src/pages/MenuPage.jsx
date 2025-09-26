@@ -134,7 +134,7 @@ const CustomizationModal = ({ show, handleClose, item, onAddToCart }) => {
 
 // --- Main Menu Page Component ---
 const MenuPage = ({ onAddToCart }) => {
-    const [menu, setMenu] = useState({}); // CORRECTED: Expect an object of categories
+    const [menu, setMenu] = useState([]); // CORRECTED: Expect an array of categories
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
@@ -178,14 +178,14 @@ const MenuPage = ({ onAddToCart }) => {
             <HeroSection />
             <CouponDisplay />
             
-            {Object.keys(menu).length === 0 && !loading && (
+            {menu.length === 0 && !loading && (
                 <div className="text-center">
                     <h2>Our menu is currently empty.</h2>
                     <p>Please check back later!</p>
                 </div>
             )}
 
-            {Object.entries(menu).map(([category, items]) => (
+            {menu.map(({ name: category, items }) => (
                 <div key={category} className="menu-list-container mb-4">
                     <h2 className="mb-4">{category}</h2>
                     {items.map((item, index) => (
@@ -225,4 +225,3 @@ const MenuPage = ({ onAddToCart }) => {
 };
 
 export default MenuPage;
-
