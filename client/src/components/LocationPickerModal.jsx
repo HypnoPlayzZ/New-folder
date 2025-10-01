@@ -1,6 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button } from 'react-bootstrap';
 import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import L from 'leaflet'; // Import the main leaflet library
+
+// --- FIX for missing marker icons ---
+import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
+import markerIcon from 'leaflet/dist/images/marker-icon.png';
+import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+
+delete L.Icon.Default.prototype._getIconUrl;
+
+L.Icon.Default.mergeOptions({
+    iconRetinaUrl: markerIcon2x,
+    iconUrl: markerIcon,
+    shadowUrl: markerShadow,
+});
+// --- END of FIX ---
+
 
 const RESTAURANT_LOCATION = { lat: 28.64631707513742, lon: 77.27905573083078 };
 
@@ -58,3 +74,4 @@ const LocationPickerModal = ({ show, handleClose, onLocationSelect }) => {
 };
 
 export default LocationPickerModal;
+
