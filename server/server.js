@@ -50,7 +50,7 @@ const jwtSecret = process.env.JWT_SECRET;
 
 // --- CORS Configuration ---
 const allowedOrigins = [
-    'https://new-folder-six-wine.vercel.app',
+    'https://steamybites.shop',
     'https://new-folder-ynyn.vercel.app',
     'https://new-folder-e329.vercel.app',
     'http://localhost:5173', 
