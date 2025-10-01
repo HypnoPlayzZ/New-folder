@@ -1,7 +1,8 @@
 import axios from 'axios';
 
 const api = axios.create({
-    baseURL: 'https://steamybitesbackend.onrender.com/api', 
+    baseURL: 'https://steamybitesbackend.onrender.com/api',
+    baseURL: 'http://localhost:5173/api',
 });
 
 // This interceptor intelligently adds the correct token to every request.
