@@ -1,43 +1,48 @@
 import React from 'react';
-import { Button, Nav, Badge } from 'react-bootstrap';
+import { Navbar, Nav, Button, Badge } from 'react-bootstrap';
 
-const Header = ({ route, auth, isCustomerLoggedIn, setShowCart, cartItems, handleLogout }) => {
+const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout, setShowCart, cartItems }) => {
+    const cartItemCount = cartItems.reduce((count, item) => count + item.quantity, 0);
+
+    const renderCustomerNav = () => {
+        if (isCustomerLoggedIn) {
+            return (
+                <>
+                    <Nav.Link href="#/dashboard">My Dashboard</Nav.Link>
+                    <Nav.Link onClick={() => handleLogout('customer')}>Logout ({auth.customer.name})</Nav.Link>
+                </>
+            );
+        }
+        return (
+            <>
+                <Nav.Link href="#/login">Login</Nav.Link>
+                <Nav.Link href="#/register">Register</Nav.Link>
+            </>
+        );
+    };
     
+    if (route.startsWith('#/admin')) {
+        return null; 
+    }
+
     return (
-        <header>
-            <nav className="navbar navbar-expand-lg navbar-light bg-light shadow-sm sticky-top">
-                <div className="container">
-                    <a className="navbar-brand d-flex align-items-center" href="#/">
-                        <img src="https://lh3.googleusercontent.com/Ye0hjUzWm-MM4eTC3ma2TMvWviXUn2Ufdsqq7kEHCnKi5ZPSii3tW-D8Ei5C-4qgUCqGUHGXk0tk4AkJdnWPHAz7YbKEXYEjF2CeFn01" alt="Steamy Bites Logo" className="d-inline-block align-text-top me-2 rounded-circle" width="80"/>
-                        <span className="fw-bold">Steamy Bites</span>
-                    </a>
-                    <button className="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
-                        <span className="navbar-toggler-icon"></span>
-                    </button>
-                    <div className="collapse navbar-collapse justify-content-center" id="navbarNav">
-                        <ul className="navbar-nav">
-                            <li className="nav-item"><a className={`nav-link mx-2 ${route === '#/' ? 'active' : ''}`} href="#/">Home</a></li>
-                            <li className="nav-item"><a className={`nav-link mx-2 ${route === '#/about' ? 'active' : ''}`} href="#/about">About Us</a></li>
-                            <li className="nav-item"><a className={`nav-link mx-2 ${route === '#/contact' ? 'active' : ''}`} href="#/contact">Contact Us</a></li>
-                        </ul>
-                    </div>
-                    <div className="d-flex align-items-center">
-                        {isCustomerLoggedIn ? (
-                            <>
-                                <Nav.Link href={'#/dashboard'} className="me-3">{auth.customer.name}</Nav.Link>
-                                <Button variant="outline-secondary" size="sm" onClick={() => handleLogout('customer')} className="me-3">Logout</Button>
-                            </>
-                        ) : (
-                            <Nav.Link href="#/login" className="me-3">Customer Login</Nav.Link>
-                        )}
-                        
-                        <Button variant="danger" onClick={() => setShowCart(true)} className="position-relative">
-                            Order Now <Badge pill bg="dark" className="position-absolute top-0 start-100 translate-middle">{cartItems.reduce((count, item) => count + item.quantity, 0)}</Badge>
+        <Navbar bg="light" expand="lg" sticky="top" className="shadow-sm">
+            <Navbar.Brand href={isCustomerLoggedIn ? "#/menu" : "#/"} className="fw-bold text-danger">Steamy Bites</Navbar.Brand>
+            <Navbar.Toggle aria-controls="basic-navbar-nav" />
+            <Navbar.Collapse id="basic-navbar-nav">
+                <Nav className="ms-auto align-items-center">
+                    {isCustomerLoggedIn && <Nav.Link href="#/menu">Menu</Nav.Link>}
+                    <Nav.Link href="#/about">About</Nav.Link>
+                    <Nav.Link href="#/contact">Contact</Nav.Link>
+                    {renderCustomerNav()}
+                    {isCustomerLoggedIn && (
+                         <Button variant="danger" onClick={() => setShowCart(true)} className="ms-2">
+                            Cart <Badge bg="light" text="dark">{cartItemCount}</Badge>
                         </Button>
-                    </div>
-                </div>
-            </nav>
-        </header>
+                    )}
+                </Nav>
+            </Navbar.Collapse>
+        </Navbar>
     );
 };
 
