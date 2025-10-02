@@ -2,19 +2,20 @@ import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 // Import the separated components with corrected paths
-import { api } from './api.js';
-import LoginPage from './pages/LoginPage.jsx';
-import AdminDashboard from './pages/AdminDashboard.jsx';
-import CustomerDashboard from './pages/CustomerDashboard.jsx';
-import RegisterPage from './pages/RegisterPage.jsx';
-import AdminRegisterPage from './pages/AdminRegisterPage.jsx';
-import MenuPage from './pages/MenuPage.jsx';
-import AdminLoginPage from './pages/AdminLoginPage.jsx';
-import { AboutPage, ContactPage } from './pages/StaticPage.jsx';
-import CartModal from './components/CartModalMain.jsx';
-import Header from './components/HeaderMain.jsx';
-import Footer from './components/FooterMain.jsx';
-import { GlobalStyles } from './styles/GlobalStyles.jsx';
+import { api } from './src/api.js';
+import LoginPage from './src/pages/LoginPage.jsx';
+import AdminDashboard from './src/pages/AdminDashboard.jsx';
+import CustomerDashboard from './src/pages/CustomerDashboard.jsx';
+import RegisterPage from './src/pages/RegisterPage.jsx';
+import AdminRegisterPage from './src/pages/AdminRegisterPage.jsx';
+import MenuPage from './src/pages/MenuPage.jsx';
+import AdminLoginPage from './src/pages/AdminLoginPage.jsx';
+import { AboutPage, ContactPage } from './src/pages/StaticPage.jsx';
+import CartModal from './src/components/CartModalMain.jsx';
+import Header from './src/components/HeaderMain.jsx';
+import Footer from './src/components/FooterMain.jsx';
+import { GlobalStyles } from './src/styles/GlobalStyles.jsx';
+import WelcomePage from './src/pages/WelcomePage.jsx'; // <-- Import the new Welcome Page
 
 
 // --- Main App ---
@@ -50,20 +51,24 @@ function App() {
   }, []);
   
   useEffect(() => {
-    api.get('/menu')
-      .then(response => setMenuItems(response.data))
-      .catch(error => console.error("Error fetching menu items:", error));
-  }, []);
+    if (isCustomerLoggedIn) { // Only fetch menu if a customer is logged in
+        api.get('/menu')
+          .then(response => setMenuItems(response.data))
+          .catch(error => console.error("Error fetching menu items:", error));
+    }
+  }, [isCustomerLoggedIn]);
 
   const handleLoginSuccess = (token, name, role) => {
       if (role === 'admin') {
           localStorage.setItem('admin_token', token);
           localStorage.setItem('admin_name', name);
           setAuth(prev => ({ ...prev, admin: { token, name } }));
+          window.location.hash = '#/admin';
       } else {
           localStorage.setItem('customer_token', token);
           localStorage.setItem('customer_name', name);
           setAuth(prev => ({ ...prev, customer: { token, name } }));
+          window.location.hash = '#/menu'; // <-- Redirect to menu after login
       }
   };
 
@@ -77,7 +82,7 @@ function App() {
           localStorage.removeItem('customer_token');
           localStorage.removeItem('customer_name');
           setAuth(prev => ({ ...prev, customer: { token: null, name: null } }));
-          window.location.hash = '#/';
+          window.location.hash = '#/'; // <-- Redirect to welcome page on logout
       }
   };
 
@@ -98,7 +103,7 @@ function App() {
             discountValue: appliedCoupon.discountValue
         } : undefined,
         customerName: auth.customer.name,
-        address: address // <-- Address is now included
+        address: address // Include the address in the order details
     };
 
     api.post('/orders', orderDetails)
@@ -136,18 +141,27 @@ function App() {
     };
 
   const renderPage = () => {
+    // Admin routes are separate and require admin login
+    if (route.startsWith('#/admin')) {
+         if (!isAdminLoggedIn) return <AdminLoginPage onLoginSuccess={handleLoginSuccess} />;
+         switch(route) {
+            case '#/admin': return <AdminDashboard adminName={auth.admin.name} handleLogout={handleLogout} />;
+            case '#/admin-register': return <AdminRegisterPage />;
+            default: return <AdminDashboard adminName={auth.admin.name} handleLogout={handleLogout} />;
+         }
+    }
+
+    // Customer routes
     switch (route) {
       case '#/about': return <AboutPage />;
       case '#/contact': return <ContactPage />;
       case '#/login': return <LoginPage onLoginSuccess={handleLoginSuccess} />;
       case '#/register': return <RegisterPage />;
-      case '#/admin-login': return <AdminLoginPage onLoginSuccess={handleLoginSuccess} />;
-      case '#/admin': return isAdminLoggedIn ? <AdminDashboard adminName={auth.admin.name} handleLogout={handleLogout} /> : <AdminLoginPage onLoginSuccess={handleLoginSuccess} />;
-      case '#/admin-register': return isAdminLoggedIn ? <AdminRegisterPage /> : <AdminLoginPage onLoginSuccess={handleLoginSuccess} />;
-      case '#/dashboard': return isCustomerLoggedIn ? <CustomerDashboard userName={auth.customer.name} /> : <LoginPage onLoginSuccess={handleLoginSuccess} />;
+      case '#/dashboard': return isCustomerLoggedIn ? <CustomerDashboard userName={auth.customer.name} /> : <WelcomePage />;
+      case '#/menu': return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} /> : <WelcomePage />;
       case '#/': 
       default: 
-        return <MenuPage onAddToCart={handleAddToCart} />;
+        return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} /> : <WelcomePage />;
     }
   };
 
