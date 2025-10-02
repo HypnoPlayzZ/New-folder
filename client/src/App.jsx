@@ -2,20 +2,20 @@ import React, { useState, useEffect } from 'react';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 // Import the separated components with corrected paths
-import { api } from './src/api.js';
-import LoginPage from './src/pages/LoginPage.jsx';
-import AdminDashboard from './src/pages/AdminDashboard.jsx';
-import CustomerDashboard from './src/pages/CustomerDashboard.jsx';
-import RegisterPage from './src/pages/RegisterPage.jsx';
-import AdminRegisterPage from './src/pages/AdminRegisterPage.jsx';
-import MenuPage from './src/pages/MenuPage.jsx';
-import AdminLoginPage from './src/pages/AdminLoginPage.jsx';
-import { AboutPage, ContactPage } from './src/pages/StaticPage.jsx';
-import CartModal from './src/components/CartModalMain.jsx';
-import Header from './src/components/HeaderMain.jsx';
-import Footer from './src/components/FooterMain.jsx';
-import { GlobalStyles } from './src/styles/GlobalStyles.jsx';
-import WelcomePage from './src/pages/WelcomePage.jsx'; // <-- Import the new Welcome Page
+import { api } from './api.js';
+import LoginPage from './pages/LoginPage.jsx';
+import AdminDashboard from './pages/AdminDashboard.jsx';
+import CustomerDashboard from './pages/CustomerDashboard.jsx';
+import RegisterPage from './pages/RegisterPage.jsx';
+import AdminRegisterPage from './pages/AdminRegisterPage.jsx';
+import MenuPage from './pages/MenuPage.jsx';
+import AdminLoginPage from './pages/AdminLoginPage.jsx';
+import { AboutPage, ContactPage } from './pages/StaticPage.jsx';
+import CartModal from './components/CartModalMain.jsx';
+import Header from './components/HeaderMain.jsx';
+import Footer from './components/FooterMain.jsx';
+import { GlobalStyles } from './styles/GlobalStyles.jsx';
+import WelcomePage from './pages/WelcomePage.jsx'; // <-- Import the new Welcome Page
 
 
 // --- Main App ---
@@ -158,10 +158,10 @@ function App() {
       case '#/login': return <LoginPage onLoginSuccess={handleLoginSuccess} />;
       case '#/register': return <RegisterPage />;
       case '#/dashboard': return isCustomerLoggedIn ? <CustomerDashboard userName={auth.customer.name} /> : <WelcomePage />;
-      case '#/menu': return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} /> : <WelcomePage />;
+      case '#/menu': return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} menuItems={menuItems} /> : <WelcomePage />;
       case '#/': 
       default: 
-        return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} /> : <WelcomePage />;
+        return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} menuItems={menuItems}/> : <WelcomePage />;
     }
   };
 
