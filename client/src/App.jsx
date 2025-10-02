@@ -15,7 +15,7 @@ import CartModal from './components/CartModalMain.jsx';
 import Header from './components/HeaderMain.jsx';
 import Footer from './components/FooterMain.jsx';
 import { GlobalStyles } from './styles/GlobalStyles.jsx';
-import WelcomePage from './pages/WelcomePage.jsx'; // <-- Import the new Welcome Page
+import WelcomePage from './components/WelcomePage.jsx'; // <-- Import the new Welcome Page
 
 
 // --- Main App ---
