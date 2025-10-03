@@ -9,6 +9,7 @@ import multer from 'multer';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import csv from 'csv-parser';
 import stream from 'stream';
+import { OAuth2Client } from 'google-auth-library'; // <-- Merged Import
 
 // --- Configuration & Environment Variable Check ---
 const requiredEnvVars = [
@@ -16,7 +17,8 @@ const requiredEnvVars = [
     'JWT_SECRET',
     'CLOUDINARY_CLOUD_NAME',
     'CLOUDINARY_API_KEY',
-    'CLOUDINARY_API_SECRET'
+    'CLOUDINARY_API_SECRET',
+    'GOOGLE_CLIENT_ID' // <-- Merged Env Var
 ];
 
 for (const varName of requiredEnvVars) {
@@ -25,6 +27,8 @@ for (const varName of requiredEnvVars) {
         process.exit(1);
     }
 }
+
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID); // <-- Merged Google Client Setup
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -129,7 +133,7 @@ const OrderSchema = new mongoose.Schema({
 const UserSchema = new mongoose.Schema({
     name: { type: String, required: true },
     email: { type: String, required: true, unique: true },
-    password: { type: String, required: true },
+    password: { type: String }, // <-- Merged: Password is no longer required
     role: { type: String, default: 'customer', enum: ['customer', 'admin'] }
 }, { collection: 'users_v2' });
 
@@ -272,6 +276,11 @@ app.post('/api/auth/login', async (req, res) => {
         const user = await User.findOne({ email });
         if (!user) return res.status(404).json({ message: 'User not found' });
 
+        // Ensure password exists for traditional login
+        if (!user.password) {
+             return res.status(400).json({ message: 'Please log in with Google.' });
+        }
+
         const isPasswordCorrect = await bcrypt.compare(password, user.password);
         if (!isPasswordCorrect) return res.status(400).json({ message: 'Invalid credentials' });
 
@@ -279,6 +288,36 @@ app.post('/api/auth/login', async (req, res) => {
         res.json({ token, userName: user.name, userRole: user.role });
     } catch (error) {
         res.status(500).json({ message: 'Server error during login' });
+    }
+});
+
+// --- Merged Google Authentication Route ---
+app.post('/api/auth/google', async (req, res) => {
+    const { token } = req.body;
+    try {
+        const ticket = await googleClient.verifyIdToken({
+            idToken: token,
+            audience: process.env.GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        const { name, email } = payload;
+
+        let user = await User.findOne({ email });
+
+        if (!user) {
+            // If user doesn't exist, create a new one without a password
+            user = new User({ name, email, role: 'customer' });
+            await user.save();
+        }
+
+        // Create your application's JWT token
+        const appToken = jwt.sign({ userId: user._id, role: user.role }, jwtSecret, { expiresIn: '1d' });
+        
+        res.json({ token: appToken, userName: user.name, userRole: user.role });
+
+    } catch (error) {
+        console.error("Google auth error:", error);
+        res.status(401).json({ message: 'Google Sign-In failed.' });
     }
 });
 
@@ -329,10 +368,6 @@ app.get('/api/my-complaints', authMiddleware, async (req, res) => {
 // --- Admin Router ---
 const adminRouter = express.Router();
 app.use('/api/admin', authMiddleware, adminMiddleware, adminRouter);
-
-// ... (Rest of your server.js remains the same)
-
-
 
 adminRouter.post('/register', async (req, res) => {
     try {
@@ -614,4 +649,3 @@ const seedAdminUser = async () => {
         console.error('Error seeding admin user:', error);
     }
 };
-
