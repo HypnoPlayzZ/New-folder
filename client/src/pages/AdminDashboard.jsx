@@ -1,12 +1,9 @@
-import React, { useState, useEffect, useCallback } from 'react';
-import { 
-    Container, Row, Col, Nav, Card, Table, Button, Modal, Form, 
-    Badge, Alert, Spinner, Tab, Tabs, Accordion 
-} from 'react-bootstrap';
+import React, { useState, useEffect } from 'react';
+import { Nav, Tab, Form, Button, Modal, Card, Alert, Accordion, Badge } from 'react-bootstrap';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { api } from '../api';
 
-// --- Admin Register Page Component (from File 2) ---
+// --- Admin Register Page Component ---
 const AdminRegisterPage = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -54,208 +51,78 @@ const AdminRegisterPage = () => {
     );
 };
 
-// --- MERGED: Order Management Component (from File 1 logic) ---
+// --- Order Management Component ---
 const OrderManager = () => {
     const [orders, setOrders] = useState([]);
-    const [viewOrder, setViewOrder] = useState(null);
-    const [isLoading, setIsLoading] = useState(true);
-    const [error, setError] = useState('');
+    const [loading, setLoading] = useState(true);
 
-    const fetchOrders = useCallback(async () => {
-        setIsLoading(true);
-        setError('');
-        try {
-            const res = await api.get('/api/admin/orders');
-            setOrders(res.data);
-        } catch (err) {
-            console.error("Error fetching orders:", err);
-            setError(err.response?.data?.message || 'Could not fetch orders');
-        } finally {
-            setIsLoading(false);
-        }
-    }, []);
+    useEffect(() => { fetchOrders(); }, []);
 
-    useEffect(() => {
-        fetchOrders();
-    }, [fetchOrders]);
-
-    const handleStatusChange = async (orderId, newStatus) => {
-        try {
-            const res = await api.patch(`/api/admin/orders/${orderId}`, { status: newStatus });
-            setOrders(prevOrders => prevOrders.map(order => 
-                order._id === orderId ? res.data : order
-            ));
-        } catch (err) {
-            console.error("Error updating order status:", err);
-            setError(err.response?.data?.message || 'Could not update status');
-        }
+    const fetchOrders = () => {
+        api.get('/admin/orders')
+            .then(response => { setOrders(response.data); setLoading(false); })
+            .catch(error => { console.error("Error fetching orders:", error); setLoading(false); });
     };
 
-    const handleAcknowledge = async (orderId) => {
-        try {
-            const res = await api.patch(`/api/admin/orders/${orderId}/acknowledge`);
-            setOrders(prevOrders => prevOrders.map(order => 
-                order._id === orderId ? { ...order, isAcknowledged: res.data.isAcknowledged } : order
-            ));
-        } catch (err) {
-            console.error("Error acknowledging order:", err);
-            setError(err.response?.data?.message || 'Could not acknowledge order');
-        }
+    const handleStatusChange = (orderId, newStatus) => {
+        api.patch(`/admin/orders/${orderId}`, { status: newStatus })
+            .then(response => {
+                setOrders(prevOrders => prevOrders.map(order => order._id === orderId ? response.data : order));
+            })
+            .catch(error => {
+                console.error("Error updating order status:", error);
+                alert('Failed to update order status.');
+            });
     };
-
-    const renderOrderModal = () => {
-        if (!viewOrder) return null;
-
-        return (
-            <Modal show={!!viewOrder} onHide={() => setViewOrder(null)} size="lg">
-                <Modal.Header closeButton>
-                    <Modal.Title>Order Details ({viewOrder._id})</Modal.Title>
-                </Modal.Header>
-                <Modal.Body>
-                    <p><strong>Customer:</strong> {viewOrder.customerName}</p>
-                    <p><strong>User Email:</strong> {viewOrder.user?.email || 'N/A'}</p>
-                    <p><strong>Address:</strong> {viewOrder.address}</p>
-                    <p><strong>Status:</strong> <Badge bg={getOrderStatusBadge(viewOrder.status)}>{viewOrder.status}</Badge></p>
-                    <hr />
-                    {/* --- NEW PAYMENT DETAILS --- */}
-                    <h5>Payment Details</h5>
-                    <p>
-                        <strong>Method:</strong> 
-                        <Badge bg={viewOrder.paymentMethod === 'UPI' ? 'primary' : 'secondary'} className="ms-2">
-                            {viewOrder.paymentMethod}
-                        </Badge>
-                    </p>
-                    <p>
-                        <strong>Payment Status:</strong> 
-                        <Badge bg={viewOrder.paymentStatus === 'Paid' ? 'success' : 'warning'} className="ms-2">
-                            {viewOrder.paymentStatus}
-                        </Badge>
-                    </p>
-                    {viewOrder.utr && (
-                        <p><strong>Payment UTR:</strong> <code style={{ fontSize: '1.1rem' }}>{viewOrder.utr}</code></p>
-                    )}
-                    {/* --- END OF NEW PAYMENT DETAILS --- */}
-                    <hr />
-                    <h5>Items</h5>
-                    <Table striped bordered>
-                        <thead>
-                            <tr>
-                                <th>Item</th>
-                                <th>Variant</th>
-                                <th>Quantity</th>
-                                <th>Price</th>
-                                <th>Total</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {viewOrder.items.map(item => (
-                                <tr key={item.menuItemId?._id + item.variant}>
-                                    <td>{item.menuItemId?.name || 'Item not found'}</td>
-                                    <td>{item.variant}</td>
-                                    <td>{item.quantity}</td>
-                                    <td>₹{item.priceAtOrder.toFixed(2)}</td>
-                                    <td>₹{(item.priceAtOrder * item.quantity).toFixed(2)}</td>
-                                </tr>
-                            ))}
-                        </tbody>
-                    </Table>
-                    <h5 className="text-end">Subtotal: ₹{viewOrder.totalPrice.toFixed(2)}</h5>
-                    {viewOrder.appliedCoupon && (
-                        <h5 className="text-end text-success">Discount ({viewOrder.appliedCoupon.code}): -₹{(viewOrder.totalPrice - viewOrder.finalPrice).toFixed(2)}</h5>
-                    )}
-                    <h4 className="text-end">Total Paid: ₹{viewOrder.finalPrice.toFixed(2)}</h4>
-                </Modal.Body>
-                <Modal.Footer>
-                    <Button variant="secondary" onClick={() => setViewOrder(null)}>Close</Button>
-                </Modal.Footer>
-            </Modal>
-        );
-    };
-
-    if (isLoading) return <div className="text-center"><Spinner animation="border" text="danger" role="status" /></div>;
+    
+    if (loading) return <div className="text-center"><div className="spinner-border text-danger" role="status"></div></div>;
+    if (orders.length === 0) return <div className="text-center"><h2>No orders found.</h2></div>;
 
     return (
-        <Card>
-            <Card.Header>
-                <Button variant="light" onClick={fetchOrders} disabled={isLoading}>
-                    {isLoading ? <Spinner animation="border" size="sm" /> : 'Refresh Orders'}
-                </Button>
-            </Card.Header>
-            <Card.Body>
-                {error && <Alert variant="danger">{error}</Alert>}
-                <Table striped bordered hover responsive>
-                    <thead>
-                        <tr>
-                            <th>Order ID</th>
-                            <th>Customer</th>
-                            <th>Date</th>
-                            <th>Total</th>
-                            <th>Payment</th>
-                            <th>Status</th>
-                            <th>Acknowledged</th>
-                            <th>Actions</th>
+        <div className="table-responsive">
+            <table className="table table-striped table-bordered table-hover">
+                <thead><tr><th>#</th><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Order Time</th></tr></thead>
+                <tbody>
+                    {orders.map((order, index) => (
+                        <tr key={order._id}>
+                            <td>{index + 1}</td>
+                            <td>{order.customerName}</td>
+                            <td>
+                                <ul>
+                                    {order.items.map(item => (
+                                        <li key={`${item.menuItemId?._id}-${item.variant}`}>
+                                            {item.quantity}x {item.menuItemId ? `${item.menuItemId.name} (${item.variant})` : 'N/A'}
+                                            {item.instructions && <small className="d-block text-muted"><em>"{item.instructions}"</em></small>}
+                                        </li>
+                                    ))}
+                                </ul>
+                            </td>
+                            <td>
+                                {order.appliedCoupon ? (
+                                    <div>
+                                        <span style={{ textDecoration: 'line-through' }} className="text-muted d-block">${(order.totalPrice ?? 0).toFixed(2)}</span>
+                                        <strong className="d-block">${(order.finalPrice ?? 0).toFixed(2)}</strong>
+                                        <Badge pill bg="info">{order.appliedCoupon.code}</Badge>
+                                    </div>
+                                ) : (
+                                    <span>${(order.totalPrice ?? 0).toFixed(2)}</span>
+                                )}
+                            </td>
+                            <td>
+                                <Form.Select size="sm" value={order.status} onChange={(e) => handleStatusChange(order._id, e.target.value)}>
+                                    <option>Received</option><option>Preparing</option><option>Out for Delivery</option><option>Completed</option>
+                                </Form.Select>
+                            </td>
+                            <td>{new Date(order.createdAt).toLocaleString()}</td>
                         </tr>
-                    </thead>
-                    <tbody>
-                        {orders.map(order => (
-                            <tr key={order._id}>
-                                <td><small>{order._id}</small></td>
-                                <td>{order.customerName}<br /><small>{order.user?.email}</small></td>
-                                <td>{new Date(order.createdAt).toLocaleString()}</td>
-                                <td>₹{order.finalPrice.toFixed(2)}</td>
-                                {/* --- MODIFIED: Show payment status and UTR --- */}
-                                <td>
-                                    <Badge bg={order.paymentMethod === 'UPI' ? 'primary' : 'secondary'}>
-                                        {order.paymentMethod}
-                                    </Badge>
-                                    <br />
-                                    <Badge bg={order.paymentStatus === 'Paid' ? 'success' : 'warning'} pill>
-                                        {order.paymentStatus}
-                                    </Badge>
-                                    {order.utr && <><br /><small>UTR: {order.utr}</small></>}
-                                </td>
-                                <td>
-                                    <Form.Select
-                                        size="sm"
-                                        value={order.status}
-                                        onChange={(e) => handleStatusChange(order._id, e.target.value)}
-                                        style={{ backgroundColor: getOrderStatusColor(order.status), color: 'white' }}
-                                    >
-                                        <option value="Pending Payment">Pending Payment</option>
-                                        <option value="Received">Received</option>
-                                        <option value="Preparing">Preparing</option>
-                                        <option value="Ready">Ready</option>
-                                        <option value="Out for Delivery">Out for Delivery</option>
-                                        <option value="Delivered">Delivered</option>
-                                        <option value="Rejected">Rejected</option>
-                                    </Form.Select>
-                                </td>
-                                <td>
-                                    {order.isAcknowledged ? (
-                                        <Badge bg="success">Yes</Badge>
-                                    ) : (
-                                        <Button size="sm" variant="outline-primary" onClick={() => handleAcknowledge(order._id)}>
-                                            Ack
-                                        </Button>
-                                    )}
-                                </td>
-                                <td>
-                                    <Button size="sm" variant="info" onClick={() => setViewOrder(order)}>
-                                        View
-                                    </Button>
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </Table>
-            </Card.Body>
-            {renderOrderModal()}
-        </Card>
+                    ))}
+                </tbody>
+            </table>
+        </div>
     );
 };
 
-
-// --- Menu Management Component (from File 2) ---
+// --- Menu Management Component ---
 const MenuManager = () => {
     const [menu, setMenu] = useState({});
     const [loading, setLoading] = useState(true);
@@ -263,7 +130,7 @@ const MenuManager = () => {
     const [currentItem, setCurrentItem] = useState(null);
     const [formData, setFormData] = useState({ name: '', description: '', category: '', price: { half: '', full: '' }});
     const [imageFile, setImageFile] = useState(null);
-    const [isClient, setIsClient] = useState(false); // For react-beautiful-dnd hydration
+    const [isClient, setIsClient] = useState(false);
 
     const fetchMenu = () => {
         setLoading(true);
@@ -413,8 +280,8 @@ const MenuManager = () => {
                                                                     </svg>
                                                                 </div>
                                                                 <div className="col">{item.name}</div>
-                                                                <div className="col-2">₹{item.price.half != null ? item.price.half.toFixed(2) : 'N/A'}</div>
-                                                                <div className="col-2">₹{item.price.full != null ? item.price.full.toFixed(2) : 'N/A'}</div>
+                                                                <div className="col-2">${item.price.half != null ? item.price.half.toFixed(2) : 'N/A'}</div>
+                                                                <div className="col-2">${item.price.full.toFixed(2)}</div>
                                                                 <div className="col-3">
                                                                     <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleShowModal(item)}>Edit</Button>
                                                                     <Button variant="outline-secondary" size="sm" onClick={() => handleDelete(item._id)}>Delete</Button>
@@ -456,7 +323,7 @@ const MenuManager = () => {
     );
 };
 
-// --- Complaint Management Component (from File 2) ---
+// --- Complaint Management Component ---
 const ComplaintManager = () => {
     const [complaints, setComplaints] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -502,7 +369,7 @@ const ComplaintManager = () => {
 };
 
 
-// --- Bulk Upload Component (from File 2) ---
+// --- Bulk Upload Component ---
 const BulkUploadManager = () => {
     const [csvFile, setCsvFile] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -543,9 +410,9 @@ const BulkUploadManager = () => {
 
     const handleDownloadSample = () => {
         const csvContent = "Item,Category,Item Price,Half,Full\n" +
-                         "Veg Momos,Appetizers,,130,250\n" +
-                         "Paneer Chilli Dry,Main Course,,350,500\n" +
-                         "Veg Burger,Snacks,100,,\n";
+                           "Veg Momos,Appetizers,,130,250\n" +
+                           "Paneer Chilli Dry,Main Course,,350,500\n" +
+                           "Veg Burger,Snacks,100,,\n";
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
@@ -595,7 +462,7 @@ const BulkUploadManager = () => {
     );
 };
 
-// --- Coupon Management Component (from File 2) ---
+// --- New Coupon Management Component ---
 const CouponManager = () => {
     const [coupons, setCoupons] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -649,7 +516,7 @@ const CouponManager = () => {
                                 <td>{coupon.code}</td>
                                 <td>{coupon.description}</td>
                                 <td>{coupon.discountType}</td>
-                                <td>{coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue.toFixed(2)}`}</td>
+                                <td>{coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue.toFixed(2)}`}</td>
                                 <td>
                                     <Badge bg={coupon.isActive ? 'success' : 'secondary'}>
                                         {coupon.isActive ? 'Active' : 'Inactive'}
@@ -682,9 +549,9 @@ const CouponManager = () => {
     );
 };
 
-// --- Main Admin Dashboard Component (from File 2 structure) ---
+// --- Main Admin Dashboard Component ---
 const AdminDashboard = ({ adminName, handleLogout }) => (
-    <Container fluid className="fade-in">
+    <div className="fade-in">
         <div className="d-flex justify-content-between align-items-center mb-4">
             <h1>Admin Dashboard</h1>
             <div>
@@ -707,37 +574,10 @@ const AdminDashboard = ({ adminName, handleLogout }) => (
                 <Tab.Pane eventKey="complaints"><ComplaintManager /></Tab.Pane>
                 <Tab.Pane eventKey="bulk-upload"><BulkUploadManager /></Tab.Pane>
                 <Tab.Pane eventKey="coupons"><CouponManager /></Tab.Pane>
-                {/* The "Register New Admin" tab just links to the hash route, which App.js will handle */}
             </Tab.Content>
         </Tab.Container>
-    </Container>
+    </div>
 );
 
-// --- Helper Functions (from File 1) ---
-const getOrderStatusBadge = (status) => {
-    switch (status) {
-        case 'Delivered': return 'success';
-        case 'Rejected': return 'danger';
-        case 'Preparing':
-        case 'Ready':
-        case 'Out for Delivery': return 'primary';
-        case 'Received': return 'info';
-        case 'Pending Payment': return 'warning';
-        default: return 'secondary';
-    }
-};
-
-const getOrderStatusColor = (status) => {
-    switch (status) {
-        case 'Delivered': return '#198754'; // success
-        case 'Rejected': return '#dc3545'; // danger
-        case 'Preparing':
-        case 'Ready':
-        case 'Out for Delivery': return '#0d6efd'; // primary
-        case 'Received': return '#0dcaf0'; // info
-        case 'Pending Payment': return '#ffc107'; // warning
-        default: return '#6c757d'; // secondary
-    }
-};
-
 export default AdminDashboard;
+

@@ -1,194 +1,12 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Nav, Tab, Form, Button, Modal, Card, Alert, Accordion, Badge, Dropdown, Table } from 'react-bootstrap';
+import React, { useState, useEffect, useCallback } from 'react';
+import { 
+    Container, Row, Col, Nav, Card, Table, Button, Modal, Form, 
+    Badge, Alert, Spinner, Tab, Tabs, Accordion 
+} from 'react-bootstrap';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { api } from '../api';
-import * as Tone from 'tone';
 
-// --- New Order Modal ---
-const NewOrderModal = ({ order, onAccept, onReject, show }) => {
-    if (!order) return null;
-    const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(order.address)}`;
-    return (
-        <Modal show={show} onHide={() => onReject(order._id)} centered backdrop="static" keyboard={false}>
-            <Modal.Header className="bg-warning text-dark">
-                <Modal.Title>🚨 New Order Received!</Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-                <h5>Order #{order._id.slice(-6)}</h5>
-                <p><strong>Customer:</strong> {order.customerName}</p>
-                <p><strong>Address:</strong> <a href={mapUrl} target="_blank" rel="noopener noreferrer">{order.address}</a></p>
-                <ul>
-                    {order.items.map((item, index) => (
-                        <li key={`${order._id}-item-${index}`}>
-                            {item.quantity}x {item.menuItemId?.name} ({item.variant})
-                            {item.instructions && <small className="d-block text-muted"><em>"{item.instructions}"</em></small>}
-                        </li>
-                    ))}
-                </ul>
-                <hr/>
-                <p className="fw-bold text-end">Total: ${(order.finalPrice ?? order.totalPrice).toFixed(2)}</p>
-            </Modal.Body>
-            <Modal.Footer>
-                <Button variant="danger" onClick={() => onReject(order._id)}>Reject</Button>
-                <Button variant="success" onClick={() => onAccept(order._id)}>Accept Order</Button>
-            </Modal.Footer>
-        </Modal>
-    );
-};
-
-// --- Order Card for Kanban View ---
-const OrderCard = ({ order, onAction, actionText, actionVariant = 'primary' }) => {
-    const mapUrl = `https://www.google.com/maps?q=${encodeURIComponent(order.address)}`;
-    return (
-        <Card className="mb-3 shadow-sm">
-            <Card.Body>
-                <Card.Title>Order #{order._id.slice(-6)}</Card.Title>
-                <Card.Subtitle className="mb-2 text-muted">{order.customerName}</Card.Subtitle>
-                <Card.Text>
-                    <strong>Address:</strong> <a href={mapUrl} target="_blank" rel="noopener noreferrer">View on Map</a>
-                </Card.Text>
-                <ul>
-                    {order.items.map((item, index) => (
-                        <li key={`${order._id}-item-${index}`}>
-                            {item.quantity}x {item.menuItemId?.name} ({item.variant})
-                            {item.instructions && <small className="d-block text-info"><em>"{item.instructions}"</em></small>}
-                        </li>
-                    ))}
-                </ul>
-            </Card.Body>
-            <Card.Footer className="d-grid">
-                <Button variant={actionVariant} onClick={() => onAction(order._id)}>
-                    {actionText}
-                </Button>
-            </Card.Footer>
-        </Card>
-    );
-};
-
-
-// --- Live Order Management Component ---
-const LiveOrderManager = () => {
-    const [orders, setOrders] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [initialLoad, setInitialLoad] = useState(true);
-    const synth = useRef(null);
-    const soundInterval = useRef(null);
-    const [isMuted, setIsMuted] = useState(false);
-
-    useEffect(() => {
-        synth.current = new Tone.Synth().toDestination();
-        const startAudio = () => {
-            if (Tone.context.state !== 'running') { Tone.context.resume(); }
-            window.removeEventListener('click', startAudio);
-        };
-        window.addEventListener('click', startAudio);
-        return () => window.removeEventListener('click', startAudio);
-    }, []);
-
-    const playNotificationSound = () => {
-        if(isMuted) return;
-        stopNotificationSound();
-        const play = () => {
-            if (synth.current) {
-                synth.current.triggerAttackRelease("C5", "8n", Tone.now());
-                synth.current.triggerAttackRelease("G5", "8n", Tone.now() + 0.2);
-            }
-        };
-        play();
-        soundInterval.current = setInterval(play, 3000);
-    };
-
-    const stopNotificationSound = () => {
-        if (soundInterval.current) {
-            clearInterval(soundInterval.current);
-            soundInterval.current = null;
-        }
-    };
-
-    const fetchOrders = () => {
-        api.get('/admin/orders')
-            .then(response => {
-                const fetchedOrders = response.data;
-                const newOrdersCount = fetchedOrders.filter(o => o.status === 'Received').length;
-                const previousNewOrdersCount = orders.filter(o => o.status === 'Received').length;
-
-                if (!initialLoad && newOrdersCount > 0 && newOrdersCount > previousNewOrdersCount) {
-                    playNotificationSound();
-                } else if (newOrdersCount === 0) {
-                    stopNotificationSound();
-                }
-                
-                setOrders(fetchedOrders);
-                if (initialLoad) setInitialLoad(false);
-            })
-            .catch(error => console.error("Error fetching orders:", error))
-            .finally(() => setLoading(false));
-    };
-
-    useEffect(() => {
-        fetchOrders();
-        const pollInterval = setInterval(fetchOrders, 5000);
-        return () => {
-            clearInterval(pollInterval);
-            stopNotificationSound();
-        };
-    }, []);
-    
-    const handleOrderStatusUpdate = (orderId, newStatus) => {
-        api.patch(`/admin/orders/${orderId}/status`, { status: newStatus })
-            .then(response => {
-                const updatedOrders = orders.map(o => o._id === orderId ? response.data : o);
-                setOrders(updatedOrders);
-                if (newStatus === 'Preparing' || newStatus === 'Rejected') {
-                    if (!updatedOrders.some(o => o.status === 'Received')) {
-                        stopNotificationSound();
-                    }
-                }
-            })
-            .catch(err => alert(`Failed to update order to ${newStatus}.`));
-    };
-    
-    if (loading) return <div className="text-center"><div className="spinner-border text-danger" role="status"></div></div>;
-
-    const newOrders = orders.filter(o => o.status === 'Received');
-    const preparingOrders = orders.filter(o => o.status === 'Preparing');
-    const readyOrders = orders.filter(o => o.status === 'Ready');
-    const deliveryOrders = orders.filter(o => o.status === 'Out for Delivery');
-    
-    return (
-        <>
-            <Button variant="outline-secondary" size="sm" className="mb-3" onClick={() => setIsMuted(!isMuted)}>
-                {isMuted ? 'Unmute Notifications' : 'Mute Notifications'}
-            </Button>
-            {newOrders.map(order => (
-                <NewOrderModal 
-                    key={order._id}
-                    show={true} 
-                    order={order} 
-                    onAccept={() => handleOrderStatusUpdate(order._id, 'Preparing')}
-                    onReject={() => handleOrderStatusUpdate(order._id, 'Rejected')}
-                />
-            ))}
-            <div className="kanban-board row">
-                <div className="col-md-4 col-lg-3">
-                    <h4>Preparing ({preparingOrders.length})</h4>
-                    {preparingOrders.map(o => <OrderCard key={o._id} order={o} onAction={() => handleOrderStatusUpdate(o._id, 'Ready')} actionText="Mark Ready" />)}
-                </div>
-                <div className="col-md-4 col-lg-3">
-                    <h4>Ready for Delivery ({readyOrders.length})</h4>
-                    {readyOrders.map(o => <OrderCard key={o._id} order={o} onAction={() => handleOrderStatusUpdate(o._id, 'Out for Delivery')} actionText="Out for Delivery" actionVariant="warning" />)}
-                </div>
-                <div className="col-md-4 col-lg-3">
-                    <h4>Out for Delivery ({deliveryOrders.length})</h4>
-                    {deliveryOrders.map(o => <OrderCard key={o._id} order={o} onAction={() => handleOrderStatusUpdate(o._id, 'Delivered')} actionText="Mark Delivered" actionVariant="success"/>)}
-                </div>
-            </div>
-        </>
-    );
-};
-
-
-// --- Admin Register Page Component ---
+// --- Admin Register Page Component (from File 2) ---
 const AdminRegisterPage = () => {
     const [name, setName] = useState('');
     const [email, setEmail] = useState('');
@@ -236,15 +54,216 @@ const AdminRegisterPage = () => {
     );
 };
 
-// --- Menu Management Component ---
+// --- MERGED: Order Management Component (from File 1 logic) ---
+const OrderManager = () => {
+    const [orders, setOrders] = useState([]);
+    const [viewOrder, setViewOrder] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const fetchOrders = useCallback(async () => {
+        setIsLoading(true);
+        setError('');
+        try {
+            const res = await api.get('/api/admin/orders');
+            setOrders(res.data);
+        } catch (err) {
+            console.error("Error fetching orders:", err);
+            setError(err.response?.data?.message || 'Could not fetch orders');
+        } finally {
+            setIsLoading(false);
+        }
+    }, []);
+
+    useEffect(() => {
+        fetchOrders();
+    }, [fetchOrders]);
+
+    const handleStatusChange = async (orderId, newStatus) => {
+        try {
+            const res = await api.patch(`/api/admin/orders/${orderId}`, { status: newStatus });
+            setOrders(prevOrders => prevOrders.map(order => 
+                order._id === orderId ? res.data : order
+            ));
+        } catch (err) {
+            console.error("Error updating order status:", err);
+            setError(err.response?.data?.message || 'Could not update status');
+        }
+    };
+
+    const handleAcknowledge = async (orderId) => {
+        try {
+            const res = await api.patch(`/api/admin/orders/${orderId}/acknowledge`);
+            setOrders(prevOrders => prevOrders.map(order => 
+                order._id === orderId ? { ...order, isAcknowledged: res.data.isAcknowledged } : order
+            ));
+        } catch (err) {
+            console.error("Error acknowledging order:", err);
+            setError(err.response?.data?.message || 'Could not acknowledge order');
+        }
+    };
+
+    const renderOrderModal = () => {
+        if (!viewOrder) return null;
+
+        return (
+            <Modal show={!!viewOrder} onHide={() => setViewOrder(null)} size="lg">
+                <Modal.Header closeButton>
+                    <Modal.Title>Order Details ({viewOrder._id})</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <p><strong>Customer:</strong> {viewOrder.customerName}</p>
+                    <p><strong>User Email:</strong> {viewOrder.user?.email || 'N/A'}</p>
+                    <p><strong>Address:</strong> {viewOrder.address}</p>
+                    <p><strong>Status:</strong> <Badge bg={getOrderStatusBadge(viewOrder.status)}>{viewOrder.status}</Badge></p>
+                    <hr />
+                    {/* --- NEW PAYMENT DETAILS --- */}
+                    <h5>Payment Details</h5>
+                    <p>
+                        <strong>Method:</strong> 
+                        <Badge bg={viewOrder.paymentMethod === 'UPI' ? 'primary' : 'secondary'} className="ms-2">
+                            {viewOrder.paymentMethod}
+                        </Badge>
+                    </p>
+                    <p>
+                        <strong>Payment Status:</strong> 
+                        <Badge bg={viewOrder.paymentStatus === 'Paid' ? 'success' : 'warning'} className="ms-2">
+                            {viewOrder.paymentStatus}
+                        </Badge>
+                    </p>
+                    {viewOrder.utr && (
+                        <p><strong>Payment UTR:</strong> <code style={{ fontSize: '1.1rem' }}>{viewOrder.utr}</code></p>
+                    )}
+                    {/* --- END OF NEW PAYMENT DETAILS --- */}
+                    <hr />
+                    <h5>Items</h5>
+                    <Table striped bordered>
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Variant</th>
+                                <th>Quantity</th>
+                                <th>Price</th>
+                                <th>Total</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {viewOrder.items.map(item => (
+                                <tr key={item.menuItemId?._id + item.variant}>
+                                    <td>{item.menuItemId?.name || 'Item not found'}</td>
+                                    <td>{item.variant}</td>
+                                    <td>{item.quantity}</td>
+                                    <td>₹{item.priceAtOrder.toFixed(2)}</td>
+                                    <td>₹{(item.priceAtOrder * item.quantity).toFixed(2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                    <h5 className="text-end">Subtotal: ₹{viewOrder.totalPrice.toFixed(2)}</h5>
+                    {viewOrder.appliedCoupon && (
+                        <h5 className="text-end text-success">Discount ({viewOrder.appliedCoupon.code}): -₹{(viewOrder.totalPrice - viewOrder.finalPrice).toFixed(2)}</h5>
+                    )}
+                    <h4 className="text-end">Total Paid: ₹{viewOrder.finalPrice.toFixed(2)}</h4>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setViewOrder(null)}>Close</Button>
+                </Modal.Footer>
+            </Modal>
+        );
+    };
+
+    if (isLoading) return <div className="text-center"><Spinner animation="border" text="danger" role="status" /></div>;
+
+    return (
+        <Card>
+            <Card.Header>
+                <Button variant="light" onClick={fetchOrders} disabled={isLoading}>
+                    {isLoading ? <Spinner animation="border" size="sm" /> : 'Refresh Orders'}
+                </Button>
+            </Card.Header>
+            <Card.Body>
+                {error && <Alert variant="danger">{error}</Alert>}
+                <Table striped bordered hover responsive>
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Total</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                            <th>Acknowledged</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {orders.map(order => (
+                            <tr key={order._id}>
+                                <td><small>{order._id}</small></td>
+                                <td>{order.customerName}<br /><small>{order.user?.email}</small></td>
+                                <td>{new Date(order.createdAt).toLocaleString()}</td>
+                                <td>₹{order.finalPrice.toFixed(2)}</td>
+                                {/* --- MODIFIED: Show payment status and UTR --- */}
+                                <td>
+                                    <Badge bg={order.paymentMethod === 'UPI' ? 'primary' : 'secondary'}>
+                                        {order.paymentMethod}
+                                    </Badge>
+                                    <br />
+                                    <Badge bg={order.paymentStatus === 'Paid' ? 'success' : 'warning'} pill>
+                                        {order.paymentStatus}
+                                    </Badge>
+                                    {order.utr && <><br /><small>UTR: {order.utr}</small></>}
+                                </td>
+                                <td>
+                                    <Form.Select
+                                        size="sm"
+                                        value={order.status}
+                                        onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                                        style={{ backgroundColor: getOrderStatusColor(order.status), color: 'white' }}
+                                    >
+                                        <option value="Pending Payment">Pending Payment</option>
+                                        <option value="Received">Received</option>
+                                        <option value="Preparing">Preparing</option>
+                                        <option value="Ready">Ready</option>
+                                        <option value="Out for Delivery">Out for Delivery</option>
+                                        <option value="Delivered">Delivered</option>
+                                        <option value="Rejected">Rejected</option>
+                                    </Form.Select>
+                                </td>
+                                <td>
+                                    {order.isAcknowledged ? (
+                                        <Badge bg="success">Yes</Badge>
+                                    ) : (
+                                        <Button size="sm" variant="outline-primary" onClick={() => handleAcknowledge(order._id)}>
+                                            Ack
+                                        </Button>
+                                    )}
+                                </td>
+                                <td>
+                                    <Button size="sm" variant="info" onClick={() => setViewOrder(order)}>
+                                        View
+                                    </Button>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </Table>
+            </Card.Body>
+            {renderOrderModal()}
+        </Card>
+    );
+};
+
+
+// --- Menu Management Component (from File 2) ---
 const MenuManager = () => {
-    const [menu, setMenu] = useState([]);
+    const [menu, setMenu] = useState({});
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [currentItem, setCurrentItem] = useState(null);
     const [formData, setFormData] = useState({ name: '', description: '', category: '', price: { half: '', full: '' }});
     const [imageFile, setImageFile] = useState(null);
-    const [isClient, setIsClient] = useState(false);
+    const [isClient, setIsClient] = useState(false); // For react-beautiful-dnd hydration
 
     const fetchMenu = () => {
         setLoading(true);
@@ -334,45 +353,25 @@ const MenuManager = () => {
     };
 
     const onDragEnd = (result) => {
-        const { source, destination, type } = result;
+        const { source, destination } = result;
         if (!destination) return;
 
-        if (type === 'CATEGORY') {
-            const reorderedCategories = Array.from(menu);
-            const [movedCategory] = reorderedCategories.splice(source.index, 1);
-            reorderedCategories.splice(destination.index, 0, movedCategory);
-            
-            setMenu(reorderedCategories);
+        const sourceCategory = source.droppableId;
+        const destCategory = destination.droppableId;
 
-            const orderedCategoryNames = reorderedCategories.map(c => c.name);
-            api.patch('/admin/categories/reorder', { orderedCategoryNames })
+        if (sourceCategory === destCategory) {
+            const items = Array.from(menu[sourceCategory]);
+            const [reorderedItem] = items.splice(source.index, 1);
+            items.splice(destination.index, 0, reorderedItem);
+
+            setMenu(prevMenu => ({ ...prevMenu, [sourceCategory]: items }));
+
+            const orderedIds = items.map(item => item._id);
+            api.patch('/admin/menu/reorder', { category: sourceCategory, orderedIds })
                .catch(err => {
-                    alert('Failed to save category order. Reverting.');
+                    alert('Failed to save new order. Reverting changes.');
                     fetchMenu();
                });
-            return;
-        }
-
-        if (type === 'ITEM') {
-            const sourceCategoryIndex = menu.findIndex(c => c.name === source.droppableId);
-            const sourceCategory = menu[sourceCategoryIndex];
-            
-            const newMenuState = Array.from(menu);
-            const sourceItems = Array.from(sourceCategory.items);
-            const [movedItem] = sourceItems.splice(source.index, 1);
-
-            if (source.droppableId === destination.droppableId) {
-                sourceItems.splice(destination.index, 0, movedItem);
-                newMenuState[sourceCategoryIndex] = { ...sourceCategory, items: sourceItems };
-                setMenu(newMenuState);
-
-                const orderedIds = sourceItems.map(item => item._id);
-                api.patch('/admin/menu/reorder', { category: sourceCategory.name, orderedIds })
-                   .catch(err => {
-                        alert('Failed to save item order. Reverting.');
-                        fetchMenu();
-                   });
-            }
         }
     };
     
@@ -384,75 +383,54 @@ const MenuManager = () => {
             
             {isClient && (
                 <DragDropContext onDragEnd={onDragEnd}>
-                    <Droppable droppableId="all-categories" type="CATEGORY">
-                        {(provided) => (
-                            <div {...provided.droppableProps} ref={provided.innerRef}>
-                                <Accordion defaultActiveKey="0" alwaysOpen>
-                                    {menu.map((category, index) => (
-                                        <Draggable key={category.name} draggableId={category.name} index={index}>
-                                            {(provided) => (
-                                                <div ref={provided.innerRef} {...provided.draggableProps}>
-                                                    <Accordion.Item eventKey={index.toString()} >
-                                                        <Accordion.Header {...provided.dragHandleProps}>
-                                                            <span style={{ cursor: 'grab', marginRight: '10px' }}>
-                                                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-grip-vertical" viewBox="0 0 16 16">
-                                                                    <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                                                                </svg>
-                                                            </span>
-                                                            {category.name} ({category.items.length})
-                                                        </Accordion.Header>
-                                                        <Accordion.Body>
-                                                            <div className="table-responsive">
-                                                                <Table striped bordered hover>
-                                                                    <thead>
-                                                                        <tr>
-                                                                            <th style={{ width: '40px' }}></th>
-                                                                            <th>Name</th>
-                                                                            <th>Half Price</th>
-                                                                            <th>Full Price</th>
-                                                                            <th>Actions</th>
-                                                                        </tr>
-                                                                    </thead>
-                                                                    <Droppable droppableId={category.name} type="ITEM">
-                                                                        {(provided) => (
-                                                                            <tbody ref={provided.innerRef} {...provided.droppableProps}>
-                                                                                {category.items.map((item, idx) => (
-                                                                                    <Draggable key={item._id} draggableId={item._id.toString()} index={idx}>
-                                                                                        {(provided) => (
-                                                                                            <tr ref={provided.innerRef} {...provided.draggableProps} {...provided.dragHandleProps}>
-                                                                                                <td style={{ cursor: 'grab' }}>
-                                                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-grip-vertical" viewBox="0 0 16 16">
-                                                                                                        <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
-                                                                                                    </svg>
-                                                                                                </td>
-                                                                                                <td>{item.name}</td>
-                                                                                                <td>${item.price.half != null ? item.price.half.toFixed(2) : 'N/A'}</td>
-                                                                                                <td>${item.price.full.toFixed(2)}</td>
-                                                                                                <td>
-                                                                                                    <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleShowModal(item)}>Edit</Button>
-                                                                                                    <Button variant="outline-secondary" size="sm" onClick={() => handleDelete(item._id)}>Delete</Button>
-                                                                                                </td>
-                                                                                            </tr>
-                                                                                        )}
-                                                                                    </Draggable>
-                                                                                ))}
-                                                                                {provided.placeholder}
-                                                                            </tbody>
-                                                                        )}
-                                                                    </Droppable>
-                                                                </Table>
+                    <Accordion defaultActiveKey="0" alwaysOpen>
+                        {Object.entries(menu).map(([category, items], index) => (
+                            <Accordion.Item eventKey={index.toString()} key={category}>
+                                <Accordion.Header>{category} ({items.length})</Accordion.Header>
+                                <Accordion.Body>
+                                    <div className="d-none d-md-flex row fw-bold mb-2 border-bottom pb-2">
+                                        <div className="col-1 text-center">Move</div>
+                                        <div className="col">Name</div>
+                                        <div className="col-2">Half Price</div>
+                                        <div className="col-2">Full Price</div>
+                                        <div className="col-3">Actions</div>
+                                    </div>
+                                    <Droppable droppableId={category}>
+                                        {(provided) => (
+                                            <div ref={provided.innerRef} {...provided.droppableProps}>
+                                                {items.map((item, idx) => (
+                                                    <Draggable key={item._id} draggableId={item._id.toString()} index={idx}>
+                                                        {(provided) => (
+                                                            <div
+                                                                className="row align-items-center py-2 border-bottom"
+                                                                ref={provided.innerRef}
+                                                                {...provided.draggableProps}
+                                                                {...provided.dragHandleProps}
+                                                            >
+                                                                <div className="col-1 text-center" style={{ cursor: 'grab' }}>
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-grip-vertical" viewBox="0 0 16 16">
+                                                                        <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                                                    </svg>
+                                                                </div>
+                                                                <div className="col">{item.name}</div>
+                                                                <div className="col-2">₹{item.price.half != null ? item.price.half.toFixed(2) : 'N/A'}</div>
+                                                                <div className="col-2">₹{item.price.full != null ? item.price.full.toFixed(2) : 'N/A'}</div>
+                                                                <div className="col-3">
+                                                                    <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleShowModal(item)}>Edit</Button>
+                                                                    <Button variant="outline-secondary" size="sm" onClick={() => handleDelete(item._id)}>Delete</Button>
+                                                                </div>
                                                             </div>
-                                                        </Accordion.Body>
-                                                    </Accordion.Item>
-                                                </div>
-                                            )}
-                                        </Draggable>
-                                    ))}
-                                    {provided.placeholder}
-                                </Accordion>
-                            </div>
-                        )}
-                    </Droppable>
+                                                        )}
+                                                    </Draggable>
+                                                ))}
+                                                {provided.placeholder}
+                                            </div>
+                                        )}
+                                    </Droppable>
+                                </Accordion.Body>
+                            </Accordion.Item>
+                        ))}
+                    </Accordion>
                 </DragDropContext>
             )}
 
@@ -478,8 +456,7 @@ const MenuManager = () => {
     );
 };
 
-
-// --- Complaint Management Component ---
+// --- Complaint Management Component (from File 2) ---
 const ComplaintManager = () => {
     const [complaints, setComplaints] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -503,7 +480,7 @@ const ComplaintManager = () => {
 
     return (
         <div className="table-responsive">
-            <Table striped bordered hover>
+            <table className="table table-striped table-bordered table-hover">
                 <thead><tr><th>Customer</th><th>Order Date</th><th>Message</th><th>Status</th></tr></thead>
                 <tbody>
                     {complaints.map(c => (
@@ -519,13 +496,13 @@ const ComplaintManager = () => {
                         </tr>
                     ))}
                 </tbody>
-            </Table>
+            </table>
         </div>
     );
 };
 
 
-// --- Bulk Upload Component ---
+// --- Bulk Upload Component (from File 2) ---
 const BulkUploadManager = () => {
     const [csvFile, setCsvFile] = useState(null);
     const [isUploading, setIsUploading] = useState(false);
@@ -566,9 +543,9 @@ const BulkUploadManager = () => {
 
     const handleDownloadSample = () => {
         const csvContent = "Item,Category,Item Price,Half,Full\n" +
-                           "Veg Momos,Appetizers,,130,250\n" +
-                           "Paneer Chilli Dry,Main Course,,350,500\n" +
-                           "Veg Burger,Snacks,100,,\n";
+                         "Veg Momos,Appetizers,,130,250\n" +
+                         "Paneer Chilli Dry,Main Course,,350,500\n" +
+                         "Veg Burger,Snacks,100,,\n";
         
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
@@ -618,7 +595,7 @@ const BulkUploadManager = () => {
     );
 };
 
-// --- New Coupon Management Component ---
+// --- Coupon Management Component (from File 2) ---
 const CouponManager = () => {
     const [coupons, setCoupons] = useState([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -641,7 +618,7 @@ const CouponManager = () => {
         try {
             await api.post('/admin/coupons', { ...formData, code: formData.code.toUpperCase() });
             setShowModal(false);
-            fetchCoupons();
+            fetchCoupons(); // Refresh the list
         } catch (error) {
             alert('Failed to create coupon. Make sure the code is unique.');
         }
@@ -662,7 +639,7 @@ const CouponManager = () => {
         <>
             <Button onClick={() => setShowModal(true)} className="mb-3">Create New Coupon</Button>
             <div className="table-responsive">
-                <Table striped bordered hover>
+                <table className="table table-striped table-bordered table-hover">
                     <thead>
                         <tr><th>Code</th><th>Description</th><th>Type</th><th>Value</th><th>Status</th><th>Actions</th></tr>
                     </thead>
@@ -672,7 +649,7 @@ const CouponManager = () => {
                                 <td>{coupon.code}</td>
                                 <td>{coupon.description}</td>
                                 <td>{coupon.discountType}</td>
-                                <td>{coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `$${coupon.discountValue.toFixed(2)}`}</td>
+                                <td>{coupon.discountType === 'percentage' ? `${coupon.discountValue}%` : `₹${coupon.discountValue.toFixed(2)}`}</td>
                                 <td>
                                     <Badge bg={coupon.isActive ? 'success' : 'secondary'}>
                                         {coupon.isActive ? 'Active' : 'Inactive'}
@@ -686,7 +663,7 @@ const CouponManager = () => {
                             </tr>
                         ))}
                     </tbody>
-                </Table>
+                </table>
             </div>
             
             <Modal show={showModal} onHide={() => setShowModal(false)}>
@@ -705,11 +682,9 @@ const CouponManager = () => {
     );
 };
 
-// --- Main Admin Dashboard Component ---
-const AdminDashboard = ({ adminName, handleLogout }) => {
-    const [activeTab, setActiveTab] = useState('live-orders');
-    return (
-    <div className="fade-in">
+// --- Main Admin Dashboard Component (from File 2 structure) ---
+const AdminDashboard = ({ adminName, handleLogout }) => (
+    <Container fluid className="fade-in">
         <div className="d-flex justify-content-between align-items-center mb-4">
             <h1>Admin Dashboard</h1>
             <div>
@@ -717,30 +692,52 @@ const AdminDashboard = ({ adminName, handleLogout }) => {
                 <Button variant="outline-secondary" size="sm" onClick={() => handleLogout('admin')}>Logout</Button>
             </div>
         </div>
-        <Tab.Container activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
+        <Tab.Container defaultActiveKey="menu">
             <Nav variant="tabs" className="mb-3 justify-content-center">
-                <Nav.Item><Nav.Link eventKey="live-orders">Live Orders</Nav.Link></Nav.Item>
-                <Dropdown as={Nav.Item}>
-                    <Dropdown.Toggle as={Nav.Link}>Menu & More</Dropdown.Toggle>
-                    <Dropdown.Menu>
-                        <Dropdown.Item eventKey="menu">Manage Menu</Dropdown.Item>
-                        <Dropdown.Item eventKey="bulk-upload">Bulk Upload</Dropdown.Item>
-                        <Dropdown.Item eventKey="coupons">Manage Coupons</Dropdown.Item>
-                    </Dropdown.Menu>
-                </Dropdown>
-                <Nav.Item><Nav.Link eventKey="complaints">Complaints</Nav.Link></Nav.Item>
-                <Nav.Item><Nav.Link href="#/admin-register">Register Admin</Nav.Link></Nav.Item>
+                <Nav.Item><Nav.Link eventKey="menu">Manage Menu</Nav.Link></Nav.Item>
+                <Nav.Item><Nav.Link eventKey="orders">Manage Orders</Nav.Link></Nav.Item>
+                <Nav.Item><Nav.Link eventKey="complaints">Manage Complaints</Nav.Link></Nav.Item>
+                <Nav.Item><Nav.Link eventKey="bulk-upload">Bulk Upload</Nav.Link></Nav.Item>
+                <Nav.Item><Nav.Link eventKey="coupons">Manage Coupons</Nav.Link></Nav.Item>
+                <Nav.Item><Nav.Link href="#/admin-register">Register New Admin</Nav.Link></Nav.Item>
             </Nav>
             <Tab.Content>
-                <Tab.Pane eventKey="live-orders"><LiveOrderManager /></Tab.Pane>
                 <Tab.Pane eventKey="menu"><MenuManager /></Tab.Pane>
+                <Tab.Pane eventKey="orders"><OrderManager /></Tab.Pane>
                 <Tab.Pane eventKey="complaints"><ComplaintManager /></Tab.Pane>
                 <Tab.Pane eventKey="bulk-upload"><BulkUploadManager /></Tab.Pane>
                 <Tab.Pane eventKey="coupons"><CouponManager /></Tab.Pane>
+                {/* The "Register New Admin" tab just links to the hash route, which App.js will handle */}
             </Tab.Content>
         </Tab.Container>
-    </div>
+    </Container>
 );
-}
-export default AdminDashboard;
 
+// --- Helper Functions (from File 1) ---
+const getOrderStatusBadge = (status) => {
+    switch (status) {
+        case 'Delivered': return 'success';
+        case 'Rejected': return 'danger';
+        case 'Preparing':
+        case 'Ready':
+        case 'Out for Delivery': return 'primary';
+        case 'Received': return 'info';
+        case 'Pending Payment': return 'warning';
+        default: return 'secondary';
+    }
+};
+
+const getOrderStatusColor = (status) => {
+    switch (status) {
+        case 'Delivered': return '#198754'; // success
+        case 'Rejected': return '#dc3545'; // danger
+        case 'Preparing':
+        case 'Ready':
+        case 'Out for Delivery': return '#0d6efd'; // primary
+        case 'Received': return '#0dcaf0'; // info
+        case 'Pending Payment': return '#ffc107'; // warning
+        default: return '#6c757d'; // secondary
+    }
+};
+
+export default AdminDashboard;
