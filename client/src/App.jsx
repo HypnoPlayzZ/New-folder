@@ -11,7 +11,7 @@ import AdminRegisterPage from './pages/AdminRegisterPage.jsx';
 import MenuPage from './pages/MenuPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import { AboutPage, ContactPage } from './pages/StaticPage.jsx';
-import CartModal from './components/CartModalMain.jsx'; // This is CartModalMain
+import CartModalMain from './components/CartModalMain.jsx'; // This is CartModalMain
 import Header from './components/HeaderMain.jsx';     // This is HeaderMain
 import Footer from './components/FooterMain.jsx';     // This is FooterMain
 import { GlobalStyles } from './styles/GlobalStyles.jsx';
@@ -21,8 +21,39 @@ import WelcomePage from './components/WelcomePage.jsx';
 function App() {
   const [route, setRoute] = useState(window.location.hash || '#/');
   const [menuItems, setMenuItems] = useState([]);
-  const [cartItems, setCartItems] = useState([]);
-  const [showCart, setShowCart] = useState(false);
+    const [cartItems, setCartItems] = useState(() => {
+        const savedCart = localStorage.getItem('cartItems');
+        if (!savedCart) {
+            return [];
+        }
+        const items = JSON.parse(savedCart);
+        
+        // --- DATA MIGRATION/CLEANUP ---
+        // Check if any item has the old price format (an object)
+        const needsCleaning = items.some(item => typeof item.price === 'object' && item.price !== null);
+        
+        if (needsCleaning) {
+            const cleanedItems = items.map(item => {
+                if (typeof item.price === 'object' && item.price !== null) {
+                    // It's the old format. Convert it.
+                    // We must have a variant to know which price to use.
+                    if (item.variant === 'half' && item.price.half) {
+                        return { ...item, price: item.price.half };
+                    }
+                    // Default to full price if variant is 'full' or 'half' is missing
+                    return { ...item, price: item.price.full };
+                }
+                // It's already in the new format (or it's broken, in which case it'll be filtered)
+                return item;
+            }).filter(item => typeof item.price === 'number' && !isNaN(item.price)); // Filter out any broken items
+            
+            localStorage.setItem('cartItems', JSON.stringify(cleanedItems)); // Save the cleaned cart
+            return cleanedItems;
+        }
+        
+        return items; // No cleaning needed
+    });
+    const [showCart, setShowCart] = useState(false);
   
   const [auth, setAuth] = useState({
       customer: { token: null, name: null },
