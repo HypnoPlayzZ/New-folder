@@ -123,7 +123,7 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
 
                 .btn-style-outline {
                     color: white;
-                    border-color: rgba(255, 255, 255, 0.5);
+                    border-color: rgba(10, 10, 10, 0.5);
                 }
                 .btn-style-outline:hover {
                     color: black;
