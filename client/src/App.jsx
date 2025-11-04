@@ -11,7 +11,7 @@ import AdminRegisterPage from './pages/AdminRegisterPage.jsx';
 import MenuPage from './pages/MenuPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import { AboutPage, ContactPage } from './pages/StaticPage.jsx';
-import CartModalMain from './components/CartModalMain.jsx'; // This is CartModalMain
+import CartModal from './components/CartModalMain.jsx'; // This is CartModalMain
 import Header from './components/HeaderMain.jsx';     // This is HeaderMain
 import Footer from './components/FooterMain.jsx';     // This is FooterMain
 import { GlobalStyles } from './styles/GlobalStyles.jsx';
