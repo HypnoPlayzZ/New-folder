@@ -47,7 +47,7 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
         if (isCustomerLoggedIn) {
             return (
                 <>
-                    <Nav.Link href="#/dashboard" className="nav-link-style d-flex align-items-center me-2 text-white">
+                    <Nav.Link href="#/dashboard" className="nav-link-style d-flex align-items-center me-2 text-black">
                         <IconPerson className="me-2" />
                         {auth.customer.name}
                     </Nav.Link>
@@ -90,7 +90,7 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
 
                 .nav-link-style {
                     font-weight: 500;
-                    color: rgba(255, 255, 255, 0.75) !important;
+                    color: rgba(0, 0, 0, 0.75) !important;
                     transition: color 0.2s ease;
                     position: relative;
                 }
