@@ -255,6 +255,9 @@ app.post('/api/coupons/validate', async (req, res) => {
 });
 
 // Auth Routes
+
+// --- REMOVED Standard Register Route ---
+/*
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -269,7 +272,10 @@ app.post('/api/auth/register', async (req, res) => {
         res.status(500).json({ message: 'Error registering user' });
     }
 });
+*/
 
+// --- REMOVED Standard Login Route ---
+/*
 app.post('/api/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
@@ -278,7 +284,7 @@ app.post('/api/auth/login', async (req, res) => {
 
         // Ensure password exists for traditional login
         if (!user.password) {
-             return res.status(400).json({ message: 'Please log in with Google.' });
+            return res.status(400).json({ message: 'Please log in with Google.' });
         }
 
         const isPasswordCorrect = await bcrypt.compare(password, user.password);
@@ -290,6 +296,7 @@ app.post('/api/auth/login', async (req, res) => {
         res.status(500).json({ message: 'Server error during login' });
     }
 });
+*/
 
 // --- Merged Google Authentication Route ---
 app.post('/api/auth/google', async (req, res) => {
@@ -326,8 +333,14 @@ app.post('/api/auth/admin/login', async (req, res) => {
         const { email, password } = req.body;
         const user = await User.findOne({ email, role: 'admin' });
         if (!user) return res.status(404).json({ message: 'Admin not found' });
+        
+        if (!user.password) {
+             return res.status(400).json({ message: 'Admin account not set up for password login.' });
+        }
+
         const isPasswordCorrect = await bcrypt.compare(password, user.password);
         if (!isPasswordCorrect) return res.status(400).json({ message: 'Invalid credentials' });
+        
         const token = jwt.sign({ userId: user._id, role: user.role }, jwtSecret, { expiresIn: '1d' });
         res.json({ token, userName: user.name, userRole: user.role });
     } catch (error) {
