@@ -66,7 +66,7 @@ const corsOptions = {
         if (
             !origin || 
             allowedOrigins.includes(origin) || 
-            /\.vercel\.app$/.test(new URL(origin).hostname)  // any Vercel subdomain
+            (origin && /\.vercel\.app$/.test(new URL(origin).hostname))  // any Vercel subdomain
         ) {
             callback(null, true);
         } else {
@@ -77,6 +77,12 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 app.use(express.json());
+
+// This helps with the Cross-Origin-Opener-Policy warnings from Google OAuth
+app.use((req, res, next) => {
+  res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
+  next();
+});
 
 // --- Database Connection ---
 mongoose.connect(mongoURI)
@@ -126,8 +132,29 @@ const OrderSchema = new mongoose.Schema({
     },
     customerName: { type: String, required: true },
     address: { type: String, required: true },
-    status: { type: String, default: 'Received', enum: ['Received', 'Preparing', 'Ready', 'Out for Delivery', 'Delivered', 'Rejected'] },
+    status: { 
+        type: String, 
+        default: 'Pending Payment', // <-- CHANGED: New default status
+        enum: ['Pending Payment', 'Received', 'Preparing', 'Ready', 'Out for Delivery', 'Delivered', 'Rejected'] 
+    },
     isAcknowledged: { type: Boolean, default: false },
+    // --- NEW FIELDS FOR PAYMENT ---
+    paymentMethod: {
+        type: String,
+        required: true,
+        enum: ['COD', 'UPI']
+    },
+    paymentStatus: {
+        type: String,
+        required: true,
+        default: 'Pending',
+        enum: ['Pending', 'Paid', 'Failed']
+    },
+    utr: { // Unique Transaction Reference
+        type: String,
+        trim: true
+    }
+    // --- END OF NEW FIELDS ---
 }, { timestamps: true });
 
 const UserSchema = new mongoose.Schema({
@@ -259,42 +286,14 @@ app.post('/api/coupons/validate', async (req, res) => {
 // --- REMOVED Standard Register Route ---
 /*
 app.post('/api/auth/register', async (req, res) => {
-    try {
-        const { name, email, password } = req.body;
-        const existingUser = await User.findOne({ email });
-        if (existingUser) return res.status(400).json({ message: 'User already exists' });
-
-        const hashedPassword = await bcrypt.hash(password, 12);
-        const newUser = new User({ name, email, password: hashedPassword });
-        await newUser.save();
-        res.status(201).json({ message: 'User registered successfully' });
-    } catch (error) {
-        res.status(500).json({ message: 'Error registering user' });
-    }
+...
 });
 */
 
 // --- REMOVED Standard Login Route ---
 /*
 app.post('/api/auth/login', async (req, res) => {
-    try {
-        const { email, password } = req.body;
-        const user = await User.findOne({ email });
-        if (!user) return res.status(404).json({ message: 'User not found' });
-
-        // Ensure password exists for traditional login
-        if (!user.password) {
-            return res.status(400).json({ message: 'Please log in with Google.' });
-        }
-
-        const isPasswordCorrect = await bcrypt.compare(password, user.password);
-        if (!isPasswordCorrect) return res.status(400).json({ message: 'Invalid credentials' });
-
-        const token = jwt.sign({ userId: user._id, role: user.role }, jwtSecret, { expiresIn: '1d' });
-        res.json({ token, userName: user.name, userRole: user.role });
-    } catch (error) {
-        res.status(500).json({ message: 'Server error during login' });
-    }
+...
 });
 */
 
@@ -352,9 +351,23 @@ app.post('/api/auth/admin/login', async (req, res) => {
 // Customer Routes (Protected)
 app.post('/api/orders', authMiddleware, async (req, res) => {
     try {
-        const newOrder = new Order({ ...req.body, user: req.user.userId });
+        // --- MODIFIED: Handle COD vs UPI status ---
+        const orderData = { ...req.body, user: req.user.userId };
+
+        // If payment is Cash on Delivery, set status to 'Received' immediately
+        // If payment is 'UPI', it will use the schema default 'Pending Payment'
+        if (orderData.paymentMethod === 'COD') {
+            orderData.status = 'Received';
+            orderData.paymentStatus = 'Pending'; // Payment is pending for COD
+        } else {
+            orderData.status = 'Pending Payment';
+            orderData.paymentStatus = 'Pending'; // Payment is pending for UPI
+        }
+        
+        const newOrder = new Order(orderData);
         const savedOrder = await newOrder.save();
         res.status(201).json(savedOrder);
+        // --- END MODIFICATION ---
     } catch (error) {
         console.error("Order placement error:", error);
         if (error.name === 'ValidationError') {
@@ -363,6 +376,45 @@ app.post('/api/orders', authMiddleware, async (req, res) => {
         res.status(500).json({ message: 'Error placing order', error: error.message });
     }
 });
+
+// --- NEW ROUTE: To confirm UPI payment with UTR ---
+app.patch('/api/orders/:id/confirm-payment', authMiddleware, async (req, res) => {
+    try {
+        const { utr } = req.body;
+        if (!utr) {
+            return res.status(400).json({ message: 'UTR is required.' });
+        }
+
+        // Find the order, make sure it belongs to the user and is a UPI payment
+        const order = await Order.findOneAndUpdate(
+            { 
+                _id: req.params.id, 
+                user: req.user.userId, 
+                paymentMethod: 'UPI',
+                status: 'Pending Payment' // Only update if pending
+            },
+            {
+                $set: {
+                    utr: utr,
+                    status: 'Received', // Payment is now confirmed, ready for kitchen
+                    paymentStatus: 'Paid'
+                }
+            },
+            { new: true }
+        ).populate('items.menuItemId');
+
+        if (!order) {
+            return res.status(404).json({ message: 'Order not found, already confirmed, or not a UPI order.' });
+        }
+
+        res.json(order);
+    } catch (error) {
+        console.error("Error confirming payment:", error);
+        res.status(500).json({ message: 'Error confirming payment', error: error.message });
+    }
+});
+// --- END OF NEW ROUTE ---
+
 app.get('/api/my-orders', authMiddleware, async (req, res) => {
     const orders = await Order.find({ user: req.user.userId }).populate('items.menuItemId').sort({ createdAt: -1 });
     res.json(orders);
@@ -397,18 +449,38 @@ adminRouter.post('/register', async (req, res) => {
 });
 
 adminRouter.get('/orders', async (req, res) => {
-    const orders = await Order.find().populate('items.menuItemId').sort({ createdAt: -1 });
+    const orders = await Order.find().populate('items.menuItemId').populate('user', 'name email').sort({ createdAt: -1 });
     res.json(orders);
 });
 
 adminRouter.patch('/orders/:id/status', async (req, res) => {
     try {
         const { status } = req.body;
-        const validStatuses = ['Preparing', 'Ready', 'Out for Delivery', 'Delivered', 'Rejected'];
+        // Admin can now also mark a 'Pending Payment' as 'Rejected'
+        const validStatuses = ['Pending Payment', 'Received', 'Preparing', 'Ready', 'Out for Delivery', 'Delivered', 'Rejected'];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ message: 'Invalid status update.' });
         }
-        const updatedOrder = await Order.findByIdAndUpdate(req.params.id, { status }, { new: true }).populate('items.menuItemId');
+        
+        const updatePayload = { status };
+
+        // If admin confirms payment manually (e.g., UTR was wrong, then fixed)
+        // Or if admin marks a COD order as 'Delivered', mark it as 'Paid'
+        if (status === 'Received' || status === 'Delivered') {
+            updatePayload.paymentStatus = 'Paid';
+        }
+        
+        // If admin rejects a pending payment
+        if (status === 'Rejected') {
+             updatePayload.paymentStatus = 'Failed';
+        }
+
+        const updatedOrder = await Order.findByIdAndUpdate(
+            req.params.id, 
+            updatePayload, 
+            { new: true }
+        ).populate('items.menuItemId').populate('user', 'name email');
+        
         if (!updatedOrder) {
             return res.status(404).json({ message: 'Order not found' });
         }
@@ -420,7 +492,12 @@ adminRouter.patch('/orders/:id/status', async (req, res) => {
 
 adminRouter.patch('/orders/:id/acknowledge', async (req, res) => {
     try {
-        const updatedOrder = await Order.findByIdAndUpdate(req.params.id, { isAcknowledged: true }, { new: true }).populate('items.menuItemId');
+        const updatedOrder = await Order.findByIdAndUpdate(
+            req.params.id, 
+            { isAcknowledged: true }, 
+            { new: true }
+        ).populate('items.menuItemId').populate('user', 'name email');
+        
         if (!updatedOrder) {
             return res.status(404).json({ message: 'Order not found' });
         }
@@ -662,3 +739,4 @@ const seedAdminUser = async () => {
         console.error('Error seeding admin user:', error);
     }
 };
+
