@@ -29,7 +29,8 @@ const LoginPage = ({ onLoginSuccess }) => {
                 });
                 window.google.accounts.id.renderButton(
                     buttonDiv,
-                    { theme: "outline", size: "large", width: "100%" }
+                    // REMOVE THE "width" PROPERTY FROM THIS OBJECT
+                    { theme: "outline", size: "large" } 
                 );
             }
         };
