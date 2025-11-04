@@ -11,12 +11,11 @@ import AdminRegisterPage from './pages/AdminRegisterPage.jsx';
 import MenuPage from './pages/MenuPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
 import { AboutPage, ContactPage } from './pages/StaticPage.jsx';
-import CartModal from './components/CartModalMain.jsx';
-import Header from './components/HeaderMain.jsx';
-import Footer from './components/FooterMain.jsx';
+import CartModal from './components/CartModalMain.jsx'; // This is CartModalMain
+import Header from './components/HeaderMain.jsx';     // This is HeaderMain
+import Footer from './components/FooterMain.jsx';     // This is FooterMain
 import { GlobalStyles } from './styles/GlobalStyles.jsx';
-import WelcomePage from './components/WelcomePage.jsx'; // <-- Import the new Welcome Page
-
+import WelcomePage from './components/WelcomePage.jsx';
 
 // --- Main App ---
 function App() {
@@ -29,6 +28,10 @@ function App() {
       customer: { token: null, name: null },
       admin: { token: null, name: null }
   });
+
+  // --- NEW STATE for 2-step UPI checkout (from File 1) ---
+  const [orderForPayment, setOrderForPayment] = useState(null);
+  const [orderError, setOrderError] = useState('');
 
   const isCustomerLoggedIn = !!auth.customer.token;
   const isAdminLoggedIn = !!auth.admin.token;
@@ -45,16 +48,27 @@ function App() {
         customer: { token: customerToken, name: customerName },
         admin: { token: adminToken, name: adminName }
     });
+    
+    // Persist cart from localStorage
+    const storedCartItems = localStorage.getItem('cartItems');
+    if (storedCartItems) {
+        setCartItems(JSON.parse(storedCartItems));
+    }
 
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
   
+  // Save cart to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('cartItems', JSON.stringify(cartItems));
+  }, [cartItems]);
+
   useEffect(() => {
     if (isCustomerLoggedIn) { // Only fetch menu if a customer is logged in
-        api.get('/menu')
-          .then(response => setMenuItems(response.data))
-          .catch(error => console.error("Error fetching menu items:", error));
+      api.get('/menu')
+        .then(response => setMenuItems(response.data))
+        .catch(error => console.error("Error fetching menu items:", error));
     }
   }, [isCustomerLoggedIn]);
 
@@ -81,12 +95,59 @@ function App() {
       } else {
           localStorage.removeItem('customer_token');
           localStorage.removeItem('customer_name');
+          localStorage.removeItem('cartItems'); // Clear cart on logout
           setAuth(prev => ({ ...prev, customer: { token: null, name: null } }));
+          setCartItems([]); // Clear cart state
           window.location.hash = '#/'; // <-- Redirect to welcome page on logout
       }
   };
 
-  const submitOrder = (finalTotal, appliedCoupon = null, address) => {
+  // --- Cart Handlers ---
+
+  const handleAddToCart = (itemToAdd, variant, quantity = 1, instructions = '') => {
+      setCartItems(prevItems => {
+          const cartId = `${itemToAdd._id}-${variant}-${instructions}`;
+          const isItemInCart = prevItems.find(item => item.cartId === cartId);
+          
+          if (isItemInCart) { 
+              return prevItems.map(item => item.cartId === cartId ? { ...item, quantity: item.quantity + quantity } : item); 
+          }
+
+          const newItem = { 
+              ...itemToAdd, 
+              quantity: quantity, 
+              variant: variant,
+              priceAtOrder: itemToAdd.price[variant],
+              instructions: instructions,
+              cartId: cartId
+          };
+          return [...prevItems, newItem];
+      });
+  };
+
+  // Added from File 1's prop requirements
+  const handleRemoveFromCart = (cartId) => {
+    setCartItems(prevItems => prevItems.filter(item => item.cartId !== cartId));
+  };
+
+  // Added from File 1's prop requirements
+  const handleUpdateQuantity = (cartId, quantity) => {
+    if (quantity < 1) {
+        handleRemoveFromCart(cartId);
+        return;
+    }
+    setCartItems(prevItems => 
+        prevItems.map(item => 
+            item.cartId === cartId ? { ...item, quantity: quantity } : item
+        )
+    );
+  };
+
+  // --- MERGED ORDER LOGIC ---
+  // This combines File 2's `submitOrder` and File 1's `handlePlaceOrder`
+  const handlePlaceOrder = async (finalTotal, appliedCoupon, address, paymentMethod) => {
+    setOrderError(''); // Clear previous errors
+    
     const orderDetails = {
         items: cartItems.map(item => ({ 
             menuItemId: item._id, 
@@ -103,43 +164,64 @@ function App() {
             discountValue: appliedCoupon.discountValue
         } : undefined,
         customerName: auth.customer.name,
-        address: address // Include the address in the order details
+        address: address,
+        paymentMethod: paymentMethod // Add payment method to the order
     };
 
-    api.post('/orders', orderDetails)
-        .then(() => { 
-            alert('Order placed successfully!'); 
-            setCartItems([]); 
-            setShowCart(false); 
-        })
-        .catch(error => { 
-            console.error('Error placing order:', error); 
-            const errorMessage = error.response?.data?.message || 'There was a problem placing your order.';
-            alert(errorMessage);
-        });
+    try {
+        const response = await api.post('/api/orders', orderDetails);
+        const savedOrder = response.data;
+
+        if (savedOrder.paymentMethod === 'UPI') {
+            // If UPI, don't clear cart. Move to payment step.
+            setOrderForPayment(savedOrder);
+        } else {
+            // If COD, clear cart and show success.
+            setCartItems([]);
+            localStorage.removeItem('cartItems');
+            setShowCart(false);
+            alert('Order placed successfully (Cash on Delivery)!'); // Use a modal for this in production
+        }
+    } catch (err) {
+        console.error('Error placing order:', err);
+        setOrderError(err.response?.data?.message || 'Failed to place order.');
+    }
   };
-  
-    const handleAddToCart = (itemToAdd, variant, quantity = 1, instructions = '') => {
-        setCartItems(prevItems => {
-            const cartId = `${itemToAdd._id}-${variant}-${instructions}`;
-            const isItemInCart = prevItems.find(item => item.cartId === cartId);
-            
-            if (isItemInCart) { 
-                return prevItems.map(item => item.cartId === cartId ? { ...item, quantity: item.quantity + quantity } : item); 
-            }
 
-            const newItem = { 
-                ...itemToAdd, 
-                quantity: quantity, 
-                variant: variant,
-                priceAtOrder: itemToAdd.price[variant],
-                instructions: instructions,
-                cartId: cartId
-            };
-            return [...prevItems, newItem];
-        });
-    };
+  // --- NEW FUNCTION: To confirm the UPI payment with UTR (from File 1) ---
+  const handleConfirmUpiPayment = async (utr) => {
+      if (!utr || utr.trim().length < 12) {
+          setOrderError('Please enter a valid 12-digit UTR number.');
+          return;
+      }
+      setOrderError('');
+      
+      try {
+          await api.patch(`/api/orders/${orderForPayment._id}/confirm-payment`, { utr });
+          
+          // Payment successful
+          setCartItems([]);
+          localStorage.removeItem('cartItems');
+          setShowCart(false);
+          setOrderForPayment(null); // Reset payment flow
+          alert('Payment confirmed! Your order is being prepared.'); // Use a modal for this
+          window.location.hash = '#/dashboard'; // Redirect to dashboard
 
+      } catch (err) {
+          console.error('Error confirming payment:', err);
+          setOrderError(err.response?.data?.message || 'Failed to confirm payment. Please check your UTR and try again.');
+      }
+  };
+
+  // --- NEW FUNCTION: To cancel the UPI payment step (from File 1) ---
+  const handleCancelUpiPayment = () => {
+      // Here you might want to delete the 'Pending Payment' order on the backend,
+      // but for now, we'll just reset the UI.
+      setOrderForPayment(null);
+      setOrderError('');
+  };
+
+  // --- Page Rendering Logic (from File 2) ---
   const renderPage = () => {
     // Admin routes are separate and require admin login
     if (route.startsWith('#/admin')) {
@@ -179,17 +261,25 @@ function App() {
       />
       <main className="container my-5 flex-grow-1">{renderPage()}</main>
       <Footer />
+      
+      {/* --- MODIFIED: Cart modal now uses all new props --- */}
       <CartModal 
           show={showCart} 
           handleClose={() => setShowCart(false)} 
           cartItems={cartItems} 
-          setCartItems={setCartItems} 
-          submitOrder={submitOrder} 
           isLoggedIn={isCustomerLoggedIn}
+          // --- Updated Props ---
+          onRemoveFromCart={handleRemoveFromCart}
+          onUpdateQuantity={handleUpdateQuantity}
+          onPlaceOrder={handlePlaceOrder} // Replaced submitOrder
+          // --- New Props for UPI Flow ---
+          orderForPayment={orderForPayment}
+          onConfirmUpiPayment={handleConfirmUpiPayment}
+          onCancelUpiPayment={handleCancelUpiPayment}
+          orderError={orderError}
       />
     </div>
   );
 }
 
 export default App;
-
