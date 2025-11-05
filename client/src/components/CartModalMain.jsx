@@ -27,8 +27,14 @@ const CartModalMain = ({
     const [couponDiscount, setCouponDiscount] = useState(null);
 
     const totalPrice = useMemo(() => {
-        return cartItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    }, [cartItems]);
+    return cartItems.reduce((acc, item) => {
+        // Check if price is an object and pick the correct one
+        const price = (item.price && typeof item.price === 'object')
+                        ? (item.variant === 'half' ? item.price.half : item.price.full)
+                        : item.price;
+        return acc + (Number(price) || 0) * item.quantity;
+    }, 0);
+}, [cartItems]);
 
     const finalPrice = couponDiscount ? totalPrice - couponDiscount.discountAmount : totalPrice;
 
@@ -44,7 +50,9 @@ const CartModalMain = ({
                 menuItemId: item._id,
                 quantity: item.quantity,
                 variant: item.variant,
-                priceAtOrder: item.price,
+                priceAtOrder: (item.price && typeof item.price === 'object')
+                ? (item.variant === 'half' ? item.price.half : item.price.full)
+                : item.price,
                 instructions: item.instructions || ''
             })),
             totalPrice: totalPrice,
@@ -93,7 +101,15 @@ const CartModalMain = ({
                     <ListGroup.Item key={`${item._id}-${item.variant}`} className="d-flex justify-content-between align-items-center">
                         <div>
                             <strong className="d-block">{item.name} ({item.variant})</strong>
-                            <small className="text-muted">₹{item.price.toFixed(2)}</small>
+                            <small className="text-muted">
+    ₹{
+        ((item.price && typeof item.price === 'object')
+            ? (item.variant === 'half' ? item.price.half : item.price.full)
+            : item.price)
+        ?.toFixed(2) || '0.00'
+    }
+</small>
+
                         </div>
                         <div className="d-flex align-items-center">
                             <Form.Control
