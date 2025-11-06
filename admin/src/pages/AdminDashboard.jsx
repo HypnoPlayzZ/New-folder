@@ -264,7 +264,7 @@ const OrderManager = () => {
 
 // --- Menu Management Component (from File 2) ---
 const MenuManager = () => {
-    const [menu, setMenu] = useState({});
+    const [menu, setMenu] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [currentItem, setCurrentItem] = useState(null);
