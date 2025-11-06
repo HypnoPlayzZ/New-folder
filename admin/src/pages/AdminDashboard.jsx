@@ -65,7 +65,7 @@ const OrderManager = () => {
         setIsLoading(true);
         setError('');
         try {
-            const res = await api.get('/api/admin/orders');
+            const res = await api.get('/admin/orders');
             setOrders(Array.isArray(res.data) ? res.data: []);
         } catch (err) {
             console.error("Error fetching orders:", err);
