@@ -65,13 +65,19 @@ const OrderManager = () => {
         setIsLoading(true);
         setError('');
         try {
-            const res = await api.get('/admin/orders');
-            setOrders(Array.isArray(res.data) ? res.data: []);
-        } catch (err) {
-            console.error("Error fetching orders:", err);
-            setError(err.response?.data?.message || 'Could not fetch orders');
-            setOrders([])
-        } finally {
+    const res = await api.get('/admin/orders');
+    // --- THIS IS THE FIX ---
+    // It checks if res.data is an array. If not, it uses an empty array.
+    setOrders(Array.isArray(res.data) ? res.data : []); 
+    // --- END FIX ---
+
+} catch (err) {
+    console.error("Error fetching orders:", err);
+    setError(err.response?.data?.message || 'Could not fetch orders');
+    // --- ADD THIS LINE ---
+    setOrders([]); // Also set to empty array on failure
+    // --- END FIX ---
+} finally {
             setIsLoading(false);
         }
     }, []);
