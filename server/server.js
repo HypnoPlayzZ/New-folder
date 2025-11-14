@@ -739,4 +739,3 @@ const seedAdminUser = async () => {
         console.error('Error seeding admin user:', error);
     }
 };
-
