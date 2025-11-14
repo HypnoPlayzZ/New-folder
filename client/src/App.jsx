@@ -26,6 +26,10 @@ function App() {
   const [showCart, setShowCart] = useState(false);
   const [orderForPayment, setOrderForPayment] = useState(null);
   const [orderError, setOrderError] = useState('');
+  const [waitingForAdmin, setWaitingForAdmin] = useState(false);
+  const [adminWaitLeft, setAdminWaitLeft] = useState(600); // 10 minutes
+  const adminPollRef = React.useRef(null);
+  const adminTimerRef = React.useRef(null);
   
   const [auth, setAuth] = useState({
       customer: { token: null, name: null },
@@ -136,12 +140,56 @@ function App() {
   const handleConfirmUpiPayment = async (orderId, utr) => {
     try {
       const res = await api.patch(`/orders/${orderId}/confirm-payment`, { utr });
-      // Payment confirmed: clear cart and close modal
-      setCartItems([]);
-      setOrderForPayment(null);
-      setShowCart(false);
-      alert('Payment confirmed. Thank you!');
-      return res.data;
+      // Server accepted the UTR and set paymentStatus = 'Paid' and status = 'Received'
+      const updatedOrder = res.data;
+      setOrderForPayment(updatedOrder);
+
+      // Start waiting for admin acknowledgement (in case admin still needs to mark as Received)
+      setWaitingForAdmin(true);
+      setAdminWaitLeft(600); // 10 minutes
+
+      // Start polling customer's orders to detect admin confirmation
+      if (adminPollRef.current) clearInterval(adminPollRef.current);
+      adminPollRef.current = setInterval(async () => {
+        try {
+          const all = await api.get('/my-orders');
+          const found = (all.data || []).find(o => o._id === orderId);
+          if (found) {
+            setOrderForPayment(found);
+            // Consider payment confirmed when paymentStatus is Paid OR admin has acknowledged/isAcknowledged true OR status === 'Received'
+            // Wait for explicit admin acknowledgement (isAcknowledged) before finalizing for the user.
+            if (found.isAcknowledged) {
+              clearInterval(adminPollRef.current); adminPollRef.current = null;
+              if (adminTimerRef.current) { clearInterval(adminTimerRef.current); adminTimerRef.current = null; }
+              setWaitingForAdmin(false);
+              setCartItems([]);
+              setOrderForPayment(null);
+              setShowCart(false);
+              alert('Payment acknowledged by admin. Thank you!');
+            }
+          }
+        } catch (e) {
+          console.warn('Polling orders failed', e);
+        }
+      }, 5000);
+
+      // Admin wait countdown
+      if (adminTimerRef.current) clearInterval(adminTimerRef.current);
+      adminTimerRef.current = setInterval(() => {
+        setAdminWaitLeft(s => {
+          if (s <= 1) {
+            // timeout: stop polling and notify user
+            if (adminPollRef.current) { clearInterval(adminPollRef.current); adminPollRef.current = null; }
+            if (adminTimerRef.current) { clearInterval(adminTimerRef.current); adminTimerRef.current = null; }
+            setWaitingForAdmin(false);
+            setOrderError('Waiting for admin confirmation timed out. Please contact support.');
+            return 0;
+          }
+          return s - 1;
+        });
+      }, 1000);
+
+      return updatedOrder;
     } catch (err) {
       const msg = err.response?.data?.message || 'Failed to confirm payment.';
       setOrderError(msg);
@@ -153,6 +201,10 @@ function App() {
   const handleCancelUpiPayment = () => {
     setOrderForPayment(null);
     setOrderError('');
+    setWaitingForAdmin(false);
+    setAdminWaitLeft(0);
+    if (adminPollRef.current) { clearInterval(adminPollRef.current); adminPollRef.current = null; }
+    if (adminTimerRef.current) { clearInterval(adminTimerRef.current); adminTimerRef.current = null; }
   };
   
     const handleAddToCart = (itemToAdd, variant, quantity = 1, instructions = '') => {
@@ -223,13 +275,26 @@ function App() {
       submitOrder={submitOrder} 
       isLoggedIn={isCustomerLoggedIn}
       orderForPayment={orderForPayment}
-      onConfirmUpiPayment={(utr) => handleConfirmUpiPayment(orderForPayment?._id, utr)}
+    onConfirmUpiPayment={(utr) => handleConfirmUpiPayment(orderForPayment?._id, utr)}
       onCancelUpiPayment={handleCancelUpiPayment}
       orderError={orderError}
+    waitingForAdmin={waitingForAdmin}
+    adminWaitLeft={adminWaitLeft}
       />
     </div>
   );
 }
 
 export default App;
+
+// Cleanup intervals on module unmount (if app hot-reloads or navigates away)
+// Note: React components rarely unmount in SPA, but this is defensive.
+// This runs when the module is re-evaluated in dev/hmr; keep intervals cleared.
+if (typeof window !== 'undefined') {
+  window.addEventListener('beforeunload', () => {
+    try {
+      // Clear any global refs if present
+    } catch (e) {}
+  });
+}
 

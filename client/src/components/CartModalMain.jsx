@@ -17,6 +17,8 @@ const CartModalMain = ({
     onConfirmUpiPayment = async () => {}, // Function to call with UTR
     onCancelUpiPayment = () => {},  // Function to call if user cancels
     orderError = ''           // Error message from App.jsx
+    , waitingForAdmin = false
+    , adminWaitLeft = 0
 }) => {
     const [customerName, setCustomerName] = useState('');
     const [address, setAddress] = useState('');
@@ -246,6 +248,30 @@ const CartModalMain = ({
         </div>
     );
 
+    const renderWaitingForAdmin = () => (
+        <div className="text-center">
+            <h4>Waiting for Admin Confirmation</h4>
+            <p className="lead">We've received your UTR and notified the kitchen. Please wait while an administrator verifies the payment.</p>
+            <div className="my-3">
+                <Spinner animation="border" role="status" />
+            </div>
+            <div className="mb-2">
+                <strong>Time left for admin to confirm:</strong> <span style={{ fontSize: '1.1rem' }}>{Math.floor(adminWaitLeft/60)}:{String(adminWaitLeft%60).padStart(2,'0')}</span>
+            </div>
+            {utr && (
+                <div className="mt-2">
+                    <small className="text-muted">Submitted UTR: <strong style={{ userSelect: 'all' }}>{utr}</strong></small>
+                </div>
+            )}
+            <div className="mt-3">
+                <Button variant="outline-secondary" onClick={() => {
+                    // allow cancel while waiting
+                    if (typeof onCancelUpiPayment === 'function') onCancelUpiPayment();
+                }}>Cancel</Button>
+            </div>
+        </div>
+    );
+
     // Scanner & timer effects when orderForPayment present
     useEffect(() => {
         let detector = null;
@@ -329,7 +355,7 @@ const CartModalMain = ({
                 {cartItems.length === 0 && !orderForPayment ? (
                     <p>Your cart is empty.</p>
                 ) : (
-                    orderForPayment ? renderPaymentStep() : renderCartContents()
+                    orderForPayment ? (waitingForAdmin ? renderWaitingForAdmin() : renderPaymentStep()) : renderCartContents()
                 )}
                 
                 {orderError && <Alert variant="danger" className="mt-3">{orderError}</Alert>}
@@ -349,7 +375,7 @@ const CartModalMain = ({
                     </Button>
                 )}
 
-                {orderForPayment && (
+                {orderForPayment && !waitingForAdmin && (
                     <Button 
                         variant="success" 
                         onClick={handleInternalConfirmPayment}
