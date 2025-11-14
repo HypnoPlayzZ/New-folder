@@ -82,33 +82,38 @@ const OrderManager = ({ onNewOrder } = {}) => {
                 if (prevId && latestId && prevId !== latestId) {
                     // New order arrived
                     setNewOrderData(fetched[0]);
-                    setNewOrderAlert(true);
-                    // inform parent (so it can switch tabs or take other action)
+                    // Inform parent (so it can switch tabs or take other action)
                     try { onNewOrder && onNewOrder(fetched[0]); } catch (e) { /* ignore */ }
                     // notify whole admin UI to refresh
                     try { window.dispatchEvent(new Event('refresh-admin')); } catch (e) { /* ignore */ }
-                    // Play a short notification sound (Tone.js if present)
-                    try {
-                        // dynamic import to avoid breaking if tone missing
-                        const Tone = await import('tone');
-                        const synth = new Tone.Synth().toDestination();
-                        // quick arpeggio
-                        synth.triggerAttackRelease('C6', '8n');
-                        setTimeout(() => synth.dispose?.(), 500);
-                    } catch (e) {
-                        // fallback: use WebAudio beep
+
+                    // If the page is hidden (background), do not show modal or play sound.
+                    // Instead rely on the parent to increment an unread counter.
+                    if (!document.hidden) {
+                        setNewOrderAlert(true);
+                        // Play a short notification sound (Tone.js if present)
                         try {
-                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                            const o = ctx.createOscillator();
-                            const g = ctx.createGain();
-                            o.type = 'sine';
-                            o.frequency.value = 880;
-                            o.connect(g);
-                            g.connect(ctx.destination);
-                            o.start();
-                            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
-                            setTimeout(() => { o.stop(); ctx.close(); }, 300);
-                        } catch (_) { /* ignore */ }
+                            // dynamic import to avoid breaking if tone missing
+                            const Tone = await import('tone');
+                            const synth = new Tone.Synth().toDestination();
+                            // quick arpeggio
+                            synth.triggerAttackRelease('C6', '8n');
+                            setTimeout(() => synth.dispose?.(), 500);
+                        } catch (e) {
+                            // fallback: use WebAudio beep
+                            try {
+                                const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                                const o = ctx.createOscillator();
+                                const g = ctx.createGain();
+                                o.type = 'sine';
+                                o.frequency.value = 880;
+                                o.connect(g);
+                                g.connect(ctx.destination);
+                                o.start();
+                                g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+                                setTimeout(() => { o.stop(); ctx.close(); }, 300);
+                            } catch (_) { /* ignore */ }
+                        }
                     }
                 }
                 // update prevFirstOrderIdRef for next poll
@@ -170,6 +175,22 @@ const OrderManager = ({ onNewOrder } = {}) => {
 
     const renderOrderModal = () => {
         if (!viewOrder) return null;
+
+        useEffect(() => {
+            // clear unread counter when user navigates to Orders tab
+            if (activeTab === 'orders') setUnreadOrders(0);
+        }, [activeTab]);
+
+        useEffect(() => {
+            const onVisibility = () => {
+                if (!document.hidden) {
+                    // when tab becomes visible, clear unread badge
+                    setUnreadOrders(0);
+                }
+            };
+            document.addEventListener('visibilitychange', onVisibility);
+            return () => document.removeEventListener('visibilitychange', onVisibility);
+        }, []);
 
         return (
             <Modal show={!!viewOrder} onHide={() => setViewOrder(null)} size="lg">
@@ -939,6 +960,7 @@ const MenuManager = () => {
     // --- Main Admin Dashboard Component (from File 2 structure) ---
     const AdminDashboard = ({ adminName, handleLogout }) => {
         const [activeTab, setActiveTab] = useState('menu');
+        const [unreadOrders, setUnreadOrders] = useState(0);
 
         return (
             <Container fluid className="fade-in">
@@ -949,10 +971,15 @@ const MenuManager = () => {
                         <Button variant="outline-secondary" size="sm" onClick={() => handleLogout('admin')}>Logout</Button>
                     </div>
                 </div>
-                <Tab.Container activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
+    <Tab.Container activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
                     <Nav variant="tabs" className="mb-3 justify-content-center">
                         <Nav.Item><Nav.Link eventKey="menu">Manage Menu</Nav.Link></Nav.Item>
-                        <Nav.Item><Nav.Link eventKey="orders">Manage Orders</Nav.Link></Nav.Item>
+                        <Nav.Item>
+                            <Nav.Link eventKey="orders">
+                                Manage Orders
+                                {unreadOrders > 0 && <Badge bg="danger" className="ms-2">{unreadOrders}</Badge>}
+                            </Nav.Link>
+                        </Nav.Item>
                         <Nav.Item><Nav.Link eventKey="past-orders">Past Orders</Nav.Link></Nav.Item>
                         <Nav.Item><Nav.Link eventKey="complaints">Manage Complaints</Nav.Link></Nav.Item>
                         <Nav.Item><Nav.Link eventKey="bulk-upload">Bulk Upload</Nav.Link></Nav.Item>
@@ -961,7 +988,16 @@ const MenuManager = () => {
                     </Nav>
                     <Tab.Content>
                         <Tab.Pane eventKey="menu"><MenuManager /></Tab.Pane>
-                        <Tab.Pane eventKey="orders"><OrderManager onNewOrder={(order) => setActiveTab('orders')} /></Tab.Pane>
+                        <Tab.Pane eventKey="orders">
+                            <OrderManager onNewOrder={(order) => {
+                                // If admin page is hidden, increment unread counter instead of forcing UI focus
+                                if (document.hidden) {
+                                    setUnreadOrders(c => c + 1);
+                                } else {
+                                    setActiveTab('orders');
+                                }
+                            }} />
+                        </Tab.Pane>
                         <Tab.Pane eventKey="past-orders"><PastOrdersManager /></Tab.Pane>
                         <Tab.Pane eventKey="complaints"><ComplaintManager /></Tab.Pane>
                         <Tab.Pane eventKey="bulk-upload"><BulkUploadManager /></Tab.Pane>
