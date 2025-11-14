@@ -4,7 +4,15 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 // Import the separated components with corrected paths
 import { api } from './api.js';
 import LoginPage from './pages/LoginPage.jsx';
-import AdminDashboard from './pages/AdminDashboard.jsx';
+// Admin dashboard lives in the separate `admin/` app. Use a lightweight placeholder
+// so the client build doesn't fail when referencing admin routes.
+const AdminDashboard = ({ adminName, handleLogout }) => (
+  <div className="p-5 text-center">
+    <h2>Admin Console</h2>
+    <p>This project separates the Admin app. Open the <a href="/admin/index.html">Admin dashboard</a> in a new tab.</p>
+    <p>If you intended to embed admin here, add <code>client/src/pages/AdminDashboard.jsx</code>.</p>
+  </div>
+);
 import CustomerDashboard from './pages/CustomerDashboard.jsx';
 import RegisterPage from './pages/RegisterPage.jsx';
 import AdminRegisterPage from './pages/AdminRegisterPage.jsx';
