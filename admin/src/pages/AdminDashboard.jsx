@@ -409,9 +409,9 @@ const MenuManager = () => {
                 {isClient && (
                     <DragDropContext onDragEnd={onDragEnd}>
                         <Accordion defaultActiveKey="0" alwaysOpen>
-                            {Object.entries(menu).map(([category, items], index) => (
-                                <Accordion.Item eventKey={index.toString()} key={category}>
-                                    <Accordion.Header>{category} ({items.length})</Accordion.Header>
+                            {Object.entries(menu || {}).map(([category, items], index) => (
+                                <Accordion.Item eventKey={index.toString()} key={String(category)}>
+                                    <Accordion.Header>{category} ({Array.isArray(items) ? items.length : 0})</Accordion.Header>
                                     <Accordion.Body>
                                         <div className="d-none d-md-flex row fw-bold mb-2 border-bottom pb-2">
                                             <div className="col-1 text-center">Move</div>
@@ -424,7 +424,7 @@ const MenuManager = () => {
                                             {(provided) => (
                                                 <div ref={provided.innerRef} {...provided.droppableProps}>
                                                     {Array.isArray(items) ? items.map((item, idx) => (
-                                                        <Draggable key={item._id} draggableId={item._id.toString()} index={idx}>
+                                                        <Draggable key={String(item?._id ?? `${category}-${idx}`)} draggableId={String(item?._id ?? idx)} index={idx}>
                                                             {(provided) => (
                                                                 <div
                                                                     className="row align-items-center py-2 border-bottom"
