@@ -88,7 +88,8 @@ const OrderManager = () => {
 
     const handleStatusChange = async (orderId, newStatus) => {
         try {
-            const res = await api.patch(`/admin/orders/${orderId}`, { status: newStatus });
+            // Server expects the status update at /api/admin/orders/:id/status
+            const res = await api.patch(`/admin/orders/${orderId}/status`, { status: newStatus });
             setOrders(prevOrders => Array.isArray(prevOrders) ? prevOrders.map(order =>
                 order._id === orderId ? res.data : order
             ) : []);
