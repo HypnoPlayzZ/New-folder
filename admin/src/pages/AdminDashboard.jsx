@@ -55,7 +55,7 @@ const AdminRegisterPage = () => {
 };
 
 // --- MERGED: Order Management Component (from File 1 logic) ---
-const OrderManager = () => {
+const OrderManager = ({ onNewOrder } = {}) => {
     const [orders, setOrders] = useState([]);
     const [viewOrder, setViewOrder] = useState(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -83,6 +83,8 @@ const OrderManager = () => {
                     // New order arrived
                     setNewOrderData(fetched[0]);
                     setNewOrderAlert(true);
+                    // inform parent (so it can switch tabs or take other action)
+                    try { onNewOrder && onNewOrder(fetched[0]); } catch (e) { /* ignore */ }
                     // Play a short notification sound (Tone.js if present)
                     try {
                         // dynamic import to avoid breaking if tone missing
@@ -141,6 +143,8 @@ const OrderManager = () => {
             setOrders(prevOrders => Array.isArray(prevOrders) ? prevOrders.map(order =>
                 order._id === orderId ? res.data : order
             ) : []);
+            // notify other parts of the app (e.g., PastOrdersManager) to refresh
+            try { window.dispatchEvent(new Event('orders-updated')); } catch (e) { /* ignore */ }
         } catch (err) {
             console.error("Error updating order status:", err);
             setError(err.response?.data?.message || 'Could not update status');
@@ -153,6 +157,7 @@ const OrderManager = () => {
             setOrders(prevOrders => Array.isArray(prevOrders) ? prevOrders.map(order =>
                 order._id === orderId ? { ...order, isAcknowledged: res.data.isAcknowledged } : order
             ) : []);
+            try { window.dispatchEvent(new Event('orders-updated')); } catch (e) { /* ignore */ }
         } catch (err) {
             console.error("Error acknowledging order:", err);
             setError(err.response?.data?.message || 'Could not acknowledge order');
@@ -289,7 +294,7 @@ const OrderManager = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {(orders || []).map(order => (
+                        {(orders || []).filter(o => o.status !== 'Delivered').map(order => (
                             <tr key={order._id}>
                                 <td><small>{order._id}</small></td>
                                 <td>{order.customerName}<br /><small>{order.user?.email}</small></td>
@@ -343,6 +348,121 @@ const OrderManager = () => {
             </Card.Body>
             {renderOrderModal()}
             {renderNewOrderAlert()}
+        </Card>
+    );
+};
+
+// --- Past Orders Manager (delivered orders) ---
+const PastOrdersManager = () => {
+    const [orders, setOrders] = useState([]);
+    const [viewOrder, setViewOrder] = useState(null);
+    const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState('');
+
+    const fetchPast = async () => {
+        setIsLoading(true);
+        setError('');
+        try {
+            const res = await api.get('/admin/orders');
+            const fetched = Array.isArray(res.data) ? res.data : [];
+            const delivered = fetched.filter(o => o.status === 'Delivered');
+            setOrders(delivered);
+        } catch (err) {
+            console.error('Error fetching past orders', err);
+            setError(err.response?.data?.message || 'Could not fetch past orders');
+            setOrders([]);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => { fetchPast(); }, []);
+    useEffect(() => {
+        const handler = () => fetchPast();
+        window.addEventListener('orders-updated', handler);
+        return () => window.removeEventListener('orders-updated', handler);
+    }, []);
+
+    const renderModal = () => {
+        if (!viewOrder) return null;
+        return (
+            <Modal show={!!viewOrder} onHide={() => setViewOrder(null)} size="lg">
+                <Modal.Header closeButton>
+                    <Modal.Title>Order Details ({viewOrder._id})</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <p><strong>Customer:</strong> {viewOrder.customerName}</p>
+                    <p><strong>User Email:</strong> {viewOrder.user?.email || 'N/A'}</p>
+                    <p><strong>Address:</strong> {viewOrder.address}</p>
+                    <p><strong>Status:</strong> <Badge bg={getOrderStatusBadge(viewOrder.status)}>{viewOrder.status}</Badge></p>
+                    <hr />
+                    <h5>Items</h5>
+                    <Table striped bordered>
+                        <thead>
+                            <tr><th>Item</th><th>Variant</th><th>Qty</th><th>Price</th><th>Total</th></tr>
+                        </thead>
+                        <tbody>
+                            {(viewOrder.items || []).map(item => (
+                                <tr key={(item.menuItemId?._id || '') + (item.variant || '')}>
+                                    <td>{item.menuItemId?.name || 'Item not found'}</td>
+                                    <td>{item.variant}</td>
+                                    <td>{item.quantity}</td>
+                                    <td>₹{(item.priceAtOrder ?? 0).toFixed(2)}</td>
+                                    <td>₹{((item.priceAtOrder ?? 0) * (item.quantity ?? 0)).toFixed(2)}</td>
+                                </tr>
+                            ))}
+                        </tbody>
+                    </Table>
+                    <h4 className="text-end">Total Paid: ₹{viewOrder.finalPrice.toFixed(2)}</h4>
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={() => setViewOrder(null)}>Close</Button>
+                </Modal.Footer>
+            </Modal>
+        );
+    };
+
+    if (isLoading) return <div className="text-center"><Spinner animation="border" /></div>;
+
+    return (
+        <Card>
+            <Card.Header>
+                <Button variant="light" onClick={fetchPast} disabled={isLoading}>{isLoading ? <Spinner animation="border" size="sm" /> : 'Refresh Past Orders'}</Button>
+            </Card.Header>
+            <Card.Body>
+                {error && <Alert variant="danger">{error}</Alert>}
+                <Table striped bordered hover responsive>
+                    <thead>
+                        <tr>
+                            <th>Order ID</th>
+                            <th>Customer</th>
+                            <th>Date</th>
+                            <th>Total</th>
+                            <th>Payment</th>
+                            <th>Status</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {(orders || []).map(order => (
+                            <tr key={order._id}>
+                                <td><small>{order._id}</small></td>
+                                <td>{order.customerName}<br /><small>{order.user?.email}</small></td>
+                                <td>{new Date(order.createdAt).toLocaleString()}</td>
+                                <td>₹{(order.finalPrice ?? 0).toFixed(2)}</td>
+                                <td>
+                                    <Badge bg={order.paymentMethod === 'UPI' ? 'primary' : 'secondary'}>{order.paymentMethod}</Badge>
+                                    <br />
+                                    <Badge bg={(order.paymentStatus === 'Paid') ? 'success' : 'warning'} pill>{order.paymentStatus || 'Unknown'}</Badge>
+                                </td>
+                                <td><Badge bg={getOrderStatusBadge(order.status)}>{order.status}</Badge></td>
+                                <td><Button size="sm" variant="info" onClick={() => setViewOrder(order)}>View</Button></td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </Table>
+            </Card.Body>
+            {renderModal()}
         </Card>
     );
 };
@@ -794,35 +914,41 @@ const MenuManager = () => {
     };
 
     // --- Main Admin Dashboard Component (from File 2 structure) ---
-    const AdminDashboard = ({ adminName, handleLogout }) => (
-        <Container fluid className="fade-in">
-            <div className="d-flex justify-content-between align-items-center mb-4">
-                <h1>Admin Dashboard</h1>
-                <div>
-                    <span className="me-3">Welcome, {adminName}</span>
-                    <Button variant="outline-secondary" size="sm" onClick={() => handleLogout('admin')}>Logout</Button>
+    const AdminDashboard = ({ adminName, handleLogout }) => {
+        const [activeTab, setActiveTab] = useState('menu');
+
+        return (
+            <Container fluid className="fade-in">
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Admin Dashboard</h1>
+                    <div>
+                        <span className="me-3">Welcome, {adminName}</span>
+                        <Button variant="outline-secondary" size="sm" onClick={() => handleLogout('admin')}>Logout</Button>
+                    </div>
                 </div>
-            </div>
-            <Tab.Container defaultActiveKey="menu">
-                <Nav variant="tabs" className="mb-3 justify-content-center">
-                    <Nav.Item><Nav.Link eventKey="menu">Manage Menu</Nav.Link></Nav.Item>
-                    <Nav.Item><Nav.Link eventKey="orders">Manage Orders</Nav.Link></Nav.Item>
-                    <Nav.Item><Nav.Link eventKey="complaints">Manage Complaints</Nav.Link></Nav.Item>
-                    <Nav.Item><Nav.Link eventKey="bulk-upload">Bulk Upload</Nav.Link></Nav.Item>
-                    <Nav.Item><Nav.Link eventKey="coupons">Manage Coupons</Nav.Link></Nav.Item>
-                    <Nav.Item><Nav.Link href="#/admin-register">Register New Admin</Nav.Link></Nav.Item>
-                </Nav>
-                <Tab.Content>
-                    <Tab.Pane eventKey="menu"><MenuManager /></Tab.Pane>
-                    <Tab.Pane eventKey="orders"><OrderManager /></Tab.Pane>
-                    <Tab.Pane eventKey="complaints"><ComplaintManager /></Tab.Pane>
-                    <Tab.Pane eventKey="bulk-upload"><BulkUploadManager /></Tab.Pane>
-                    <Tab.Pane eventKey="coupons"><CouponManager /></Tab.Pane>
-                    {/* The "Register New Admin" tab just links to the hash route, which App.js will handle */}
-                </Tab.Content>
-            </Tab.Container>
-        </Container>
-    );
+                <Tab.Container activeKey={activeTab} onSelect={(k) => setActiveTab(k)}>
+                    <Nav variant="tabs" className="mb-3 justify-content-center">
+                        <Nav.Item><Nav.Link eventKey="menu">Manage Menu</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link eventKey="orders">Manage Orders</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link eventKey="past-orders">Past Orders</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link eventKey="complaints">Manage Complaints</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link eventKey="bulk-upload">Bulk Upload</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link eventKey="coupons">Manage Coupons</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link href="#/admin-register">Register New Admin</Nav.Link></Nav.Item>
+                    </Nav>
+                    <Tab.Content>
+                        <Tab.Pane eventKey="menu"><MenuManager /></Tab.Pane>
+                        <Tab.Pane eventKey="orders"><OrderManager onNewOrder={(order) => setActiveTab('orders')} /></Tab.Pane>
+                        <Tab.Pane eventKey="past-orders"><PastOrdersManager /></Tab.Pane>
+                        <Tab.Pane eventKey="complaints"><ComplaintManager /></Tab.Pane>
+                        <Tab.Pane eventKey="bulk-upload"><BulkUploadManager /></Tab.Pane>
+                        <Tab.Pane eventKey="coupons"><CouponManager /></Tab.Pane>
+                        {/* The "Register New Admin" tab just links to the hash route, which App.js will handle */}
+                    </Tab.Content>
+                </Tab.Container>
+            </Container>
+        );
+    };
 
     // --- Helper Functions (from File 1) ---
     const getOrderStatusBadge = (status) => {
