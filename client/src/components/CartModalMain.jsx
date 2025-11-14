@@ -51,7 +51,7 @@ const CartModalMain = ({
         // If parent passed `submitOrder` (App.jsx) prefer that API: submitOrder(finalTotal, appliedCoupon, address)
         if (typeof submitOrder === 'function') {
             try {
-                await submitOrder(finalPrice, couponDiscount ? couponDiscount.coupon : null, address);
+                await submitOrder(finalPrice, couponDiscount ? couponDiscount.coupon : null, address, customerName, paymentMethod);
             } catch (err) {
                 console.error('Error placing order via submitOrder:', err);
             } finally {

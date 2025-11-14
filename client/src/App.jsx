@@ -86,7 +86,7 @@ function App() {
       }
   };
 
-  const submitOrder = (finalTotal, appliedCoupon = null, address) => {
+  const submitOrder = (finalTotal, appliedCoupon = null, address, customerNameParam = null, paymentMethodParam = 'COD') => {
     const orderDetails = {
         items: cartItems.map(item => ({ 
             menuItemId: item._id, 
@@ -96,14 +96,15 @@ function App() {
             instructions: item.instructions
         })),
         totalPrice: cartItems.reduce((total, item) => total + item.priceAtOrder * item.quantity, 0),
-        finalPrice: finalTotal,
+  finalPrice: finalTotal,
+  paymentMethod: paymentMethodParam,
         appliedCoupon: appliedCoupon ? {
             code: appliedCoupon.code,
             discountType: appliedCoupon.discountType,
             discountValue: appliedCoupon.discountValue
         } : undefined,
-        customerName: auth.customer.name,
-        address: address // Include the address in the order details
+    customerName: customerNameParam || auth.customer.name,
+    address: address // Include the address in the order details
     };
 
     api.post('/orders', orderDetails)
