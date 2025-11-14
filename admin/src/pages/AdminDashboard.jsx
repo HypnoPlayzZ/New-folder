@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
     Container, Row, Col, Nav, Card, Table, Button, Modal, Form,
     Badge, Alert, Spinner, Tab, Tabs, Accordion
@@ -61,29 +61,77 @@ const OrderManager = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [error, setError] = useState('');
 
-    const fetchOrders = useCallback(async () => {
+    // For polling and new-order notification
+    const pollingRef = useRef(null);
+    const prevFirstOrderIdRef = useRef(null);
+    const [newOrderAlert, setNewOrderAlert] = useState(false);
+    const [newOrderData, setNewOrderData] = useState(null);
+
+    const fetchOrders = useCallback(async (opts = { notifyIfNew: false }) => {
         setIsLoading(true);
         setError('');
         try {
             const res = await api.get('/admin/orders');
-            // --- THIS IS THE FIX ---
-            // It checks if res.data is an array. If not, it uses an empty array.
-            setOrders(Array.isArray(res.data) ? res.data : []);
-            // --- END FIX ---
+            const fetched = Array.isArray(res.data) ? res.data : [];
+            setOrders(fetched);
+
+            // Detect new order at top (only if asked)
+            if (opts.notifyIfNew) {
+                const latestId = fetched[0]?._id || null;
+                const prevId = prevFirstOrderIdRef.current;
+                if (prevId && latestId && prevId !== latestId) {
+                    // New order arrived
+                    setNewOrderData(fetched[0]);
+                    setNewOrderAlert(true);
+                    // Play a short notification sound (Tone.js if present)
+                    try {
+                        // dynamic import to avoid breaking if tone missing
+                        const Tone = await import('tone');
+                        const synth = new Tone.Synth().toDestination();
+                        // quick arpeggio
+                        synth.triggerAttackRelease('C6', '8n');
+                        setTimeout(() => synth.dispose?.(), 500);
+                    } catch (e) {
+                        // fallback: use WebAudio beep
+                        try {
+                            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                            const o = ctx.createOscillator();
+                            const g = ctx.createGain();
+                            o.type = 'sine';
+                            o.frequency.value = 880;
+                            o.connect(g);
+                            g.connect(ctx.destination);
+                            o.start();
+                            g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
+                            setTimeout(() => { o.stop(); ctx.close(); }, 300);
+                        } catch (_) { /* ignore */ }
+                    }
+                }
+                // update prevFirstOrderIdRef for next poll
+                prevFirstOrderIdRef.current = fetched[0]?._id || null;
+            } else {
+                // initialize prevFirstOrderIdRef on first fetch
+                prevFirstOrderIdRef.current = fetched[0]?._id || null;
+            }
 
         } catch (err) {
             console.error("Error fetching orders:", err);
             setError(err.response?.data?.message || 'Could not fetch orders');
-            // --- ADD THIS LINE ---
-            setOrders([]); // Also set to empty array on failure
-            // --- END FIX ---
+            setOrders([]); // set empty array on failure
         } finally {
             setIsLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        fetchOrders();
+        // initial load
+        fetchOrders({ notifyIfNew: false });
+
+        // start polling every 5 seconds to detect new orders
+        pollingRef.current = setInterval(() => fetchOrders({ notifyIfNew: true }), 5000);
+        return () => {
+            if (pollingRef.current) clearInterval(pollingRef.current);
+        };
     }, [fetchOrders]);
 
     const handleStatusChange = async (orderId, newStatus) => {
@@ -180,14 +228,50 @@ const OrderManager = () => {
         );
     };
 
+    const handleDismissNewAlert = () => {
+        setNewOrderAlert(false);
+        setNewOrderData(null);
+    };
+
+    const handleViewNewOrder = () => {
+        if (newOrderData) {
+            setViewOrder(newOrderData);
+        }
+        handleDismissNewAlert();
+    };
+
+    const renderNewOrderAlert = () => {
+        if (!newOrderAlert || !newOrderData) return null;
+        return (
+            <Modal show={newOrderAlert} onHide={handleDismissNewAlert} centered>
+                <Modal.Header closeButton>
+                    <Modal.Title>New Order Received</Modal.Title>
+                </Modal.Header>
+                <Modal.Body>
+                    <p><strong>Order ID:</strong> {newOrderData._id}</p>
+                    <p><strong>Customer:</strong> {newOrderData.customerName}</p>
+                    <p><strong>Total:</strong> ₹{(newOrderData.finalPrice ?? 0).toFixed(2)}</p>
+                    {newOrderData.paymentMethod && (
+                        <p><strong>Payment:</strong> {newOrderData.paymentMethod} {newOrderData.utr ? `(UTR: ${newOrderData.utr})` : ''}</p>
+                    )}
+                </Modal.Body>
+                <Modal.Footer>
+                    <Button variant="secondary" onClick={handleDismissNewAlert}>Dismiss</Button>
+                    <Button variant="outline-primary" onClick={() => { if (newOrderData) handleAcknowledge(newOrderData._id); handleDismissNewAlert(); }}>Acknowledge</Button>
+                    <Button variant="primary" onClick={handleViewNewOrder}>View</Button>
+                </Modal.Footer>
+            </Modal>
+        );
+    };
+
     if (isLoading) return <div className="text-center"><Spinner animation="border" text="danger" role="status" /></div>;
 
     return (
         <Card>
             <Card.Header>
-                <Button variant="light" onClick={fetchOrders} disabled={isLoading}>
-                    {isLoading ? <Spinner animation="border" size="sm" /> : 'Refresh Orders'}
-                </Button>
+                <Button variant="light" onClick={() => fetchOrders({ notifyIfNew: false })} disabled={isLoading}>
+                        {isLoading ? <Spinner animation="border" size="sm" /> : 'Refresh Orders'}
+                    </Button>
             </Card.Header>
             <Card.Body>
                 {error && <Alert variant="danger">{error}</Alert>}
@@ -258,6 +342,7 @@ const OrderManager = () => {
                 </Table>
             </Card.Body>
             {renderOrderModal()}
+            {renderNewOrderAlert()}
         </Card>
     );
 };
