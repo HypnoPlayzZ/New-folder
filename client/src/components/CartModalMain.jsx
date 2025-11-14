@@ -8,9 +8,11 @@ const CartModalMain = ({
     show,
     handleClose,
     cartItems = [],
-    onRemoveFromCart = () => {},
-    onUpdateQuantity = () => {},
-    onPlaceOrder = async () => {},
+    onRemoveFromCart = undefined,
+    onUpdateQuantity = undefined,
+    onPlaceOrder = undefined,
+    submitOrder = undefined, // App.jsx passes submitOrder
+    setCartItems = undefined, // App.jsx passes setCartItems
     orderForPayment = null, // The new order object (if payment is pending)
     onConfirmUpiPayment = async () => {}, // Function to call with UTR
     onCancelUpiPayment = () => {},  // Function to call if user cancels
@@ -45,29 +47,42 @@ const CartModalMain = ({
 
     const handleInternalPlaceOrder = async () => {
         setIsSubmitting(true);
+
+        // If parent passed `submitOrder` (App.jsx) prefer that API: submitOrder(finalTotal, appliedCoupon, address)
+        if (typeof submitOrder === 'function') {
+            try {
+                await submitOrder(finalPrice, couponDiscount ? couponDiscount.coupon : null, address);
+            } catch (err) {
+                console.error('Error placing order via submitOrder:', err);
+            } finally {
+                setIsSubmitting(false);
+            }
+            return;
+        }
+
+        // Otherwise construct the orderDetails object and call onPlaceOrder if provided
         const orderDetails = {
             items: cartItems.map(item => ({
                 menuItemId: item._id,
                 quantity: item.quantity,
                 variant: item.variant,
                 priceAtOrder: (item.price && typeof item.price === 'object')
-                ? (item.variant === 'half' ? item.price.half : item.price.full)
-                : item.price,
+                    ? (item.variant === 'half' ? item.price.half : item.price.full)
+                    : item.price,
                 instructions: item.instructions || ''
             })),
             totalPrice: totalPrice,
             finalPrice: finalPrice,
             customerName,
             address,
-            paymentMethod, // Pass the selected payment method
-            // Pass coupon details if applied
+            paymentMethod,
             appliedCoupon: couponDiscount ? {
                 code: couponDiscount.coupon.code,
                 discountType: couponDiscount.coupon.discountType,
                 discountValue: couponDiscount.coupon.discountValue
             } : undefined
         };
-        
+
         if (typeof onPlaceOrder === 'function') {
             await onPlaceOrder(orderDetails);
         } else {
@@ -124,11 +139,24 @@ const CartModalMain = ({
                                 type="number"
                                 size="sm"
                                 value={item.quantity}
-                                onChange={(e) => typeof onUpdateQuantity === 'function' && onUpdateQuantity(item._id, item.variant, parseInt(e.target.value))}
+                                onChange={(e) => {
+                                    const q = parseInt(e.target.value) || 1;
+                                    if (typeof onUpdateQuantity === 'function') {
+                                        onUpdateQuantity(item._id, item.variant, q);
+                                    } else if (typeof setCartItems === 'function') {
+                                        setCartItems(prev => prev.map(ci => ci._id === item._id && ci.variant === item.variant && ci.instructions === item.instructions ? { ...ci, quantity: q } : ci));
+                                    }
+                                }}
                                 style={{ width: '60px', marginRight: '10px' }}
                                 min="1"
                             />
-                            <Button variant="outline-danger" size="sm" onClick={() => typeof onRemoveFromCart === 'function' && onRemoveFromCart(item._id, item.variant)}>
+                            <Button variant="outline-danger" size="sm" onClick={() => {
+                                if (typeof onRemoveFromCart === 'function') {
+                                    onRemoveFromCart(item._id, item.variant);
+                                } else if (typeof setCartItems === 'function') {
+                                    setCartItems(prev => prev.filter(ci => !(ci._id === item._id && ci.variant === item.variant && ci.instructions === item.instructions)));
+                                }
+                            }}>
                                 &times;
                             </Button>
                         </div>
