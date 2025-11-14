@@ -85,6 +85,8 @@ const OrderManager = ({ onNewOrder } = {}) => {
                     setNewOrderAlert(true);
                     // inform parent (so it can switch tabs or take other action)
                     try { onNewOrder && onNewOrder(fetched[0]); } catch (e) { /* ignore */ }
+                    // notify whole admin UI to refresh
+                    try { window.dispatchEvent(new Event('refresh-admin')); } catch (e) { /* ignore */ }
                     // Play a short notification sound (Tone.js if present)
                     try {
                         // dynamic import to avoid breaking if tone missing
@@ -145,6 +147,7 @@ const OrderManager = ({ onNewOrder } = {}) => {
             ) : []);
             // notify other parts of the app (e.g., PastOrdersManager) to refresh
             try { window.dispatchEvent(new Event('orders-updated')); } catch (e) { /* ignore */ }
+            try { window.dispatchEvent(new Event('refresh-admin')); } catch (e) { /* ignore */ }
         } catch (err) {
             console.error("Error updating order status:", err);
             setError(err.response?.data?.message || 'Could not update status');
@@ -158,6 +161,7 @@ const OrderManager = ({ onNewOrder } = {}) => {
                 order._id === orderId ? { ...order, isAcknowledged: res.data.isAcknowledged } : order
             ) : []);
             try { window.dispatchEvent(new Event('orders-updated')); } catch (e) { /* ignore */ }
+            try { window.dispatchEvent(new Event('refresh-admin')); } catch (e) { /* ignore */ }
         } catch (err) {
             console.error("Error acknowledging order:", err);
             setError(err.response?.data?.message || 'Could not acknowledge order');
@@ -507,6 +511,11 @@ const MenuManager = () => {
         fetchMenu();
         setIsClient(true);
     }, []);
+    useEffect(() => {
+        const handler = () => fetchMenu();
+        window.addEventListener('refresh-admin', handler);
+        return () => window.removeEventListener('refresh-admin', handler);
+    }, []);
 
         const handleFormChange = (e) => {
             const { name, value } = e.target;
@@ -692,11 +701,19 @@ const MenuManager = () => {
         const [complaints, setComplaints] = useState([]);
         const [loading, setLoading] = useState(true);
 
-        useEffect(() => {
+        const fetchComplaints = () => {
+            setLoading(true);
             api.get('/admin/complaints')
-                .then(res => setComplaints(res.data))
+                .then(res => setComplaints(Array.isArray(res.data) ? res.data : []))
                 .catch(err => console.error("Failed to fetch complaints:", err))
                 .finally(() => setLoading(false));
+        };
+
+        useEffect(() => { fetchComplaints(); }, []);
+        useEffect(() => {
+            const handler = () => fetchComplaints();
+            window.addEventListener('refresh-admin', handler);
+            return () => window.removeEventListener('refresh-admin', handler);
         }, []);
 
         const handleStatusChange = (id, status) => {
@@ -764,6 +781,7 @@ const MenuManager = () => {
                     headers: { 'Content-Type': 'multipart/form-data' }
                 });
                 setUploadResult(response.data);
+                    try { window.dispatchEvent(new Event('refresh-admin')); } catch (e) { /* ignore */ }
             } catch (err) {
                 setError('Upload failed. Please check the file format or server logs.');
                 console.error(err);
@@ -841,6 +859,11 @@ const MenuManager = () => {
         };
 
         useEffect(fetchCoupons, []);
+        useEffect(() => {
+            const handler = () => fetchCoupons();
+            window.addEventListener('refresh-admin', handler);
+            return () => window.removeEventListener('refresh-admin', handler);
+        }, []);
 
         const handleFormChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
