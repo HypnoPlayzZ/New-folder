@@ -74,36 +74,64 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
         <>
             <style type="text/css">
                 {`
+                /* Load an attractive headline font */
+                @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800&display=swap');
+
                 :root {
-                    --brand-red: #dc3545;
+                    --brand-orange: #ff7a00;
+                    --brand-dark: #111111;
+                    --muted: rgba(0,0,0,0.65);
                 }
 
                 .navbar-brand-style {
-                    font-size: 1.5rem;
-                    font-weight: 700;
-                    color: var(--brand-red) !important;
-                    transition: transform 0.3s ease;
+                    font-family: 'Poppins', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+                    font-size: 1.6rem;
+                    font-weight: 800;
+                    color: var(--brand-orange) !important;
+                    transition: transform 0.28s ease, text-shadow 0.2s ease;
+                    letter-spacing: 0.4px;
+                    text-shadow: 0 2px 6px rgba(0,0,0,0.06);
                 }
                 .navbar-brand-style:hover {
-                    transform: scale(1.05);
+                    transform: translateY(-3px) scale(1.02);
                 }
 
                 .nav-link-style {
-                    font-weight: 500;
-                    color: rgba(255, 255, 255, 0.75) !important;
-                    transition: color 0.2s ease;
+                    font-family: Inter, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+                    font-weight: 600;
+                    color: var(--brand-dark) !important;
+                    transition: color 0.22s ease, transform 0.22s ease;
                     position: relative;
+                    padding-bottom: 6px;
+                }
+                .nav-link-style::after {
+                    content: '';
+                    position: absolute;
+                    left: 50%;
+                    transform: translateX(-50%) scaleX(0);
+                    bottom: 0;
+                    height: 3px;
+                    width: 60%;
+                    background: linear-gradient(90deg, var(--brand-orange), #ffB66b);
+                    transition: transform 0.26s cubic-bezier(.2,.9,.3,1);
+                    transform-origin: center;
+                    border-radius: 4px;
                 }
                 .nav-link-style:hover,
                 .nav-link-style.active {
-                    color: white !important;
+                    color: #000 !important;
+                    transform: translateY(-4px);
+                }
+                .nav-link-style:hover::after,
+                .nav-link-style.active::after {
+                    transform: translateX(-50%) scaleX(1);
                 }
 
                 .btn-style-fill, .btn-style-outline, .cart-button-style {
                     border-radius: 50px;
                     font-weight: 600;
                     padding: 0.5rem 1.25rem;
-                    transition: all 0.3s ease;
+                    transition: all 0.28s ease;
                     border-width: 2px;
                     display: inline-flex;
                     align-items: center;
@@ -111,49 +139,52 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
                 }
 
                 .btn-style-fill {
-                    background-color: var(--brand-red);
-                    border-color: var(--brand-red);
+                    background-color: var(--brand-orange);
+                    border-color: var(--brand-orange);
+                    color: white;
                 }
                 .btn-style-fill:hover {
-                    background-color: #bb2d3b;
-                    border-color: #b02a37;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.4);
+                    background-color: #ff8f33;
+                    border-color: #ff8f33;
+                    transform: translateY(-3px);
+                    box-shadow: 0 8px 20px rgba(255,122,0,0.18);
                 }
 
                 .btn-style-outline {
-                    color: white;
-                    border-color: rgba(255, 255, 255, 0.5);
+                    color: var(--brand-dark);
+                    border-color: rgba(0,0,0,0.08);
+                    background: transparent;
                 }
                 .btn-style-outline:hover {
-                    color: black;
-                    background-color: white;
-                    border-color: white;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 10px rgba(255, 255, 255, 0.2);
+                    color: white;
+                    background-color: var(--brand-dark);
+                    border-color: var(--brand-dark);
+                    transform: translateY(-3px);
+                    box-shadow: 0 6px 18px rgba(0,0,0,0.08);
                 }
 
                 .cart-button-style {
-                    background-color: var(--brand-red);
-                    border-color: var(--brand-red);
+                    background-color: var(--brand-orange);
+                    border-color: var(--brand-orange);
+                    color: white;
                 }
                 .cart-button-style .badge {
                     background-color: white !important;
-                    color: var(--brand-red) !important;
+                    color: var(--brand-orange) !important;
                     transition: transform 0.2s ease;
                 }
                 .cart-button-style:hover {
-                    background-color: #bb2d3b;
-                    border-color: #b02a37;
-                    transform: translateY(-2px);
-                    box-shadow: 0 4px 10px rgba(220, 53, 69, 0.4);
+                    background-color: #ff8f33;
+                    border-color: #ff8f33;
+                    transform: translateY(-3px);
+                    box-shadow: 0 8px 20px rgba(255,122,0,0.18);
                 }
                 .cart-button-style:hover .badge {
-                    transform: scale(1.15);
+                    transform: scale(1.12);
                 }
                 `}
             </style>
-            <Navbar bg="dark" variant="dark" expand="lg" sticky="top" className="shadow-sm py-3">
+            <Navbar bg="light" variant="light" expand="lg" sticky="top" className="shadow-sm py-3">
                 <Container fluid className="px-md-4">
                     <Navbar.Brand href={isCustomerLoggedIn ? "#/menu" : "#/"} className="navbar-brand-style d-flex align-items-center">
                         {/* Logo from public folder (place your logo as public/steamy-logo.png) */}
@@ -164,7 +195,6 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
                             onError={(e) => { /* hide if missing so SVG fallback remains visible */ e.target.style.display = 'none'; }}
                         />
                         {/* SVG fallback icon remains for when image is absent */}
-                        <IconFire className="me-2" />
                         Steamy Bites
                     </Navbar.Brand>
                     <Navbar.Toggle aria-controls="basic-navbar-nav" />
