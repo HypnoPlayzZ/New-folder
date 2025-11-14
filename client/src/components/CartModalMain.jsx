@@ -27,6 +27,8 @@ const CartModalMain = ({
     const [isScanning, setIsScanning] = useState(false);
     const videoRef = useRef(null);
     const scanIntervalRef = useRef(null);
+    const timerRef = useRef(null);
+    const streamRef = useRef(null);
 
     // ... (coupon logic remains, though not fully hooked up in this example)
     const [couponCode, setCouponCode] = useState('');
@@ -246,17 +248,17 @@ const CartModalMain = ({
 
     // Scanner & timer effects when orderForPayment present
     useEffect(() => {
-        let stream = null;
         let detector = null;
 
         const startCameraAndScan = async () => {
             if (!orderForPayment || orderForPayment.paymentMethod !== 'UPI') return;
             setTimeLeft(120);
             // start timer
-            const timerId = setInterval(() => {
+            if (timerRef.current) clearInterval(timerRef.current);
+            timerRef.current = setInterval(() => {
                 setTimeLeft(t => {
                     if (t <= 1) {
-                        clearInterval(timerId);
+                        if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
                         stopScanning();
                         return 0;
                     }
@@ -268,9 +270,11 @@ const CartModalMain = ({
             try {
                 if ('BarcodeDetector' in window) {
                     detector = new window.BarcodeDetector({ formats: ['qr_code'] });
-                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
-                    if (videoRef.current) videoRef.current.srcObject = stream;
+                    const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    streamRef.current = stream;
+                    if (videoRef.current) videoRef.current.srcObject = streamRef.current;
                     setIsScanning(true);
+                    if (scanIntervalRef.current) clearInterval(scanIntervalRef.current);
                     scanIntervalRef.current = setInterval(async () => {
                         try {
                             const detections = await detector.detect(videoRef.current);
@@ -280,7 +284,6 @@ const CartModalMain = ({
                                 const match = code.match(/\d{10,}/);
                                 if (match) {
                                     setUtr(match[0]);
-                                    // auto confirm? let user press confirm
                                     // stop scanning
                                     stopScanning();
                                 }
@@ -293,39 +296,23 @@ const CartModalMain = ({
             } catch (err) {
                 console.warn('Scanner init failed', err);
             }
-
-            function stopScanning() {
-                if (scanIntervalRef.current) { clearInterval(scanIntervalRef.current); scanIntervalRef.current = null; }
-                if (stream) {
-                    stream.getTracks().forEach(t => t.stop());
-                    stream = null;
-                }
-                setIsScanning(false);
-            }
-
-            // cleanup on unmount or when orderForPayment changes
-            return () => {
-                clearInterval(timerId);
-                if (scanIntervalRef.current) { clearInterval(scanIntervalRef.current); scanIntervalRef.current = null; }
-                if (stream) stream.getTracks().forEach(t => t.stop());
-                setIsScanning(false);
-            };
         };
 
         const stopScanning = () => {
+            if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
             if (scanIntervalRef.current) { clearInterval(scanIntervalRef.current); scanIntervalRef.current = null; }
-            const s = videoRef.current?.srcObject;
+            const s = streamRef.current || videoRef.current?.srcObject;
             if (s) {
-                s.getTracks().forEach(t => t.stop());
+                try { s.getTracks().forEach(t => t.stop()); } catch (e) {}
                 if (videoRef.current) videoRef.current.srcObject = null;
+                streamRef.current = null;
             }
             setIsScanning(false);
         };
 
         if (orderForPayment && orderForPayment.paymentMethod === 'UPI') {
-            const p = startCameraAndScan();
-            // p may be a cleanup function
-            return () => { if (typeof p === 'function') p(); stopScanning(); };
+            startCameraAndScan();
+            return () => { stopScanning(); };
         }
 
         return () => {};
