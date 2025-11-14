@@ -7,14 +7,14 @@ import { Modal, Button, ListGroup, Form, Row, Col, InputGroup, Alert, Spinner } 
 const CartModalMain = ({
     show,
     handleClose,
-    cartItems,
-    onRemoveFromCart,
-    onUpdateQuantity,
-    onPlaceOrder,
-    orderForPayment, // The new order object (if payment is pending)
-    onConfirmUpiPayment, // Function to call with UTR
-    onCancelUpiPayment,  // Function to call if user cancels
-    orderError           // Error message from App.jsx
+    cartItems = [],
+    onRemoveFromCart = () => {},
+    onUpdateQuantity = () => {},
+    onPlaceOrder = async () => {},
+    orderForPayment = null, // The new order object (if payment is pending)
+    onConfirmUpiPayment = async () => {}, // Function to call with UTR
+    onCancelUpiPayment = () => {},  // Function to call if user cancels
+    orderError = ''           // Error message from App.jsx
 }) => {
     const [customerName, setCustomerName] = useState('');
     const [address, setAddress] = useState('');
@@ -68,20 +68,28 @@ const CartModalMain = ({
             } : undefined
         };
         
-        await onPlaceOrder(orderDetails);
+        if (typeof onPlaceOrder === 'function') {
+            await onPlaceOrder(orderDetails);
+        } else {
+            console.warn('onPlaceOrder is not a function', onPlaceOrder);
+        }
         setIsSubmitting(false);
     };
 
     const handleInternalConfirmPayment = async () => {
         setIsSubmitting(true);
-        await onConfirmUpiPayment(utr);
+        if (typeof onConfirmUpiPayment === 'function') {
+            await onConfirmUpiPayment(utr);
+        } else {
+            console.warn('onConfirmUpiPayment is not a function', onConfirmUpiPayment);
+        }
         setIsSubmitting(false);
     };
 
     // Reset local state when modal is closed or payment is done
     const internalHandleClose = () => {
         if (orderForPayment) {
-            onCancelUpiPayment(); // Tell App.jsx to reset the order state
+            if (typeof onCancelUpiPayment === 'function') onCancelUpiPayment(); // Tell App.jsx to reset the order state
         }
         setCustomerName('');
         setAddress('');
@@ -97,7 +105,7 @@ const CartModalMain = ({
     const renderCartContents = () => (
         <>
             <ListGroup variant="flush">
-                {cartItems.map(item => (
+                {(cartItems || []).map(item => (
                     <ListGroup.Item key={`${item._id}-${item.variant}`} className="d-flex justify-content-between align-items-center">
                         <div>
                             <strong className="d-block">{item.name} ({item.variant})</strong>
@@ -116,11 +124,11 @@ const CartModalMain = ({
                                 type="number"
                                 size="sm"
                                 value={item.quantity}
-                                onChange={(e) => onUpdateQuantity(item._id, item.variant, parseInt(e.target.value))}
+                                onChange={(e) => typeof onUpdateQuantity === 'function' && onUpdateQuantity(item._id, item.variant, parseInt(e.target.value))}
                                 style={{ width: '60px', marginRight: '10px' }}
                                 min="1"
                             />
-                            <Button variant="outline-danger" size="sm" onClick={() => onRemoveFromCart(item._id, item.variant)}>
+                            <Button variant="outline-danger" size="sm" onClick={() => typeof onRemoveFromCart === 'function' && onRemoveFromCart(item._id, item.variant)}>
                                 &times;
                             </Button>
                         </div>
