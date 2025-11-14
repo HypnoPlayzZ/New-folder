@@ -24,6 +24,8 @@ function App() {
   const [menuItems, setMenuItems] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [showCart, setShowCart] = useState(false);
+  const [orderForPayment, setOrderForPayment] = useState(null);
+  const [orderError, setOrderError] = useState('');
   
   const [auth, setAuth] = useState({
       customer: { token: null, name: null },
@@ -86,7 +88,7 @@ function App() {
       }
   };
 
-  const submitOrder = (finalTotal, appliedCoupon = null, address, customerNameParam = null, paymentMethodParam = 'COD') => {
+  const submitOrder = async (finalTotal, appliedCoupon = null, address, customerNameParam = null, paymentMethodParam = 'COD') => {
     const orderDetails = {
         items: cartItems.map(item => ({ 
             menuItemId: item._id, 
@@ -107,17 +109,50 @@ function App() {
     address: address // Include the address in the order details
     };
 
-    api.post('/orders', orderDetails)
-        .then(() => { 
-            alert('Order placed successfully!'); 
-            setCartItems([]); 
-            setShowCart(false); 
-        })
-        .catch(error => { 
-            console.error('Error placing order:', error); 
-            const errorMessage = error.response?.data?.message || 'There was a problem placing your order.';
-            alert(errorMessage);
-        });
+    try {
+      const res = await api.post('/orders', orderDetails);
+      // If UPI, return the created order and keep cart until payment confirmed
+      if (paymentMethodParam === 'UPI') {
+        const created = res.data;
+        setOrderForPayment(created);
+        setShowCart(true);
+        return created;
+      }
+
+      // For COD, clear cart immediately
+      alert('Order placed successfully!');
+      setCartItems([]);
+      setShowCart(false);
+      return res.data;
+    } catch (error) {
+      console.error('Error placing order:', error);
+      const errorMessage = error.response?.data?.message || 'There was a problem placing your order.';
+      setOrderError(errorMessage);
+      alert(errorMessage);
+      throw error;
+    }
+  };
+
+  const handleConfirmUpiPayment = async (orderId, utr) => {
+    try {
+      const res = await api.patch(`/orders/${orderId}/confirm-payment`, { utr });
+      // Payment confirmed: clear cart and close modal
+      setCartItems([]);
+      setOrderForPayment(null);
+      setShowCart(false);
+      alert('Payment confirmed. Thank you!');
+      return res.data;
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Failed to confirm payment.';
+      setOrderError(msg);
+      alert(msg);
+      throw err;
+    }
+  };
+
+  const handleCancelUpiPayment = () => {
+    setOrderForPayment(null);
+    setOrderError('');
   };
   
     const handleAddToCart = (itemToAdd, variant, quantity = 1, instructions = '') => {
@@ -185,8 +220,12 @@ function App() {
           handleClose={() => setShowCart(false)} 
           cartItems={cartItems} 
           setCartItems={setCartItems} 
-          submitOrder={submitOrder} 
-          isLoggedIn={isCustomerLoggedIn}
+      submitOrder={submitOrder} 
+      isLoggedIn={isCustomerLoggedIn}
+      orderForPayment={orderForPayment}
+      onConfirmUpiPayment={(utr) => handleConfirmUpiPayment(orderForPayment?._id, utr)}
+      onCancelUpiPayment={handleCancelUpiPayment}
+      orderError={orderError}
       />
     </div>
   );
