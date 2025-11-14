@@ -88,7 +88,7 @@ const OrderManager = () => {
 
     const handleStatusChange = async (orderId, newStatus) => {
         try {
-            const res = await api.patch(`/api/admin/orders/${orderId}`, { status: newStatus });
+            const res = await api.patch(`/admin/orders/${orderId}`, { status: newStatus });
             setOrders(prevOrders => Array.isArray(prevOrders) ? prevOrders.map(order =>
                 order._id === orderId ? res.data : order
             ) : []);
@@ -100,7 +100,7 @@ const OrderManager = () => {
 
     const handleAcknowledge = async (orderId) => {
         try {
-            const res = await api.patch(`/api/admin/orders/${orderId}/acknowledge`);
+            const res = await api.patch(`/admin/orders/${orderId}/acknowledge`);
             setOrders(prevOrders => Array.isArray(prevOrders) ? prevOrders.map(order =>
                 order._id === orderId ? { ...order, isAcknowledged: res.data.isAcknowledged } : order
             ) : []);
