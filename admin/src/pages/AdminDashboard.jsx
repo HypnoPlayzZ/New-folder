@@ -89,9 +89,9 @@ const OrderManager = () => {
     const handleStatusChange = async (orderId, newStatus) => {
         try {
             const res = await api.patch(`/api/admin/orders/${orderId}`, { status: newStatus });
-            setOrders(prevOrders => prevOrders.map(order =>
+            setOrders(prevOrders => Array.isArray(prevOrders) ? prevOrders.map(order =>
                 order._id === orderId ? res.data : order
-            ));
+            ) : []);
         } catch (err) {
             console.error("Error updating order status:", err);
             setError(err.response?.data?.message || 'Could not update status');
@@ -101,9 +101,9 @@ const OrderManager = () => {
     const handleAcknowledge = async (orderId) => {
         try {
             const res = await api.patch(`/api/admin/orders/${orderId}/acknowledge`);
-            setOrders(prevOrders => prevOrders.map(order =>
+            setOrders(prevOrders => Array.isArray(prevOrders) ? prevOrders.map(order =>
                 order._id === orderId ? { ...order, isAcknowledged: res.data.isAcknowledged } : order
-            ));
+            ) : []);
         } catch (err) {
             console.error("Error acknowledging order:", err);
             setError(err.response?.data?.message || 'Could not acknowledge order');
@@ -155,15 +155,15 @@ const OrderManager = () => {
                             </tr>
                         </thead>
                         <tbody>
-                            {viewOrder.items.map(item => (
-                                <tr key={item.menuItemId?._id + item.variant}>
-                                    <td>{item.menuItemId?.name || 'Item not found'}</td>
-                                    <td>{item.variant}</td>
-                                    <td>{item.quantity}</td>
-                                    <td>₹{item.priceAtOrder.toFixed(2)}</td>
-                                    <td>₹{(item.priceAtOrder * item.quantity).toFixed(2)}</td>
-                                </tr>
-                            ))}
+                                {(viewOrder.items || []).map(item => (
+                                    <tr key={(item.menuItemId?._id || '') + (item.variant || '')}>
+                                        <td>{item.menuItemId?.name || 'Item not found'}</td>
+                                        <td>{item.variant}</td>
+                                        <td>{item.quantity}</td>
+                                        <td>₹{(item.priceAtOrder ?? 0).toFixed(2)}</td>
+                                        <td>₹{((item.priceAtOrder ?? 0) * (item.quantity ?? 0)).toFixed(2)}</td>
+                                    </tr>
+                                ))}
                         </tbody>
                     </Table>
                     <h5 className="text-end">Subtotal: ₹{viewOrder.totalPrice.toFixed(2)}</h5>
@@ -204,21 +204,21 @@ const OrderManager = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {orders.map(order => (
+                        {(orders || []).map(order => (
                             <tr key={order._id}>
                                 <td><small>{order._id}</small></td>
                                 <td>{order.customerName}<br /><small>{order.user?.email}</small></td>
                                 <td>{new Date(order.createdAt).toLocaleString()}</td>
-                                <td>₹{order.finalPrice.toFixed(2)}</td>
+                                <td>₹{(order.finalPrice ?? 0).toFixed(2)}</td>
                                 {/* --- MODIFIED: Show payment status and UTR --- */}
                                 <td>
-                                    <Badge bg={order.paymentMethod === 'UPI' ? 'primary' : 'secondary'}>
+                                        <Badge bg={order.paymentMethod === 'UPI' ? 'primary' : 'secondary'}>
                                         {order.paymentMethod}
                                     </Badge>
                                     <br />
-                                    <Badge bg={order.paymentStatus === 'Paid' ? 'success' : 'warning'} pill>
-                                        {order.paymentStatus}
-                                    </Badge>
+                                        <Badge bg={(order.paymentStatus === 'Paid') ? 'success' : 'warning'} pill>
+                                            {order.paymentStatus || 'Unknown'}
+                                        </Badge>
                                     {order.utr && <><br /><small>UTR: {order.utr}</small></>}
                                 </td>
                                 <td>
@@ -385,13 +385,13 @@ const MenuManager = () => {
             const destCategory = destination.droppableId;
 
             if (sourceCategory === destCategory) {
-                const items = Array.from(menu[sourceCategory]);
+                const items = Array.isArray(menu[sourceCategory]) ? Array.from(menu[sourceCategory]) : [];
                 const [reorderedItem] = items.splice(source.index, 1);
                 items.splice(destination.index, 0, reorderedItem);
 
                 setMenu(prevMenu => ({ ...prevMenu, [sourceCategory]: items }));
 
-                const orderedIds = items.map(item => item._id);
+                const orderedIds = Array.isArray(items) ? items.map(item => item._id) : [];
                 api.patch('/admin/menu/reorder', { category: sourceCategory, orderedIds })
                     .catch(err => {
                         alert('Failed to save new order. Reverting changes.');
@@ -423,7 +423,7 @@ const MenuManager = () => {
                                         <Droppable droppableId={category}>
                                             {(provided) => (
                                                 <div ref={provided.innerRef} {...provided.droppableProps}>
-                                                    {items.map((item, idx) => (
+                                                    {Array.isArray(items) ? items.map((item, idx) => (
                                                         <Draggable key={item._id} draggableId={item._id.toString()} index={idx}>
                                                             {(provided) => (
                                                                 <div
@@ -438,8 +438,8 @@ const MenuManager = () => {
                                                                         </svg>
                                                                     </div>
                                                                     <div className="col">{item.name}</div>
-                                                                    <div className="col-2">₹{item.price.half != null ? item.price.half.toFixed(2) : 'N/A'}</div>
-                                                                    <div className="col-2">₹{item.price.full != null ? item.price.full.toFixed(2) : 'N/A'}</div>
+                                                                    <div className="col-2">₹{item.price?.half != null ? item.price.half.toFixed(2) : 'N/A'}</div>
+                                                                    <div className="col-2">₹{item.price?.full != null ? item.price.full.toFixed(2) : 'N/A'}</div>
                                                                     <div className="col-3">
                                                                         <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleShowModal(item)}>Edit</Button>
                                                                         <Button variant="outline-secondary" size="sm" onClick={() => handleDelete(item._id)}>Delete</Button>
@@ -447,7 +447,7 @@ const MenuManager = () => {
                                                                 </div>
                                                             )}
                                                         </Draggable>
-                                                    ))}
+                                                    )) : null}
                                                     {provided.placeholder}
                                                 </div>
                                             )}
@@ -496,7 +496,7 @@ const MenuManager = () => {
         const handleStatusChange = (id, status) => {
             api.patch(`/admin/complaints/${id}`, { status })
                 .then(res => {
-                    setComplaints(prev => prev.map(c => c._id === id ? res.data : c));
+                    setComplaints(prev => Array.isArray(prev) ? prev.map(c => c._id === id ? res.data : c) : []);
                 })
                 .catch(err => alert('Failed to update complaint status.'));
         };
@@ -508,7 +508,7 @@ const MenuManager = () => {
                 <table className="table table-striped table-bordered table-hover">
                     <thead><tr><th>Customer</th><th>Order Date</th><th>Message</th><th>Status</th></tr></thead>
                     <tbody>
-                        {complaints.map(c => (
+                        {(complaints || []).map(c => (
                             <tr key={c._id}>
                                 <td>{c.user ? `${c.user.name} (${c.user.email})` : 'User Not Found'}</td>
                                 <td>{c.orderId ? new Date(c.orderId.createdAt).toLocaleString() : 'N/A'}</td>
@@ -629,7 +629,7 @@ const MenuManager = () => {
 
         const fetchCoupons = () => {
             api.get('/admin/coupons').then(res => {
-                setCoupons(res.data);
+                setCoupons(Array.isArray(res.data) ? res.data : []);
                 setIsLoading(false);
             });
         };
@@ -669,7 +669,7 @@ const MenuManager = () => {
                             <tr><th>Code</th><th>Description</th><th>Type</th><th>Value</th><th>Status</th><th>Actions</th></tr>
                         </thead>
                         <tbody>
-                            {coupons.map(coupon => (
+                            {(coupons || []).map(coupon => (
                                 <tr key={coupon._id}>
                                     <td>{coupon.code}</td>
                                     <td>{coupon.description}</td>
