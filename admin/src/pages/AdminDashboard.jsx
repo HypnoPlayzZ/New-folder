@@ -131,8 +131,8 @@ const OrderManager = ({ onNewOrder } = {}) => {
         // initial load
         fetchOrders({ notifyIfNew: false });
 
-        // start polling every 5 seconds to detect new orders
-        pollingRef.current = setInterval(() => fetchOrders({ notifyIfNew: true }), 5000);
+    // start polling every 10 seconds to detect new orders
+    pollingRef.current = setInterval(() => fetchOrders({ notifyIfNew: true }), 10000);
         return () => {
             if (pollingRef.current) clearInterval(pollingRef.current);
         };
