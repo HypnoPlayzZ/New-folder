@@ -1,6 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Modal, Button, ListGroup, Form, Row, Col, InputGroup, Alert, Spinner } from 'react-bootstrap';
 import QRCode from 'qrcode';
+import LocationPickerModal from './LocationPickerModal';
 // We need api here if we add coupon logic back
 // import { api } from '../api'; 
 
@@ -25,6 +26,8 @@ const CartModalMain = ({
 }) => {
     const [customerName, setCustomerName] = useState('');
     const [address, setAddress] = useState('');
+    const [locationCoords, setLocationCoords] = useState(''); // 'lat, lng'
+    const [showLocationPicker, setShowLocationPicker] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('COD'); // Default to COD
     const [utr, setUtr] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
@@ -93,6 +96,10 @@ const CartModalMain = ({
                 discountType: couponDiscount.coupon.discountType,
                 discountValue: couponDiscount.coupon.discountValue
             } : undefined
+            ,
+            // include optional coordinates and a maps link
+            locationCoords: locationCoords || undefined,
+            locationLink: locationCoords ? `https://maps.google.com/?q=${encodeURIComponent(locationCoords)}` : undefined
         };
 
         if (typeof onPlaceOrder === 'function') {
@@ -125,6 +132,8 @@ const CartModalMain = ({
         setCouponCode('');
         setCouponDiscount(null);
         setIsSubmitting(false);
+        setLocationCoords('');
+        setShowLocationPicker(false);
         handleClose(); // This is the original handleClose from App.jsx
     };
 
@@ -185,7 +194,13 @@ const CartModalMain = ({
                 </Form.Group>
                 <Form.Group className="mb-3">
                     <Form.Label>Delivery Address</Form.Label>
-                    <Form.Control as="textarea" rows={3} placeholder="Enter your full address" value={address} onChange={e => setAddress(e.target.value)} required />
+                        <div className="d-flex gap-2">
+                            <Form.Control as="textarea" rows={3} placeholder="Enter your full address" value={address} onChange={e => setAddress(e.target.value)} required />
+                            <div className="d-flex flex-column">
+                                <Button variant="outline-primary" onClick={() => setShowLocationPicker(true)}>Pick on map</Button>
+                                {locationCoords ? <a className="mt-2 text-muted" target="_blank" rel="noreferrer" href={`https://maps.google.com/?q=${encodeURIComponent(locationCoords)}`}>Open map</a> : null}
+                            </div>
+                        </div>
                 </Form.Group>
 
                 {/* --- PAYMENT METHOD SELECTION --- */}
@@ -375,6 +390,12 @@ const CartModalMain = ({
         return () => { mounted = false; };
     }, [upiId, orderForPayment, finalPrice]);
 
+    // Location picker modal handler
+    const handleLocationSelect = (coordsString) => {
+        // coordsString is like 'lat, lng'
+        setLocationCoords(coordsString);
+    };
+
     return (
         <Modal show={show} onHide={internalHandleClose} size="lg">
             <Modal.Header closeButton>
@@ -390,6 +411,7 @@ const CartModalMain = ({
                 )}
                 
                 {orderError && <Alert variant="danger" className="mt-3">{orderError}</Alert>}
+                <LocationPickerModal show={showLocationPicker} handleClose={() => setShowLocationPicker(false)} onLocationSelect={handleLocationSelect} />
             </Modal.Body>
             <Modal.Footer>
                 <Button variant="secondary" onClick={internalHandleClose}>

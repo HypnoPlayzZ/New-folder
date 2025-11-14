@@ -156,6 +156,14 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
             <Navbar bg="dark" variant="dark" expand="lg" sticky="top" className="shadow-sm py-3">
                 <Container fluid className="px-md-4">
                     <Navbar.Brand href={isCustomerLoggedIn ? "#/menu" : "#/"} className="navbar-brand-style d-flex align-items-center">
+                        {/* Logo from public folder (place your logo as public/steamy-logo.png) */}
+                        <img
+                            src="/Logo.png"
+                            alt="Steamy Bites"
+                            style={{ height: 36, width: 'auto', marginRight: 8 }}
+                            onError={(e) => { /* hide if missing so SVG fallback remains visible */ e.target.style.display = 'none'; }}
+                        />
+                        {/* SVG fallback icon remains for when image is absent */}
                         <IconFire className="me-2" />
                         Steamy Bites
                     </Navbar.Brand>

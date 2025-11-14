@@ -176,21 +176,9 @@ const OrderManager = ({ onNewOrder } = {}) => {
     const renderOrderModal = () => {
         if (!viewOrder) return null;
 
-        useEffect(() => {
-            // clear unread counter when user navigates to Orders tab
-            if (activeTab === 'orders') setUnreadOrders(0);
-        }, [activeTab]);
-
-        useEffect(() => {
-            const onVisibility = () => {
-                if (!document.hidden) {
-                    // when tab becomes visible, clear unread badge
-                    setUnreadOrders(0);
-                }
-            };
-            document.addEventListener('visibilitychange', onVisibility);
-            return () => document.removeEventListener('visibilitychange', onVisibility);
-        }, []);
+        // Note: do not reference parent-scoped variables (activeTab / setUnreadOrders)
+        // inside this child component. Visibility/unread handling is managed by
+        // the parent `AdminDashboard` via the onNewOrder callback and window events.
 
         return (
             <Modal show={!!viewOrder} onHide={() => setViewOrder(null)} size="lg">
@@ -199,8 +187,11 @@ const OrderManager = ({ onNewOrder } = {}) => {
                 </Modal.Header>
                 <Modal.Body>
                     <p><strong>Customer:</strong> {viewOrder.customerName}</p>
-                    <p><strong>User Email:</strong> {viewOrder.user?.email || 'N/A'}</p>
+                    <p><strong>User Email:</strong> {viewOrder.user?.emai+l || 'N/A'}</p>
                     <p><strong>Address:</strong> {viewOrder.address}</p>
+                    {viewOrder.locationLink && (
+                        <p><strong>Location:</strong> <a href={viewOrder.locationLink} target="_blank" rel="noreferrer">Open in Google Maps</a> {viewOrder.locationCoords && <small>({viewOrder.locationCoords})</small>}</p>
+                    )}
                     <p><strong>Status:</strong> <Badge bg={getOrderStatusBadge(viewOrder.status)}>{viewOrder.status}</Badge></p>
                     <hr />
                     {/* --- NEW PAYMENT DETAILS --- */}
@@ -362,9 +353,12 @@ const OrderManager = ({ onNewOrder } = {}) => {
                                     )}
                                 </td>
                                 <td>
-                                    <Button size="sm" variant="info" onClick={() => setViewOrder(order)}>
-                                        View
-                                    </Button>
+                                    <div className="d-flex gap-2">
+                                        <Button size="sm" variant="info" onClick={() => setViewOrder(order)}>View</Button>
+                                        {order.locationLink && (
+                                            <Button size="sm" variant="outline-secondary" onClick={() => window.open(order.locationLink, '_blank')}>Map</Button>
+                                        )}
+                                    </div>
                                 </td>
                             </tr>
                         ))}
@@ -419,6 +413,9 @@ const PastOrdersManager = () => {
                     <p><strong>Customer:</strong> {viewOrder.customerName}</p>
                     <p><strong>User Email:</strong> {viewOrder.user?.email || 'N/A'}</p>
                     <p><strong>Address:</strong> {viewOrder.address}</p>
+                    {viewOrder.locationLink && (
+                        <p><strong>Location:</strong> <a href={viewOrder.locationLink} target="_blank" rel="noreferrer">Open in Google Maps</a> {viewOrder.locationCoords && <small>({viewOrder.locationCoords})</small>}</p>
+                    )}
                     <p><strong>Status:</strong> <Badge bg={getOrderStatusBadge(viewOrder.status)}>{viewOrder.status}</Badge></p>
                     <hr />
                     <h5>Items</h5>
@@ -481,7 +478,14 @@ const PastOrdersManager = () => {
                                     <Badge bg={(order.paymentStatus === 'Paid') ? 'success' : 'warning'} pill>{order.paymentStatus || 'Unknown'}</Badge>
                                 </td>
                                 <td><Badge bg={getOrderStatusBadge(order.status)}>{order.status}</Badge></td>
-                                <td><Button size="sm" variant="info" onClick={() => setViewOrder(order)}>View</Button></td>
+                                <td>
+                                    <div className="d-flex gap-2">
+                                        <Button size="sm" variant="info" onClick={() => setViewOrder(order)}>View</Button>
+                                        {order.locationLink && (
+                                            <Button size="sm" variant="outline-secondary" onClick={() => window.open(order.locationLink, '_blank')}>Map</Button>
+                                        )}
+                                    </div>
+                                </td>
                             </tr>
                         ))}
                     </tbody>

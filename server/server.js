@@ -154,6 +154,9 @@ const OrderSchema = new mongoose.Schema({
         type: String,
         trim: true
     }
+    ,
+    locationCoords: { type: String, required: false }, // e.g. "12.34, 56.78"
+    locationLink: { type: String, required: false }, // e.g. Google Maps link
     // --- END OF NEW FIELDS ---
 }, { timestamps: true });
 
