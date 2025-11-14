@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Modal, Button, ListGroup, Form, Row, Col, InputGroup, Alert, Spinner } from 'react-bootstrap';
+import QRCode from 'qrcode';
 // We need api here if we add coupon logic back
 // import { api } from '../api'; 
 
@@ -33,6 +34,7 @@ const CartModalMain = ({
     const scanIntervalRef = useRef(null);
     const timerRef = useRef(null);
     const streamRef = useRef(null);
+    const [generatedQrDataUrl, setGeneratedQrDataUrl] = useState('');
 
     // ... (coupon logic remains, though not fully hooked up in this example)
     const [couponCode, setCouponCode] = useState('');
@@ -229,9 +231,11 @@ const CartModalMain = ({
                 <strong>Time left to pay:</strong> <span style={{ fontSize: '1.2rem' }}>{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</span>
             </div>
 
-            {/* Show QR image if available, otherwise show video preview for scanning */}
+            {/* Show generated QR (preferred), else provided QR image, else video preview for scanning */}
             <div className="mb-3 d-flex justify-content-center">
-                {upiQrUrl ? (
+                {generatedQrDataUrl ? (
+                    <img src={generatedQrDataUrl} alt="UPI QR" style={{ width: 220, height: 220, objectFit: 'contain', border: '1px solid #eee', borderRadius: 8 }} />
+                ) : upiQrUrl ? (
                     <img src={upiQrUrl} alt="UPI QR" style={{ width: 220, height: 220, objectFit: 'contain', border: '1px solid #eee', borderRadius: 8 }} />
                 ) : (
                     <video ref={videoRef} style={{ width: '220px', height: '220px', border: '1px solid #ddd', borderRadius: 8 }} autoPlay muted playsInline />
@@ -349,6 +353,27 @@ const CartModalMain = ({
 
         return () => {};
     }, [orderForPayment]);
+
+    // Generate QR code from UPI URI when upiId or amount changes
+    useEffect(() => {
+        let mounted = true;
+        const generate = async () => {
+            try {
+                if (!upiId || !orderForPayment) return setGeneratedQrDataUrl('');
+                // Build UPI deep link: UPI apps understand "upi://pay?pa=PAYEE_UPI&pn=PayeeName&am=AMOUNT&cu=INR"
+                const amount = (orderForPayment.finalPrice || finalPrice || 0).toFixed(2);
+                const payeeName = encodeURIComponent('Steamy Bites');
+                const uri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${payeeName}&am=${amount}&cu=INR`;
+                const dataUrl = await QRCode.toDataURL(uri, { margin: 1, scale: 6 });
+                if (mounted) setGeneratedQrDataUrl(dataUrl);
+            } catch (e) {
+                console.warn('QR generation failed', e);
+                if (mounted) setGeneratedQrDataUrl('');
+            }
+        };
+        generate();
+        return () => { mounted = false; };
+    }, [upiId, orderForPayment, finalPrice]);
 
     return (
         <Modal show={show} onHide={internalHandleClose} size="lg">
