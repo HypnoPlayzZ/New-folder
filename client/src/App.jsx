@@ -280,6 +280,8 @@ function App() {
       orderError={orderError}
     waitingForAdmin={waitingForAdmin}
     adminWaitLeft={adminWaitLeft}
+    upiId={'8178767938-3@ybl'}
+    upiQrUrl={'/upi_qr.png'}
       />
     </div>
   );

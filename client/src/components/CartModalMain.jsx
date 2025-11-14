@@ -19,6 +19,8 @@ const CartModalMain = ({
     orderError = ''           // Error message from App.jsx
     , waitingForAdmin = false
     , adminWaitLeft = 0
+    , upiId = '8178767938-3@ybl'
+    , upiQrUrl = '/upi_qr.png'
 }) => {
     const [customerName, setCustomerName] = useState('');
     const [address, setAddress] = useState('');
@@ -220,16 +222,20 @@ const CartModalMain = ({
             <p className="lead">Your order (ID: {orderForPayment._id}) is pending.</p>
             <Alert variant="info">
                 <p className="mb-0">Please pay <strong>₹{orderForPayment.finalPrice.toFixed(2)}</strong> to the following UPI ID:</p>
-                <h5 className="my-2" style={{ userSelect: 'all' }}>steamybites@upi</h5>
+                <h5 className="my-2" style={{ userSelect: 'all' }}>{upiId}</h5>
                 <p className="mt-2 mb-0">After paying, enter the 12-digit UTR (Transaction ID) below and click confirm.</p>
             </Alert>
             <div className="mb-2">
                 <strong>Time left to pay:</strong> <span style={{ fontSize: '1.2rem' }}>{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</span>
             </div>
 
-            {/* Video preview for scanner (if supported) */}
-            <div className="mb-3">
-                <video ref={videoRef} style={{ width: '220px', height: '220px', border: '1px solid #ddd', borderRadius: 8 }} autoPlay muted playsInline />
+            {/* Show QR image if available, otherwise show video preview for scanning */}
+            <div className="mb-3 d-flex justify-content-center">
+                {upiQrUrl ? (
+                    <img src={upiQrUrl} alt="UPI QR" style={{ width: 220, height: 220, objectFit: 'contain', border: '1px solid #eee', borderRadius: 8 }} />
+                ) : (
+                    <video ref={videoRef} style={{ width: '220px', height: '220px', border: '1px solid #ddd', borderRadius: 8 }} autoPlay muted playsInline />
+                )}
             </div>
             <Form.Group className="my-3">
                 <Form.Label><strong>Enter UTR / Transaction ID</strong></Form.Label>
