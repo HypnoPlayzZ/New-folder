@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Modal, Button, ListGroup, Form, Row, Col, InputGroup, Alert, Spinner } from 'react-bootstrap';
 // We need api here if we add coupon logic back
 // import { api } from '../api'; 
@@ -23,6 +23,10 @@ const CartModalMain = ({
     const [paymentMethod, setPaymentMethod] = useState('COD'); // Default to COD
     const [utr, setUtr] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
+    const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
+    const [isScanning, setIsScanning] = useState(false);
+    const videoRef = useRef(null);
+    const scanIntervalRef = useRef(null);
 
     // ... (coupon logic remains, though not fully hooked up in this example)
     const [couponCode, setCouponCode] = useState('');
@@ -215,9 +219,14 @@ const CartModalMain = ({
                 <h5 className="my-2" style={{ userSelect: 'all' }}>steamybites@upi</h5>
                 <p className="mt-2 mb-0">After paying, enter the 12-digit UTR (Transaction ID) below and click confirm.</p>
             </Alert>
-            
-            
+            <div className="mb-2">
+                <strong>Time left to pay:</strong> <span style={{ fontSize: '1.2rem' }}>{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</span>
+            </div>
 
+            {/* Video preview for scanner (if supported) */}
+            <div className="mb-3">
+                <video ref={videoRef} style={{ width: '220px', height: '220px', border: '1px solid #ddd', borderRadius: 8 }} autoPlay muted playsInline />
+            </div>
             <Form.Group className="my-3">
                 <Form.Label><strong>Enter UTR / Transaction ID</strong></Form.Label>
                 <Form.Control
@@ -229,8 +238,98 @@ const CartModalMain = ({
                     minLength={12}
                 />
             </Form.Group>
+            <div className="mb-2">
+                <small className="text-muted">You can scan the transaction QR using your camera if supported, or enter the UTR manually.</small>
+            </div>
         </div>
     );
+
+    // Scanner & timer effects when orderForPayment present
+    useEffect(() => {
+        let stream = null;
+        let detector = null;
+
+        const startCameraAndScan = async () => {
+            if (!orderForPayment || orderForPayment.paymentMethod !== 'UPI') return;
+            setTimeLeft(120);
+            // start timer
+            const timerId = setInterval(() => {
+                setTimeLeft(t => {
+                    if (t <= 1) {
+                        clearInterval(timerId);
+                        stopScanning();
+                        return 0;
+                    }
+                    return t - 1;
+                });
+            }, 1000);
+
+            // BarcodeDetector API
+            try {
+                if ('BarcodeDetector' in window) {
+                    detector = new window.BarcodeDetector({ formats: ['qr_code'] });
+                    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+                    if (videoRef.current) videoRef.current.srcObject = stream;
+                    setIsScanning(true);
+                    scanIntervalRef.current = setInterval(async () => {
+                        try {
+                            const detections = await detector.detect(videoRef.current);
+                            if (detections && detections.length > 0) {
+                                const code = detections[0].rawValue;
+                                // Try to extract UTR-like numeric string
+                                const match = code.match(/\d{10,}/);
+                                if (match) {
+                                    setUtr(match[0]);
+                                    // auto confirm? let user press confirm
+                                    // stop scanning
+                                    stopScanning();
+                                }
+                            }
+                        } catch (e) {
+                            // ignore detection errors
+                        }
+                    }, 800);
+                }
+            } catch (err) {
+                console.warn('Scanner init failed', err);
+            }
+
+            function stopScanning() {
+                if (scanIntervalRef.current) { clearInterval(scanIntervalRef.current); scanIntervalRef.current = null; }
+                if (stream) {
+                    stream.getTracks().forEach(t => t.stop());
+                    stream = null;
+                }
+                setIsScanning(false);
+            }
+
+            // cleanup on unmount or when orderForPayment changes
+            return () => {
+                clearInterval(timerId);
+                if (scanIntervalRef.current) { clearInterval(scanIntervalRef.current); scanIntervalRef.current = null; }
+                if (stream) stream.getTracks().forEach(t => t.stop());
+                setIsScanning(false);
+            };
+        };
+
+        const stopScanning = () => {
+            if (scanIntervalRef.current) { clearInterval(scanIntervalRef.current); scanIntervalRef.current = null; }
+            const s = videoRef.current?.srcObject;
+            if (s) {
+                s.getTracks().forEach(t => t.stop());
+                if (videoRef.current) videoRef.current.srcObject = null;
+            }
+            setIsScanning(false);
+        };
+
+        if (orderForPayment && orderForPayment.paymentMethod === 'UPI') {
+            const p = startCameraAndScan();
+            // p may be a cleanup function
+            return () => { if (typeof p === 'function') p(); stopScanning(); };
+        }
+
+        return () => {};
+    }, [orderForPayment]);
 
     return (
         <Modal show={show} onHide={internalHandleClose} size="lg">
