@@ -515,15 +515,26 @@ const MenuManager = () => {
         try {
             const response = await api.get('/menu');
             const data = response.data;
-            // If API returns an array, convert to grouped object by category
+            // Normalize API responses:
+            // - Older API returned an array of items -> group by item.category
+            // - Newer API returns array of category objects: [{ name, items: [...] }]
             if (Array.isArray(data)) {
-                const grouped = data.reduce((acc, item) => {
-                    const cat = item.category || 'Uncategorized';
-                    if (!acc[cat]) acc[cat] = [];
-                    acc[cat].push(item);
-                    return acc;
-                }, {});
-                setMenu(grouped);
+                // Detect category-shaped array
+                if (data.length > 0 && data[0] && (data[0].name !== undefined) && (data[0].items !== undefined)) {
+                    const grouped = data.reduce((acc, cat) => {
+                        acc[cat.name || 'Uncategorized'] = Array.isArray(cat.items) ? cat.items : [];
+                        return acc;
+                    }, {});
+                    setMenu(grouped);
+                } else {
+                    const grouped = data.reduce((acc, item) => {
+                        const cat = item.category || 'Uncategorized';
+                        if (!acc[cat]) acc[cat] = [];
+                        acc[cat].push(item);
+                        return acc;
+                    }, {});
+                    setMenu(grouped);
+                }
             } else {
                 setMenu(data || {});
             }
