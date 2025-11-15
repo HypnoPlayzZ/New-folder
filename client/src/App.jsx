@@ -30,7 +30,15 @@ import WelcomePage from './components/WelcomePage.jsx'; // <-- Import the new We
 function App() {
   const [route, setRoute] = useState(window.location.hash || '#/');
   const [menuItems, setMenuItems] = useState([]);
-  const [cartItems, setCartItems] = useState([]);
+  const [cartItems, setCartItems] = useState(() => {
+    try {
+      const raw = localStorage.getItem('cart_items');
+      return raw ? JSON.parse(raw) : [];
+    } catch (e) {
+      console.warn('Failed to parse stored cart items', e);
+      return [];
+    }
+  });
   const [showCart, setShowCart] = useState(false);
   const [orderForPayment, setOrderForPayment] = useState(null);
   const [orderError, setOrderError] = useState('');
@@ -95,10 +103,20 @@ function App() {
       } else {
           localStorage.removeItem('customer_token');
           localStorage.removeItem('customer_name');
+          // keep cart persistent across refreshes even after logout; remove if you prefer clearing on logout
           setAuth(prev => ({ ...prev, customer: { token: null, name: null } }));
           window.location.hash = '#/'; // <-- Redirect to welcome page on logout
       }
   };
+
+  // Persist cart to localStorage whenever it changes so a full page refresh won't clear it
+  useEffect(() => {
+    try {
+      localStorage.setItem('cart_items', JSON.stringify(cartItems || []));
+    } catch (e) {
+      console.warn('Failed to persist cart items', e);
+    }
+  }, [cartItems]);
 
   const submitOrder = async (finalTotal, appliedCoupon = null, address, customerNameParam = null, paymentMethodParam = 'COD', mobileParam = null, locationCoordsParam = null) => {
     const orderDetails = {
