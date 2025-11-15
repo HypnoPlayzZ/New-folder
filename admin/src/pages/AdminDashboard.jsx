@@ -187,7 +187,7 @@ const OrderManager = ({ onNewOrder } = {}) => {
                 </Modal.Header>
                 <Modal.Body>
                     <p><strong>Customer:</strong> {viewOrder.customerName}</p>
-                    <p><strong>User Email:</strong> {viewOrder.user?.emai+l || 'N/A'}</p>
+                    <p><strong>User Email:</strong> {viewOrder.user?.email || 'N/A'}</p>
                     <p><strong>Address:</strong> {viewOrder.address}</p>
                     {viewOrder.locationLink && (
                         <p><strong>Location:</strong> <a href={viewOrder.locationLink} target="_blank" rel="noreferrer">Open in Google Maps</a> {viewOrder.locationCoords && <small>({viewOrder.locationCoords})</small>}</p>
