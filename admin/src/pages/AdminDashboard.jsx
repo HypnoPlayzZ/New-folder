@@ -67,8 +67,11 @@ const OrderManager = ({ onNewOrder } = {}) => {
     const [newOrderAlert, setNewOrderAlert] = useState(false);
     const [newOrderData, setNewOrderData] = useState(null);
 
-    const fetchOrders = useCallback(async (opts = { notifyIfNew: false }) => {
-        setIsLoading(true);
+    const fetchOrders = useCallback(async (opts = { notifyIfNew: false, showLoading: true }) => {
+        // showLoading controls whether the global spinner is displayed.
+        // When polling in the background we set showLoading=false to avoid
+        // interrupting the admin UI with a spinner.
+        if (opts.showLoading) setIsLoading(true);
         setError('');
         try {
             const res = await api.get('/admin/orders');
@@ -128,16 +131,16 @@ const OrderManager = ({ onNewOrder } = {}) => {
             setError(err.response?.data?.message || 'Could not fetch orders');
             setOrders([]); // set empty array on failure
         } finally {
-            setIsLoading(false);
+            if (opts.showLoading) setIsLoading(false);
         }
     }, []);
 
     useEffect(() => {
-        // initial load
-        fetchOrders({ notifyIfNew: false });
+        // initial load (show spinner)
+        fetchOrders({ notifyIfNew: false, showLoading: true });
 
-    // start polling every 10 seconds to detect new orders
-    pollingRef.current = setInterval(() => fetchOrders({ notifyIfNew: true }), 10000);
+        // start polling every 10 seconds to detect new orders (silent)
+        pollingRef.current = setInterval(() => fetchOrders({ notifyIfNew: true, showLoading: false }), 10000);
         return () => {
             if (pollingRef.current) clearInterval(pollingRef.current);
         };
