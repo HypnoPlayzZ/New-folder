@@ -503,6 +503,7 @@ const PastOrdersManager = () => {
 // --- Menu Management Component (from File 2) ---
 const MenuManager = () => {
     const [menu, setMenu] = useState({});
+    const [categoriesOrder, setCategoriesOrder] = useState([]);
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [currentItem, setCurrentItem] = useState(null);
@@ -526,6 +527,7 @@ const MenuManager = () => {
                         return acc;
                     }, {});
                     setMenu(grouped);
+                    setCategoriesOrder(data.map(c => c.name || 'Uncategorized'));
                 } else {
                     const grouped = data.reduce((acc, item) => {
                         const cat = item.category || 'Uncategorized';
@@ -534,9 +536,11 @@ const MenuManager = () => {
                         return acc;
                     }, {});
                     setMenu(grouped);
+                    setCategoriesOrder(Object.keys(grouped));
                 }
             } else {
                 setMenu(data || {});
+                setCategoriesOrder(Object.keys(data || {}));
             }
         } catch (error) {
             console.error("Error fetching menu items:", error);
@@ -632,9 +636,21 @@ const MenuManager = () => {
         };
 
         const onDragEnd = (result) => {
-            const { source, destination } = result;
+            const { source, destination, type } = result;
             if (!destination) return;
 
+            // Category reorder
+            if (type === 'CATEGORY') {
+                const newOrder = Array.from(categoriesOrder || []);
+                const [moved] = newOrder.splice(source.index, 1);
+                newOrder.splice(destination.index, 0, moved);
+                setCategoriesOrder(newOrder);
+                api.patch('/admin/categories/reorder', { orderedCategoryNames: newOrder })
+                    .catch(err => { alert('Failed to save category order. Reverting.'); fetchMenu(); });
+                return;
+            }
+
+            // Item reorder within a category
             const sourceCategory = source.droppableId;
             const destCategory = destination.droppableId;
 
@@ -662,54 +678,77 @@ const MenuManager = () => {
 
                 {isClient && (
                     <DragDropContext onDragEnd={onDragEnd}>
-                        <Accordion defaultActiveKey="0" alwaysOpen>
-                            {Object.entries(menu || {}).map(([category, items], index) => (
-                                <Accordion.Item eventKey={index.toString()} key={String(category)}>
-                                    <Accordion.Header>{category} ({Array.isArray(items) ? items.length : 0})</Accordion.Header>
-                                    <Accordion.Body>
-                                        <div className="d-none d-md-flex row fw-bold mb-2 border-bottom pb-2">
-                                            <div className="col-1 text-center">Move</div>
-                                            <div className="col">Name</div>
-                                            <div className="col-2">Half Price</div>
-                                            <div className="col-2">Full Price</div>
-                                            <div className="col-3">Actions</div>
-                                        </div>
-                                        <Droppable droppableId={category}>
-                                            {(provided) => (
-                                                <div ref={provided.innerRef} {...provided.droppableProps}>
-                                                    {Array.isArray(items) ? items.map((item, idx) => (
-                                                        <Draggable key={String(item?._id ?? `${category}-${idx}`)} draggableId={String(item?._id ?? idx)} index={idx}>
-                                                            {(provided) => (
-                                                                <div
-                                                                    className="row align-items-center py-2 border-bottom"
-                                                                    ref={provided.innerRef}
-                                                                    {...provided.draggableProps}
-                                                                    {...provided.dragHandleProps}
-                                                                >
-                                                                    <div className="col-1 text-center" style={{ cursor: 'grab' }}>
+                        <Droppable droppableId="categories" type="CATEGORY">
+                            {(provided) => (
+                                <div ref={provided.innerRef} {...provided.droppableProps}>
+                                    <Accordion defaultActiveKey="0" alwaysOpen>
+                                        {categoriesOrder.map((category, index) => {
+                                            const items = menu[category] || [];
+                                            return (
+                                                <Draggable key={String(category)} draggableId={`category-${category}`} index={index}>
+                                                    {(providedCat) => (
+                                                        <div ref={providedCat.innerRef} {...providedCat.draggableProps}>
+                                                            <Accordion.Item eventKey={index.toString()}>
+                                                                <Accordion.Header>
+                                                                    <span {...providedCat.dragHandleProps} style={{ marginRight: 8, cursor: 'grab', display: 'inline-flex', alignItems: 'center' }}>
                                                                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-grip-vertical" viewBox="0 0 16 16">
                                                                             <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
                                                                         </svg>
+                                                                    </span>
+                                                                    {category} ({Array.isArray(items) ? items.length : 0})
+                                                                </Accordion.Header>
+                                                                <Accordion.Body>
+                                                                    <div className="d-none d-md-flex row fw-bold mb-2 border-bottom pb-2">
+                                                                        <div className="col-1 text-center">Move</div>
+                                                                        <div className="col">Name</div>
+                                                                        <div className="col-2">Half Price</div>
+                                                                        <div className="col-2">Full Price</div>
+                                                                        <div className="col-3">Actions</div>
                                                                     </div>
-                                                                    <div className="col">{item.name}</div>
-                                                                    <div className="col-2">₹{item.price?.half != null ? item.price.half.toFixed(2) : 'N/A'}</div>
-                                                                    <div className="col-2">₹{item.price?.full != null ? item.price.full.toFixed(2) : 'N/A'}</div>
-                                                                    <div className="col-3">
-                                                                        <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleShowModal(item)}>Edit</Button>
-                                                                        <Button variant="outline-secondary" size="sm" onClick={() => handleDelete(item._id)}>Delete</Button>
-                                                                    </div>
-                                                                </div>
-                                                            )}
-                                                        </Draggable>
-                                                    )) : null}
-                                                    {provided.placeholder}
-                                                </div>
-                                            )}
-                                        </Droppable>
-                                    </Accordion.Body>
-                                </Accordion.Item>
-                            ))}
-                        </Accordion>
+                                                                    <Droppable droppableId={category}>
+                                                                        {(provided) => (
+                                                                            <div ref={provided.innerRef} {...provided.droppableProps}>
+                                                                                {Array.isArray(items) ? items.map((item, idx) => (
+                                                                                    <Draggable key={String(item?._id ?? `${category}-${idx}`)} draggableId={String(item?._id ?? idx)} index={idx}>
+                                                                                        {(provided) => (
+                                                                                            <div
+                                                                                                className="row align-items-center py-2 border-bottom"
+                                                                                                ref={provided.innerRef}
+                                                                                                {...provided.draggableProps}
+                                                                                                {...provided.dragHandleProps}
+                                                                                            >
+                                                                                                <div className="col-1 text-center" style={{ cursor: 'grab' }}>
+                                                                                                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-grip-vertical" viewBox="0 0 16 16">
+                                                                                                        <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
+                                                                                                    </svg>
+                                                                                                </div>
+                                                                                                <div className="col">{item.name}</div>
+                                                                                                <div className="col-2">₹{item.price?.half != null ? item.price.half.toFixed(2) : 'N/A'}</div>
+                                                                                                <div className="col-2">₹{item.price?.full != null ? item.price.full.toFixed(2) : 'N/A'}</div>
+                                                                                                <div className="col-3">
+                                                                                                    <Button variant="outline-primary" size="sm" className="me-2" onClick={() => handleShowModal(item)}>Edit</Button>
+                                                                                                    <Button variant="outline-secondary" size="sm" onClick={() => handleDelete(item._id)}>Delete</Button>
+                                                                                                </div>
+                                                                                            </div>
+                                                                                        )}
+                                                                                    </Draggable>
+                                                                                )) : null}
+                                                                                {provided.placeholder}
+                                                                            </div>
+                                                                        )}
+                                                                    </Droppable>
+                                                                </Accordion.Body>
+                                                            </Accordion.Item>
+                                                        </div>
+                                                    )}
+                                                </Draggable>
+                                            );
+                                        })}
+                                    </Accordion>
+                                    {provided.placeholder}
+                                </div>
+                            )}
+                        </Droppable>
                     </DragDropContext>
                 )}
 
