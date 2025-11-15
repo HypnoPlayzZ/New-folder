@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, Button } from 'react-bootstrap';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import 'leaflet/dist/leaflet.css';
 import L from 'leaflet'; // Import the main leaflet library
 
 // --- FIX for missing marker icons ---
@@ -36,6 +37,21 @@ const LocationMarker = ({ position, setPosition }) => {
 const LocationPickerModal = ({ show, handleClose, onLocationSelect }) => {
     const [position, setPosition] = useState(null);
 
+    // Helper component to invalidate Leaflet map size after modal opens
+    const InvalidateMapOnShow = ({ when }) => {
+        const map = useMap();
+        useEffect(() => {
+            if (when && map) {
+                // Slight delay to allow modal animation/layout to settle
+                const t = setTimeout(() => {
+                    try { map.invalidateSize(); } catch (e) { /* ignore */ }
+                }, 200);
+                return () => clearTimeout(t);
+            }
+        }, [when, map]);
+        return null;
+    };
+
     useEffect(() => {
         if(show) {
             // Set initial position to restaurant when modal opens
@@ -62,6 +78,8 @@ const LocationPickerModal = ({ show, handleClose, onLocationSelect }) => {
                         attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
                         url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
                     />
+                    {/* Invalidate size when modal is shown so tiles render correctly */}
+                    <InvalidateMapOnShow when={show} />
                     <LocationMarker position={position} setPosition={setPosition} />
                 </MapContainer>
             </Modal.Body>
