@@ -100,25 +100,28 @@ function App() {
       }
   };
 
-  const submitOrder = async (finalTotal, appliedCoupon = null, address, customerNameParam = null, paymentMethodParam = 'COD') => {
+  const submitOrder = async (finalTotal, appliedCoupon = null, address, customerNameParam = null, paymentMethodParam = 'COD', mobileParam = null, locationCoordsParam = null) => {
     const orderDetails = {
-        items: cartItems.map(item => ({ 
-            menuItemId: item._id, 
-            quantity: item.quantity,
-            variant: item.variant,
-            priceAtOrder: item.priceAtOrder,
-            instructions: item.instructions
-        })),
-        totalPrice: cartItems.reduce((total, item) => total + item.priceAtOrder * item.quantity, 0),
-  finalPrice: finalTotal,
-  paymentMethod: paymentMethodParam,
-        appliedCoupon: appliedCoupon ? {
-            code: appliedCoupon.code,
-            discountType: appliedCoupon.discountType,
-            discountValue: appliedCoupon.discountValue
-        } : undefined,
-    customerName: customerNameParam || auth.customer.name,
-    address: address // Include the address in the order details
+      items: cartItems.map(item => ({ 
+        menuItemId: item._id, 
+        quantity: item.quantity,
+        variant: item.variant,
+        priceAtOrder: item.priceAtOrder,
+        instructions: item.instructions
+      })),
+      totalPrice: cartItems.reduce((total, item) => total + item.priceAtOrder * item.quantity, 0),
+      finalPrice: finalTotal,
+      paymentMethod: paymentMethodParam,
+      appliedCoupon: appliedCoupon ? {
+        code: appliedCoupon.code,
+        discountType: appliedCoupon.discountType,
+        discountValue: appliedCoupon.discountValue
+      } : undefined,
+      customerName: customerNameParam || auth.customer.name,
+      address: address, // Include the address in the order details
+      mobile: mobileParam || undefined,
+      locationCoords: locationCoordsParam || undefined,
+      locationLink: locationCoordsParam ? `https://maps.google.com/?q=${encodeURIComponent(locationCoordsParam)}` : undefined
     };
 
     try {

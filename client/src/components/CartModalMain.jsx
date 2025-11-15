@@ -28,7 +28,8 @@ const CartModalMain = ({
     const [address, setAddress] = useState('');
     const [locationCoords, setLocationCoords] = useState(''); // 'lat, lng'
     const [showLocationPicker, setShowLocationPicker] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState('COD'); // Default to COD
+    const [paymentMethod, setPaymentMethod] = useState('UPI'); // default to UPI
+    const [mobile, setMobile] = useState('');
     const [utr, setUtr] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
@@ -66,7 +67,8 @@ const CartModalMain = ({
         // If parent passed `submitOrder` (App.jsx) prefer that API: submitOrder(finalTotal, appliedCoupon, address)
         if (typeof submitOrder === 'function') {
             try {
-                await submitOrder(finalPrice, couponDiscount ? couponDiscount.coupon : null, address, customerName, paymentMethod);
+                // Pass mobile and location as additional optional args
+                await submitOrder(finalPrice, couponDiscount ? couponDiscount.coupon : null, address, customerName, paymentMethod, mobile, locationCoords);
             } catch (err) {
                 console.error('Error placing order via submitOrder:', err);
             } finally {
@@ -100,6 +102,8 @@ const CartModalMain = ({
             // include optional coordinates and a maps link
             locationCoords: locationCoords || undefined,
             locationLink: locationCoords ? `https://maps.google.com/?q=${encodeURIComponent(locationCoords)}` : undefined
+            ,
+            mobile: mobile || undefined
         };
 
         if (typeof onPlaceOrder === 'function') {
@@ -127,12 +131,13 @@ const CartModalMain = ({
         }
         setCustomerName('');
         setAddress('');
-        setPaymentMethod('COD');
+        setPaymentMethod('UPI');
         setUtr('');
         setCouponCode('');
         setCouponDiscount(null);
         setIsSubmitting(false);
         setLocationCoords('');
+        setMobile('');
         setShowLocationPicker(false);
         handleClose(); // This is the original handleClose from App.jsx
     };
@@ -206,24 +211,34 @@ const CartModalMain = ({
                 {/* --- PAYMENT METHOD SELECTION --- */}
                 <Form.Group className="mb-3">
                     <Form.Label>Payment Method</Form.Label>
-                    <Form.Check
-                        type="radio"
-                        label="Cash on Delivery (COD)"
-                        name="paymentMethod"
-                        id="cod"
-                        value="COD"
-                        checked={paymentMethod === 'COD'}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
+                    {/* Only UPI is supported now; COD option removed */}
+                    <div>
+                        <Form.Check
+                            type="radio"
+                            label="UPI (Pay Now)"
+                            name="paymentMethod"
+                            id="upi"
+                            value="UPI"
+                            checked={paymentMethod === 'UPI'}
+                            onChange={(e) => setPaymentMethod(e.target.value)}
+                        />
+                    </div>
+                </Form.Group>
+
+                <Form.Group className="mb-3">
+                    <Form.Label>Mobile Number</Form.Label>
+                    <Form.Control
+                        type="tel"
+                        placeholder="10-digit mobile number"
+                        value={mobile}
+                        onChange={e => {
+                            // Allow only digits
+                            const v = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            setMobile(v);
+                        }}
+                        required
                     />
-                    <Form.Check
-                        type="radio"
-                        label="UPI (Pay Now)"
-                        name="paymentMethod"
-                        id="upi"
-                        value="UPI"
-                        checked={paymentMethod === 'UPI'}
-                        onChange={(e) => setPaymentMethod(e.target.value)}
-                    />
+                    <Form.Text className="text-muted">Needed for delivery updates. Enter 10 digits.</Form.Text>
                 </Form.Group>
             </Form>
 
@@ -422,7 +437,7 @@ const CartModalMain = ({
                     <Button 
                         variant="danger" 
                         onClick={handleInternalPlaceOrder}
-                        disabled={!customerName || !address || isSubmitting}
+                        disabled={!customerName || !address || mobile.length !== 10 || !locationCoords || isSubmitting}
                     >
                         {isSubmitting ? <Spinner as="span" animation="border" size="sm" /> : `Place Order (${paymentMethod})`}
                     </Button>
