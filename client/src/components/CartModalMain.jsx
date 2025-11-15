@@ -2,8 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Modal, Button, ListGroup, Form, Row, Col, InputGroup, Alert, Spinner } from 'react-bootstrap';
 import QRCode from 'qrcode';
 import LocationPickerModal from './LocationPickerModal';
-// We need api here if we add coupon logic back
-// import { api } from '../api'; 
+import { api } from '../api';
 
 // --- UPDATED: Add props for the new UPI flow ---
 const CartModalMain = ({
@@ -30,6 +29,12 @@ const CartModalMain = ({
     const [showLocationPicker, setShowLocationPicker] = useState(false);
     const [paymentMethod, setPaymentMethod] = useState('UPI'); // default to UPI
     const [mobile, setMobile] = useState('');
+    const [otpSent, setOtpSent] = useState(false);
+    const [otpCode, setOtpCode] = useState('');
+    const [otpVerified, setOtpVerified] = useState(false);
+    const [sendOtpLoading, setSendOtpLoading] = useState(false);
+    const [verifyOtpLoading, setVerifyOtpLoading] = useState(false);
+    const [resendTimer, setResendTimer] = useState(0);
     const [utr, setUtr] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
@@ -235,11 +240,64 @@ const CartModalMain = ({
                             // Allow only digits
                             const v = e.target.value.replace(/\D/g, '').slice(0, 10);
                             setMobile(v);
+                            // reset OTP verification when mobile changes
+                            setOtpVerified(false);
+                            setOtpSent(false);
+                            setOtpCode('');
                         }}
                         required
                     />
                     <Form.Text className="text-muted">Needed for delivery updates. Enter 10 digits.</Form.Text>
                 </Form.Group>
+
+                <div className="mb-3">
+                    {!otpVerified ? (
+                        <div className="d-flex gap-2 align-items-center">
+                            <Button variant="outline-primary" size="sm" onClick={async () => {
+                                if (!/^[0-9]{10}$/.test(mobile)) { alert('Enter a valid 10-digit mobile number'); return; }
+                                setSendOtpLoading(true);
+                                try {
+                                    await api.post('/send-otp', { mobile });
+                                    setOtpSent(true);
+                                    setResendTimer(60);
+                                } catch (err) {
+                                    console.error('Send OTP failed', err);
+                                    alert(err.response?.data?.message || 'Failed to send OTP');
+                                } finally {
+                                    setSendOtpLoading(false);
+                                }
+                            }} disabled={sendOtpLoading || resendTimer > 0}>
+                                {sendOtpLoading ? 'Sending...' : (resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Send OTP')}
+                            </Button>
+
+                            {otpSent && (
+                                <div className="d-flex gap-2 align-items-center">
+                                    <Form.Control type="text" size="sm" placeholder="Enter OTP" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0,6))} style={{ width: 140 }} />
+                                    <Button size="sm" variant="success" onClick={async () => {
+                                        if (!otpCode || otpCode.length < 4) { alert('Enter the OTP'); return; }
+                                        setVerifyOtpLoading(true);
+                                        try {
+                                            await api.post('/verify-otp', { mobile, code: otpCode });
+                                            setOtpVerified(true);
+                                            setOtpSent(false);
+                                            setOtpCode('');
+                                            setResendTimer(0);
+                                        } catch (err) {
+                                            console.error('Verify OTP failed', err);
+                                            alert(err.response?.data?.message || 'OTP verification failed');
+                                        } finally {
+                                            setVerifyOtpLoading(false);
+                                        }
+                                    }} disabled={verifyOtpLoading}>
+                                        {verifyOtpLoading ? 'Verifying...' : 'Verify OTP'}
+                                    </Button>
+                                </div>
+                            )}
+                        </div>
+                    ) : (
+                        <Alert variant="success">Mobile number verified ✓</Alert>
+                    )}
+                </div>
             </Form>
 
             {/* ... (Coupon Input Group) ... */}
@@ -405,6 +463,18 @@ const CartModalMain = ({
         return () => { mounted = false; };
     }, [upiId, orderForPayment, finalPrice]);
 
+    // resend timer effect
+    useEffect(() => {
+        if (resendTimer <= 0) return;
+        const t = setInterval(() => {
+            setResendTimer(r => {
+                if (r <= 1) { clearInterval(t); return 0; }
+                return r - 1;
+            });
+        }, 1000);
+        return () => clearInterval(t);
+    }, [resendTimer]);
+
     // Location picker modal handler
     const handleLocationSelect = (coordsString) => {
         // coordsString is like 'lat, lng'
@@ -437,7 +507,7 @@ const CartModalMain = ({
                     <Button 
                         variant="danger" 
                         onClick={handleInternalPlaceOrder}
-                        disabled={!customerName || !address || mobile.length !== 10 || !locationCoords || isSubmitting}
+                        disabled={!customerName || !address || mobile.length !== 10 || !locationCoords || !otpVerified || isSubmitting}
                     >
                         {isSubmitting ? <Spinner as="span" animation="border" size="sm" /> : `Place Order (${paymentMethod})`}
                     </Button>
