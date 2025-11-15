@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Nav, Tab, Form, Button, Modal, Badge } from 'react-bootstrap';
 import { api } from '../api';
+import formatINR from '../utils/currency';
 
 // --- New Visual Order Status Tracker Component ---
 const OrderStatusTracker = ({ status }) => {
@@ -120,11 +121,11 @@ const CustomerDashboard = ({ userName }) => {
                                                 <td>
                                                     {order.appliedCoupon ? (
                                                         <div>
-                                                            <span style={{ textDecoration: 'line-through' }} className="text-muted d-block">${order.totalPrice.toFixed(2)}</span>
-                                                            <strong className="d-block">${order.finalPrice.toFixed(2)}</strong>
+                                                            <span style={{ textDecoration: 'line-through' }} className="text-muted d-block">{formatINR(order.totalPrice)}</span>
+                                                            <strong className="d-block">{formatINR(order.finalPrice)}</strong>
                                                         </div>
                                                     ) : (
-                                                        <span>${order.totalPrice.toFixed(2)}</span>
+                                                        <span>{formatINR(order.totalPrice)}</span>
                                                     )}
                                                 </td>
                                                 <td style={{ minWidth: '300px' }}>

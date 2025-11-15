@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Modal, Form, Row, Col } from 'react-bootstrap';
 import { api } from '../api';
+import formatINR from '../utils/currency';
 
 // --- Coupon Display Component ---
 const CouponDisplay = () => {
@@ -83,7 +84,7 @@ const CustomizationModal = ({ show, handleClose, item, onAddToCart }) => {
                             <Col sm="10">
                                 <Form.Check
                                     type="radio"
-                                    label={`Half ($${item.price.half?.toFixed(2)})`}
+                                    label={`Half (${formatINR(item.price.half)})`}
                                     name="variant"
                                     value="half"
                                     checked={variant === 'half'}
@@ -91,7 +92,7 @@ const CustomizationModal = ({ show, handleClose, item, onAddToCart }) => {
                                 />
                                 <Form.Check
                                     type="radio"
-                                    label={`Full ($${item.price.full?.toFixed(2)})`}
+                                    label={`Full (${formatINR(item.price.full)})`}
                                     name="variant"
                                     value="full"
                                     checked={variant === 'full'}
@@ -123,7 +124,7 @@ const CustomizationModal = ({ show, handleClose, item, onAddToCart }) => {
                 </Form>
                 <div className="d-grid mt-4">
                      <Button variant="danger" onClick={handleAddToCartClick}>
-                        Add to Cart - Total: ${(price * quantity).toFixed(2)}
+                        Add to Cart - Total: {formatINR(price * quantity)}
                     </Button>
                 </div>
             </Modal.Body>
@@ -193,9 +194,9 @@ const MenuPage = ({ onAddToCart }) => {
                             <div className="menu-item-details">
                                 <h5 className="item-name">{item.name}</h5>
                                 <p className="item-price">
-                                    {item.price.half != null && <span>${item.price.half.toFixed(2)} (Half)</span>}
+                                    {item.price.half != null && <span>{formatINR(item.price.half)} (Half)</span>}
                                     {item.price.half != null && item.price.full != null && " / "}
-                                    {item.price.full != null && <span>${item.price.full.toFixed(2)} (Full)</span>}
+                                    {item.price.full != null && <span>{formatINR(item.price.full)} (Full)</span>}
                                 </p>
                                 <p className="item-description">{item.description}</p>
                             </div>
