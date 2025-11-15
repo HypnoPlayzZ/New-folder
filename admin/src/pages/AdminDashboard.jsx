@@ -505,6 +505,8 @@ const MenuManager = () => {
     const [menu, setMenu] = useState({});
     const [categoriesOrder, setCategoriesOrder] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [showAddCategoryModal, setShowAddCategoryModal] = useState(false);
+    const [newCategoryName, setNewCategoryName] = useState('');
     const [showModal, setShowModal] = useState(false);
     const [currentItem, setCurrentItem] = useState(null);
     const [formData, setFormData] = useState({ name: '', description: '', category: '', price: { half: '', full: '' } });
@@ -583,11 +585,11 @@ const MenuManager = () => {
                 setFormData({
                     name: item.name || '',
                     description: item.description || '',
-                    category: item.category || 'Uncategorized',
+                    category: item.category || (categoriesOrder[0] || 'Uncategorized'),
                     price: { half: price.half?.toString() || '', full: price.full?.toString() || '' }
                 });
             } else {
-                setFormData({ name: '', description: '', category: '', price: { half: '', full: '' } });
+                setFormData({ name: '', description: '', category: (categoriesOrder[0] || ''), price: { half: '', full: '' } });
             }
             setShowModal(true);
         };
@@ -635,6 +637,22 @@ const MenuManager = () => {
             }
         };
 
+        const handleCreateCategory = async () => {
+            if (!newCategoryName || !newCategoryName.trim()) {
+                alert('Please enter a category name');
+                return;
+            }
+            try {
+                await api.post('/admin/categories', { name: newCategoryName.trim() });
+                setNewCategoryName('');
+                setShowAddCategoryModal(false);
+                fetchMenu();
+            } catch (err) {
+                console.error('Error creating category:', err);
+                alert(err.response?.data?.message || 'Failed to create category');
+            }
+        };
+
         const onDragEnd = (result) => {
             const { source, destination, type } = result;
             if (!destination) return;
@@ -674,7 +692,10 @@ const MenuManager = () => {
 
         return (
             <div>
-                <Button variant="danger" className="mb-3" onClick={() => handleShowModal()}>Add New Menu Item</Button>
+                <div className="mb-3 d-flex gap-2">
+                    <Button variant="danger" onClick={() => handleShowModal()}>Add New Menu Item</Button>
+                    <Button variant="outline-secondary" onClick={() => setShowAddCategoryModal(true)}>Add Category</Button>
+                </div>
 
                 {isClient && (
                     <DragDropContext onDragEnd={onDragEnd}>
@@ -758,7 +779,18 @@ const MenuManager = () => {
                         <Form onSubmit={handleSubmit}>
                             <Form.Group className="mb-3"><Form.Label>Name</Form.Label><Form.Control type="text" name="name" value={formData.name} onChange={handleFormChange} required /></Form.Group>
                             <Form.Group className="mb-3"><Form.Label>Description</Form.Label><Form.Control as="textarea" rows={3} name="description" value={formData.description} onChange={handleFormChange} required /></Form.Group>
-                            <Form.Group className="mb-3"><Form.Label>Category</Form.Label><Form.Control type="text" name="category" value={formData.category} onChange={handleFormChange} placeholder="e.g., Appetizers, Main Course" required /></Form.Group>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Category</Form.Label>
+                                {/* Build options from categoriesOrder, but include current form value if it's missing */}
+                                <Form.Select name="category" value={formData.category} onChange={handleFormChange} required>
+                                    {(() => {
+                                        const opts = Array.isArray(categoriesOrder) ? [...categoriesOrder] : [];
+                                        if (formData.category && !opts.includes(formData.category)) opts.push(formData.category);
+                                        if (!opts.includes('Uncategorized')) opts.push('Uncategorized');
+                                        return opts.map((c, i) => <option key={String(c) + i} value={c}>{c}</option>);
+                                    })()}
+                                </Form.Select>
+                            </Form.Group>
                             <Form.Group className="mb-3"><Form.Label>Half Price (Optional)</Form.Label><Form.Control type="number" step="0.01" name="half" value={formData.price.half} onChange={handleFormChange} /></Form.Group>
                             <Form.Group className="mb-3"><Form.Label>Full / Item Price</Form.Label><Form.Control type="number" step="0.01" name="full" value={formData.price.full} onChange={handleFormChange} required /></Form.Group>
                             <Form.Group className="mb-3">
@@ -767,6 +799,23 @@ const MenuManager = () => {
                                 <Form.Control type="file" name="image" onChange={handleFileChange} />
                             </Form.Group>
                             <Button variant="danger" type="submit">Save Changes</Button>
+                        </Form>
+                    </Modal.Body>
+                </Modal>
+                <Modal show={showAddCategoryModal} onHide={() => setShowAddCategoryModal(false)}>
+                    <Modal.Header closeButton>
+                        <Modal.Title>Create Category</Modal.Title>
+                    </Modal.Header>
+                    <Modal.Body>
+                        <Form onSubmit={(e) => { e.preventDefault(); handleCreateCategory(); }}>
+                            <Form.Group className="mb-3">
+                                <Form.Label>Category Name</Form.Label>
+                                <Form.Control type="text" value={newCategoryName} onChange={e => setNewCategoryName(e.target.value)} placeholder="e.g., Appetizers" required />
+                            </Form.Group>
+                            <div className="d-flex justify-content-end">
+                                <Button variant="secondary" onClick={() => setShowAddCategoryModal(false)} className="me-2">Cancel</Button>
+                                <Button type="submit" variant="primary">Create</Button>
+                            </div>
                         </Form>
                     </Modal.Body>
                 </Modal>

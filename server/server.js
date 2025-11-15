@@ -578,6 +578,24 @@ adminRouter.patch('/categories/reorder', async (req, res) => {
     }
 });
 
+// Create a new category (admin only)
+adminRouter.post('/categories', async (req, res) => {
+    try {
+        const { name } = req.body;
+        if (!name || !name.trim()) return res.status(400).json({ message: 'Category name required' });
+        const existing = await Category.findOne({ name: name.trim() });
+        if (existing) return res.status(400).json({ message: 'Category already exists' });
+        const maxPos = await Category.findOne().sort({ position: -1 });
+        const newPosition = maxPos ? maxPos.position + 1 : 0;
+        const newCategory = new Category({ name: name.trim(), position: newPosition });
+        await newCategory.save();
+        res.status(201).json(newCategory);
+    } catch (error) {
+        console.error('Error creating category:', error);
+        res.status(500).json({ message: 'Failed to create category' });
+    }
+});
+
 adminRouter.patch('/menu/:id', imageUpload.single('image'), async (req, res) => {
     try {
         const { name, description, priceHalf, priceFull, category, imageUrl: existingImageUrl } = req.body;
