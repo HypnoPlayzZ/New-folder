@@ -48,20 +48,16 @@ const LoginPage = ({ onLoginSuccess }) => {
 
     return (
         <div className="hero">
+            <div className="blob blob-1" aria-hidden></div>
             <div className="hero-inner">
-                <div className="hero-left">
-                    <h1 className="mb-2">Welcome back</h1>
-                    <p className="lead">Sign in to continue ordering your favorite meals.</p>
-                </div>
-
-                <div className="hero-right">
-                    <Card className="login-card" style={{ width: '100%', maxWidth: 420 }}>
+                <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
+                    <Card className="login-card" style={{ width: '100%', maxWidth: 480 }}>
                         <Card.Body>
                             <div className="d-flex align-items-center mb-3">
                                 <div className="brand-logo me-3"><img src="/Logo.png" alt="logo" style={{ width:38 }} /></div>
                                 <div>
                                     <h5 className="mb-0">Customer Login</h5>
-                                    <small className="text-muted">Fast sign-in with Google</small>
+                                    <small className="text-muted">Sign in to continue</small>
                                 </div>
                             </div>
 
