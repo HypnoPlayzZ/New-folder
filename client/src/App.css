@@ -17,28 +17,21 @@ body {
 }
 
 .hero-inner {
-  max-width: 1100px;
+  max-width: 1000px;
   width: 100%;
-  padding: 40px 20px;
+  padding: 48px 20px;
   display: flex;
-  gap: 40px;
+  flex-direction: column;
+  gap: 28px;
   align-items: center;
   justify-content: center;
   text-align: center;
 }
 
-.hero-left {
-  flex: 1 1 680px;
-}
-.hero-right {
-  flex: 0 0 420px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
+.hero-left, .hero-right { width: 100%; }
 
 .hero h1 {
-  font-size: 3.6rem;
+  font-size: 3.2rem;
   margin-bottom: 0.6rem;
   color: #ff6b00;
   letter-spacing: -1px;
@@ -60,6 +53,16 @@ body {
 .btn-cta:hover { transform: translateY(-3px); box-shadow: 0 14px 28px rgba(255,122,0,0.22); }
 .btn-ghost { border: 1px solid #ffb68a; color:#ff6b00; background: transparent; }
 .btn-ghost:hover { background:#fff5ee }
+
+/* simple entrance animation */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-up { animation: fadeUp .6s ease both; }
+.fade-up.delay-1 { animation-delay: .12s; }
+.fade-up.delay-2 { animation-delay: .24s; }
+.fade-up.delay-3 { animation-delay: .36s; }
 
 /* Floating decorative blob */
 .blob {
