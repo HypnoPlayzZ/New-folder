@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="800" height="560" viewBox="0 0 800 560" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="gA" x1="0" x2="1" y1="0" y2="1">
+      <stop offset="0" stop-color="#fff8f0"/>
+      <stop offset="1" stop-color="#fff1e6"/>
+    </linearGradient>
+    <linearGradient id="gB" x1="0" x2="1">
+      <stop offset="0" stop-color="#ff9a3b"/>
+      <stop offset="1" stop-color="#ff7a00"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="800" height="560" rx="24" fill="url(#gA)" />
+
+  <!-- Plate -->
+  <ellipse cx="240" cy="320" rx="160" ry="90" fill="#fff" opacity="0.9" />
+
+  <!-- Food blob -->
+  <g transform="translate(160,220)">
+    <circle cx="80" cy="40" r="44" fill="#ff7a00" />
+    <rect x="140" y="18" width="190" height="50" rx="12" fill="#ffd6b3" />
+    <ellipse cx="130" cy="60" rx="40" ry="18" fill="#fff" opacity="0.4" />
+  </g>
+
+  <!-- Card on left -->
+  <g transform="translate(60,360)">
+    <rect width="260" height="150" rx="14" fill="#fff5ee" opacity="0.7" />
+    <circle cx="50" cy="46" r="28" fill="#ff7a00" />
+    <rect x="96" y="34" width="120" height="36" rx="8" fill="#ffd6b3" />
+  </g>
+
+  <!-- Decorative steam lines -->
+  <g opacity="0.7" fill="#fff">
+    <path d="M420 160 Q440 140 460 160" stroke="#fff" stroke-width="6" stroke-linecap="round" fill="none" />
+    <path d="M460 150 Q480 130 500 150" stroke="#fff" stroke-width="6" stroke-linecap="round" fill="none" />
+  </g>
+
+  <!-- Cutlery -->
+  <g transform="translate(520,300) rotate(12)">
+    <rect x="0" y="0" width="12" height="120" rx="6" fill="#f3b28a" />
+    <rect x="18" y="0" width="10" height="120" rx="6" fill="#ffd6b3" />
+  </g>
+
+  <!-- Badge / CTA accent -->
+  <g transform="translate(520,80)">
+    <rect x="0" y="0" width="220" height="120" rx="18" fill="url(#gB)" opacity="0.98" />
+    <text x="110" y="72" text-anchor="middle" fill="#fff" font-family="Poppins, sans-serif" font-weight="700" font-size="28">Order Now</text>
+  </g>
+
+</svg>

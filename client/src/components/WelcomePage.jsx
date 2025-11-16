@@ -24,23 +24,8 @@ const WelcomePage = () => {
                 </div>
 
                 <div className="hero-right fade-up delay-2" aria-hidden>
-                    {/* Decorative SVG illustration - lightweight and always available */}
-                    <svg width="420" height="300" viewBox="0 0 420 300" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <rect x="0" y="0" width="420" height="300" rx="20" fill="url(#g1)" />
-                        <g transform="translate(36,40)">
-                            <ellipse cx="150" cy="100" rx="82" ry="54" fill="#fff" opacity="0.6" />
-                            <g>
-                                <circle cx="100" cy="72" r="36" fill="#ff7a00" />
-                                <rect x="156" y="56" width="140" height="52" rx="10" fill="#ffd6b3" />
-                            </g>
-                        </g>
-                        <defs>
-                            <linearGradient id="g1" x1="0" x2="1" y1="0" y2="1">
-                                <stop offset="0" stopColor="#fff8f0" />
-                                <stop offset="1" stopColor="#fff1e6" />
-                            </linearGradient>
-                        </defs>
-                    </svg>
+                    {/* Use external richer illustration so it's easy to replace with a PNG/SVG asset in public/assets */}
+                    <img src="/assets/hero-illustration.svg" alt="Hero illustration" className="hero-illustration" />
                 </div>
             </div>
         </div>
