@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Alert, Container, Row, Col } from 'react-bootstrap';
+import { Card, Alert, Container, Row, Col, Form } from 'react-bootstrap';
 import { api } from '../api';
 
 const LoginPage = ({ onLoginSuccess }) => {
@@ -16,11 +16,9 @@ const LoginPage = ({ onLoginSuccess }) => {
     }, [onLoginSuccess]);
     
     useEffect(() => {
-        // IMPORTANT: Replace with your Google Client ID
         const GOOGLE_CLIENT_ID = "414726937830-u8n7mhl0ujipnd6lr9ikku005nu72ec6.apps.googleusercontent.com";
         const buttonDiv = document.getElementById("google-signin-button");
 
-        // Function to initialize and render the button
         const initGoogleButton = () => {
             if (window.google?.accounts?.id && buttonDiv) {
                 window.google.accounts.id.initialize({
@@ -29,17 +27,14 @@ const LoginPage = ({ onLoginSuccess }) => {
                 });
                 window.google.accounts.id.renderButton(
                     buttonDiv,
-                    // REMOVE THE "width" PROPERTY FROM THIS OBJECT
-                    { theme: "outline", size: "large" } 
+                    { theme: "outline", size: "large" }
                 );
             }
         };
 
-        // If window.google is already loaded, render immediately
         if (window.google?.accounts?.id) {
             initGoogleButton();
         } else {
-            // Otherwise, set an interval to check every 100ms
             const interval = setInterval(() => {
                 if (window.google?.accounts?.id) {
                     clearInterval(interval);
@@ -47,29 +42,49 @@ const LoginPage = ({ onLoginSuccess }) => {
                 }
             }, 100);
 
-            // Clean up the interval if the component unmounts
             return () => clearInterval(interval);
         }
     }, [handleGoogleSignIn]);
 
     return (
-        <Container>
-            <Row className="justify-content-center">
-                <Col md={6}>
-                    <Card className="shadow-sm">
-                        <Card.Body className="p-5">
-                            <h3 className="text-center mb-4">Customer Login</h3>
+        <div className="hero">
+            <div className="hero-inner">
+                <div className="hero-left">
+                    <h1 className="mb-2">Welcome back</h1>
+                    <p className="lead">Sign in to continue ordering your favorite meals.</p>
+                </div>
+
+                <div className="hero-right">
+                    <Card className="login-card" style={{ width: '100%', maxWidth: 420 }}>
+                        <Card.Body>
+                            <div className="d-flex align-items-center mb-3">
+                                <div className="brand-logo me-3"><img src="/Logo.png" alt="logo" style={{ width:38 }} /></div>
+                                <div>
+                                    <h5 className="mb-0">Customer Login</h5>
+                                    <small className="text-muted">Fast sign-in with Google</small>
+                                </div>
+                            </div>
+
                             {error && <Alert variant="danger">{error}</Alert>}
-                            
-                            <p className="text-center text-muted">Sign in with your Google account to continue.</p>
-                            
-                            <div id="google-signin-button" className="mt-3 d-flex justify-content-center"></div>
-                            
+
+                            <div className="mb-3">
+                                <div id="google-signin-button" className="d-flex justify-content-center"></div>
+                            </div>
+
+                            <div className="text-center text-muted">— or —</div>
+
+                            <Form className="mt-3">
+                                <Form.Group className="mb-2"><Form.Label>Email</Form.Label><Form.Control type="email" placeholder="you@example.com" /></Form.Group>
+                                <Form.Group className="mb-3"><Form.Label>Password</Form.Label><Form.Control type="password" placeholder="Password" /></Form.Group>
+                                <div className="d-grid">
+                                    <button type="button" className="btn btn-cta">Sign in</button>
+                                </div>
+                            </Form>
                         </Card.Body>
                     </Card>
-                </Col>
-            </Row>
-        </Container>
+                </div>
+            </div>
+        </div>
     );
 };
 
