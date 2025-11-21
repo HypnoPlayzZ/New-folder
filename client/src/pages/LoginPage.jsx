@@ -5,6 +5,59 @@ import { api } from '../api';
 const LoginPage = ({ onLoginSuccess }) => {
     const [error, setError] = useState('');
 
+    const styles = {
+        page: {
+            minHeight: '100vh',
+            background: 'linear-gradient(90deg, #fff7f0 0%, #ffe7d0 50%, #fff1e6 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: '48px 24px'
+        },
+        inner: {
+            width: '100%',
+            maxWidth: 1200,
+            display: 'flex',
+            gap: 40,
+            alignItems: 'center'
+        },
+        left: {
+            flex: 1,
+            color: '#222',
+            padding: 24
+        },
+        title: {
+            fontSize: 44,
+            fontWeight: 700,
+            marginBottom: 10
+        },
+        subtitle: {
+            fontSize: 16,
+            color: '#6b6b6b',
+            marginBottom: 18
+        },
+        ctaRow: {
+            display: 'flex',
+            gap: 12,
+            marginTop: 8
+        },
+        ctaBtn: {
+            background: 'linear-gradient(180deg,#ff8c1a,#ff6b00)',
+            border: 'none',
+            color: 'white',
+            padding: '8px 16px',
+            borderRadius: 8,
+            boxShadow: '0 6px 18px rgba(255,107,0,0.18)'
+        },
+        right: {
+            width: 520,
+            maxWidth: '45%'
+        },
+        cardBody: {
+            background: 'rgba(255,255,255,0.9)'
+        }
+    };
+
     const handleGoogleSignIn = useCallback(async (googleResponse) => {
         try {
             const response = await api.post('/auth/google', { token: googleResponse.credential });
@@ -47,15 +100,22 @@ const LoginPage = ({ onLoginSuccess }) => {
     }, [handleGoogleSignIn]);
 
     return (
-        <div className="hero">
-            <div className="blob blob-1" aria-hidden></div>
-            <div className="hero-inner">
-                <h1 className="fade-up delay-1" style={{ marginBottom: 6 }}>Welcome back</h1>
-                <p className="lead fade-up delay-2">Sign in to continue ordering your favorite meals.</p>
+        <div style={styles.page}>
+            <div style={styles.inner}>
+                <div style={styles.left}>
+                    <img src="/Logo.png" alt="logo" style={{ width: 56, marginBottom: 12 }} />
+                    <div style={styles.title}>Welcome to Steamy Bites</div>
+                    <div style={styles.subtitle}>Delicious meals delivered hot — explore our menu and order in a few taps.</div>
 
-                <div style={{ width: '100%', display: 'flex', justifyContent: 'center' }}>
-                    <Card className="login-card fade-up delay-3" style={{ width: '100%', maxWidth: 520 }}>
-                        <Card.Body>
+                    <div style={styles.ctaRow}>
+                        <button style={styles.ctaBtn}>Login</button>
+                        <button style={{ ...styles.ctaBtn, background: 'white', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.12)' }}>Register</button>
+                    </div>
+                </div>
+
+                <div style={styles.right}>
+                    <Card style={{ borderRadius: 16, boxShadow: '0 12px 40px rgba(0,0,0,0.06)' }}>
+                        <Card.Body style={styles.cardBody}>
                             <div className="d-flex align-items-center mb-3">
                                 <div className="brand-logo me-3"><img src="/Logo.png" alt="logo" style={{ width:38 }} /></div>
                                 <div>
