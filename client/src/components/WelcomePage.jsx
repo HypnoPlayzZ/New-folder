@@ -9,7 +9,9 @@ const WelcomePage = () => {
             <div className="hero-inner">
                 <div className="hero-left">
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <div className="brand-logo mb-3 fade-up delay-1"><img src="/Logo.png" alt="logo" style={{ width:44, height:44 }} /></div>
+                        <div className="brand-logo mb-3 fade-up delay-1">
+                            <img src="/Logo.png" alt="logo" style={{ width: 44, height: 44 }} />
+                        </div>
                     </div>
 
                     <h1 className="mb-2 fade-up delay-2">Welcome to Steamy Bites</h1>
@@ -17,15 +19,36 @@ const WelcomePage = () => {
 
                     <div className="d-flex justify-content-center gap-3 mt-3 fade-up delay-3">
                         <Button href="#/login" className="btn-cta">Login</Button>
-                        <Button href="#/register" className="btn-ghost">Register</Button>
                     </div>
-
-                    <p style={{ color: '#8b8b8b', marginTop: '2.2rem' }} className="fade-up delay-3">Fast delivery • Freshly cooked • Secure payments</p>
                 </div>
 
                 <div className="hero-right fade-up delay-2" aria-hidden>
-                    {/* Use external richer illustration so it's easy to replace with a PNG/SVG asset in public/assets */}
                     <img src="/assets/hero-illustration.svg" alt="Hero illustration" className="hero-illustration" />
+                </div>
+            </div>
+
+            {/* Feature Cards Section */}
+            <div className="feature-cards-container">
+                <div className="feature-card fade-up delay-4">
+                    <div className="card-icon">
+                        <img src="/assets/fast-delivery.svg" alt="Fast Delivery" />
+                    </div>
+                    <h3>Fast Delivery</h3>
+                    <p>Get your favorite meals delivered to your doorstep in minutes.</p>
+                </div>
+                <div className="feature-card fade-up delay-5">
+                    <div className="card-icon">
+                        <img src="/assets/fresh-ingredients.svg" alt="Fresh Ingredients" />
+                    </div>
+                    <h3>Fresh Ingredients</h3>
+                    <p>Our chefs use only the freshest ingredients for the best taste.</p>
+                </div>
+                <div className="feature-card fade-up delay-6">
+                    <div className="card-icon">
+                        <img src="/assets/secure-payments.svg" alt="Secure Payments" />
+                    </div>
+                    <h3>Secure Payments</h3>
+                    <p>Pay with confidence using our secure and encrypted payment gateway.</p>
                 </div>
             </div>
         </div>
