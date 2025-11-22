@@ -62,6 +62,16 @@ body {
 .btn-ghost { border: 1px solid #ffb68a; color:#ff6b00; background: transparent; }
 .btn-ghost:hover { background:#fff5ee }
 
+.hero .btn-outline-primary {
+    border-color: #ff9a3b;
+    color: #ff6b00;
+}
+
+.hero .btn-outline-primary:hover {
+    background-color: #ff9a3b;
+    color: white;
+}
+
 /* simple entrance animation */
 @keyframes fadeUp {
   from { opacity: 0; transform: translateY(14px); }
