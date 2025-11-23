@@ -190,7 +190,7 @@ const User = mongoose.model('User', UserSchema);
 const Complaint = mongoose.model('Complaint', ComplaintSchema);
 const Coupon = mongoose.model('Coupon', CouponSchema);
 const OtpSchema = new mongoose.Schema({
-    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
     mobile: { type: String, required: true },
     code: { type: String, required: true },
     used: { type: Boolean, default: false },
@@ -359,16 +359,17 @@ app.post('/api/auth/admin/login', async (req, res) => {
     }
 });
 
-// --- OTP endpoints for mobile verification (customers must be authenticated) ---
-app.post('/api/send-otp', authMiddleware, async (req, res) => {
+// --- OTP endpoints for mobile verification (supports guest users) ---
+// Public endpoint: allows sending OTP to a mobile number without authentication.
+app.post('/api/send-otp', async (req, res) => {
     try {
         const { mobile } = req.body;
         if (!mobile || typeof mobile !== 'string' || !/^[0-9]{10}$/.test(mobile)) {
             return res.status(400).json({ message: 'Invalid mobile number. Expected 10 digits.' });
         }
 
-        // rate limit: do not allow sending another OTP within 60 seconds for same user+mobile
-        const recent = await Otp.findOne({ user: req.user.userId, mobile }).sort({ createdAt: -1 });
+        // rate limit: do not allow sending another OTP within 60 seconds for same mobile
+        const recent = await Otp.findOne({ mobile }).sort({ createdAt: -1 });
         if (recent && (Date.now() - new Date(recent.createdAt).getTime()) < 60 * 1000) {
             return res.status(429).json({ message: 'OTP recently sent. Please wait before retrying.' });
         }
@@ -377,11 +378,11 @@ app.post('/api/send-otp', authMiddleware, async (req, res) => {
         const code = Math.floor(100000 + Math.random() * 900000).toString();
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
-        const otpDoc = new Otp({ user: req.user.userId, mobile, code, expiresAt });
+        const otpDoc = new Otp({ user: req.user?.userId || undefined, mobile, code, expiresAt });
         await otpDoc.save();
 
         // Mock send SMS: log to server console (replace with SMS gateway later)
-        console.log(`OTP for user ${req.user.userId} mobile ${mobile}: ${code} (expires ${expiresAt.toISOString()})`);
+        console.log(`OTP for mobile ${mobile}: ${code} (expires ${expiresAt.toISOString()})`);
 
         res.json({ message: 'OTP sent' });
     } catch (error) {
@@ -390,12 +391,20 @@ app.post('/api/send-otp', authMiddleware, async (req, res) => {
     }
 });
 
-app.post('/api/verify-otp', authMiddleware, async (req, res) => {
+app.post('/api/verify-otp', async (req, res) => {
     try {
         const { mobile, code } = req.body;
         if (!mobile || !code) return res.status(400).json({ message: 'Mobile and code are required.' });
 
-        const otpDoc = await Otp.findOne({ user: req.user.userId, mobile, code, used: false });
+        // If user is authenticated, prefer matching by user + mobile; otherwise match by mobile only
+        let otpDoc = null;
+        if (req.user && req.user.userId) {
+            otpDoc = await Otp.findOne({ user: req.user.userId, mobile, code, used: false });
+        }
+        if (!otpDoc) {
+            otpDoc = await Otp.findOne({ mobile, code, used: false });
+        }
+
         if (!otpDoc) return res.status(404).json({ message: 'OTP not found or already used.' });
         if (new Date() > otpDoc.expiresAt) return res.status(400).json({ message: 'OTP expired.' });
 

@@ -255,12 +255,7 @@ const CartModalMain = ({
                         <div className="d-flex gap-2 align-items-center">
                             <Button variant="outline-primary" size="sm" onClick={async () => {
                                 if (!/^[0-9]{10}$/.test(mobile)) { alert('Enter a valid 10-digit mobile number'); return; }
-                                // Ensure customer is authenticated because the backend OTP endpoints are protected
-                                const token = localStorage.getItem('customer_token');
-                                if (!token) {
-                                    alert('Please login or sign up before requesting OTP.');
-                                    return;
-                                }
+                                // No auth required: allow guest users to request OTP for mobile-only verification
 
                                 setSendOtpLoading(true);
                                 try {
