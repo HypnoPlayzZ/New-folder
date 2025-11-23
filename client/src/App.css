@@ -17,21 +17,21 @@ body {
 }
 
 .hero-inner {
-  max-width: 1000px;
+  max-width: 1100px;
   width: 100%;
-  padding: 48px 20px;
+  padding: 40px 20px;
   display: flex;
-  flex-direction: column;
+  flex-direction: row; /* show columns on wide screens */
   gap: 28px;
   align-items: center;
-  justify-content: center;
-  text-align: center;
+  justify-content: space-between;
+  text-align: left;
 }
 
-.hero-left, .hero-right { width: 100%; }
+.hero-left, .hero-right { width: 48%; }
 
 .hero h1 {
-  font-size: 4rem; /* larger headline */
+  font-size: 3.2rem;
   margin-bottom: 0.4rem;
   color: #ff6b00;
   letter-spacing: -0.6px;
@@ -105,8 +105,8 @@ body {
 
 /* animated hero illustration */
 .hero-illustration {
-  width: 420px;
-  max-width: 86%;
+  width: 100%;
+  max-width: 520px;
   height: auto;
   transform-origin: center bottom;
   animation: floaty 7s ease-in-out infinite, popIn .6s cubic-bezier(.2,.9,.2,1) both;
@@ -147,12 +147,20 @@ a.animated-link:hover::after { transform: scaleX(1); }
 
 /* Small responsive tweaks */
 @media (max-width: 992px) {
-  .hero-inner { flex-direction: column; padding: 30px 20px; }
-  .hero-right { margin-bottom: 18px; }
+  .hero-inner { flex-direction: column; padding: 28px 18px; text-align: center; }
+  .hero-right { margin-bottom: 18px; width: 100%; }
+  .hero-left { width: 100%; }
   .hero h1 { font-size: 2.6rem; }
+
+  .feature-cards-container { display: grid; grid-template-columns: 1fr; gap: 16px; padding: 0 12px; }
+  .feature-card { text-align: center; }
+  .hero .btn-cta, .hero .btn-outline-primary { width: 100%; }
 }
 
 @media (max-width: 576px) {
-  .hero { padding: 18px 8px; }
-  .hero h1 { font-size: 2.2rem; }
+  .hero { padding: 14px 8px; }
+  .hero h1 { font-size: 1.9rem; }
+  .brand-logo { width:54px; height:54px }
+  .hero p.lead { font-size: 1rem; }
+  .hero-illustration { max-width: 320px; margin: 0 auto; }
 }
