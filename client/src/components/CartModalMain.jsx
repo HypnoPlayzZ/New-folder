@@ -255,6 +255,13 @@ const CartModalMain = ({
                         <div className="d-flex gap-2 align-items-center">
                             <Button variant="outline-primary" size="sm" onClick={async () => {
                                 if (!/^[0-9]{10}$/.test(mobile)) { alert('Enter a valid 10-digit mobile number'); return; }
+                                // Ensure customer is authenticated because the backend OTP endpoints are protected
+                                const token = localStorage.getItem('customer_token');
+                                if (!token) {
+                                    alert('Please login or sign up before requesting OTP.');
+                                    return;
+                                }
+
                                 setSendOtpLoading(true);
                                 try {
                                     await api.post('/send-otp', { mobile });
@@ -262,7 +269,21 @@ const CartModalMain = ({
                                     setResendTimer(60);
                                 } catch (err) {
                                     console.error('Send OTP failed', err);
-                                    alert(err.response?.data?.message || 'Failed to send OTP');
+                                    // Helpful messages for common failure modes
+                                    if (err.response) {
+                                        const status = err.response.status;
+                                        if (status === 401) {
+                                            alert('Authentication required. Please login again.');
+                                        } else if (status === 404) {
+                                            alert('OTP service not available on the server (404). Try again later or contact support.');
+                                        } else if (err.response.data?.message) {
+                                            alert(err.response.data.message);
+                                        } else {
+                                            alert('Failed to send OTP (server error).');
+                                        }
+                                    } else {
+                                        alert('Failed to send OTP. Check your network connection.');
+                                    }
                                 } finally {
                                     setSendOtpLoading(false);
                                 }
