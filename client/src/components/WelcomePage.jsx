@@ -3,107 +3,33 @@ import { Button } from 'react-bootstrap';
 import { motion } from 'framer-motion';
 
 const WelcomePage = () => {
-    // Motion variants
-    const headingVariants = {
-        hidden: { opacity: 0, y: 30 },
-        visible: (i = 1) => ({ opacity: 1, y: 0, transition: { delay: 0.3 * i, duration: 0.6 } })
-    };
-    const blobFloat = {
-        animate: {
-            y: [0, -12, 0],
-            x: [0, 8, 0],
-            transition: { duration: 6, repeat: Infinity, ease: 'easeInOut' }
-        }
-    };
+    const logoEntrance = { initial: { y: -120, opacity: 0, scale: 0.7 }, animate: { y: 0, opacity: 1, scale: 1 }, transition: { duration: 0.8, ease: 'easeOut' } };
+    const floatLoop = { y: [0, -10, 0], transition: { duration: 3.5, repeat: Infinity, ease: 'easeInOut' } };
 
     return (
-        <div className="hero hero--clean">
-            {/* decorative blobs with subtle floating motion */}
-            <motion.div className="blob blob-1" aria-hidden
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                transition={{ duration: 0.8 }}
-                variants={blobFloat}
-                whileHover={{ scale: 1.05 }}
-            />
-            <motion.div className="blob blob-2" aria-hidden
-                initial={{ scale: 0.7, opacity: 0 }}
-                animate={{ scale: 1, opacity: 0.9 }}
-                transition={{ duration: 0.9, delay: 0.2 }}
-                variants={blobFloat}
-            />
+        <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(180deg, #fff7f0 0%, #fff0e6 100%)', padding: '2rem' }}>
+            <div style={{ textAlign: 'center', maxWidth: 980, width: '100%' }}>
+                <motion.div style={{ display: 'flex', justifyContent: 'center' }} initial={logoEntrance.initial} animate={logoEntrance.animate} transition={logoEntrance.transition}>
+                    <motion.img src="/Logo.png" alt="Steamy Bites logo" style={{ width: 'clamp(120px, 28vw, 220px)', height: 'auto', display: 'block' }} animate={floatLoop} />
+                </motion.div>
 
-            <div className="hero-inner hero-inner--center">
-                <motion.div className="hero-left hero-left--center"
-                    initial="hidden"
-                    animate="visible"
-                    custom={1}
-                    variants={headingVariants}
-                >
-                    {/* Logo appears first with a floating entrance, then the rest of the hero shows */}
-                    <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <motion.img src="/Logo.png" alt="logo" className="brand-logo mb-3"
-                            style={{ width: 64, height: 64 }}
-                            initial={{ y: -120, opacity: 0, scale: 0.7 }}
-                            animate={{ y: 0, opacity: 1, scale: 1 }}
-                            transition={{ duration: 0.8, ease: 'easeOut' }}
-                        />
-                    </div>
+                <motion.h1 style={{ marginTop: '1.2rem', fontSize: 'clamp(28px, 6vw, 64px)', lineHeight: 1.03, fontWeight: 700, color: '#333' }} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9, duration: 0.7 }}>
+                    Steamy Bites
+                </motion.h1>
 
-                    <motion.h1 className="mb-2"
-                        initial={{ opacity: 0, scale: 0.98 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.7, delay: 0.9 }}
-                    >
-                        Welcome to Steamy Bites
-                    </motion.h1>
+                <motion.p style={{ marginTop: '0.6rem', fontSize: 'clamp(14px, 2.2vw, 18px)', color: '#555' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.05, duration: 0.6 }}>
+                    Delicious meals delivered hot — order in a few taps.
+                </motion.p>
 
-                    <motion.p className="lead"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.7, delay: 0.4 }}
-                    >
-                        Delicious meals delivered hot — order in a few taps.
-                    </motion.p>
-
-                    <motion.div className="d-flex flex-column align-items-center gap-3 mt-3"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ duration: 0.6, delay: 1.1 }}
-                    >
-                        <motion.a href="#/login" whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}>
-                            <Button className="btn-cta">Login</Button>
-                        </motion.a>
-                        <motion.button
-                            className="btn-google btn-outline-small"
-                            onClick={() => { /* handled by your auth flow; placeholder */ window.location.href = '#/auth/google'; }}
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                        >Sign in with Google</motion.button>
-                        <div className="d-flex gap-2 mt-2">
-                            <motion.button
-                                className="btn-outline-small"
-                                onClick={() => window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' })}
-                                whileHover={{ scale: 1.03 }}
-                                whileTap={{ scale: 0.97 }}
-                            >About</motion.button>
-                            <motion.button
-                                className="btn-outline-small"
-                                onClick={() => window.location.href = '#/contact'}
-                                whileHover={{ scale: 1.03 }}
-                                whileTap={{ scale: 0.97 }}
-                            >Contact Us</motion.button>
-                        </div>
-                    </motion.div>
-
-                    <motion.div className="cta-wrap mt-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
-                        <motion.button className="btn-order-now"
-                            whileHover={{ scale: 1.03, boxShadow: '0 8px 24px rgba(255,120,40,0.18)' }}
-                            whileTap={{ scale: 0.98 }}
-                            animate={{ y: [0, -6, 0] }}
-                            transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
-                        >Order Now</motion.button>
-                    </motion.div>
+                <motion.div style={{ display: 'flex', gap: 12, justifyContent: 'center', marginTop: 28, flexWrap: 'wrap' }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: 1.2, duration: 0.6 }}>
+                    <motion.a href="#/login" whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}>
+                        <Button style={{ padding: '12px 24px', fontSize: 18, borderRadius: 12, background: 'linear-gradient(90deg,#ff8a00,#ff6a00)', border: 'none' }}>Login</Button>
+                    </motion.a>
+                    <motion.button
+                        onClick={() => { window.location.href = '#/auth/google'; }}
+                        style={{ padding: '12px 18px', fontSize: 16, borderRadius: 12, background: '#fff', border: '1px solid #ddd', minWidth: 200 }}
+                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
+                    >Sign in with Google</motion.button>
                 </motion.div>
             </div>
         </div>
