@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Card, Alert, Container, Row, Col, Form } from 'react-bootstrap';
+import { Card, Alert, Form } from 'react-bootstrap';
+import { motion } from 'framer-motion';
 import { api } from '../api';
 
 const LoginPage = ({ onLoginSuccess }) => {
@@ -16,45 +17,19 @@ const LoginPage = ({ onLoginSuccess }) => {
         },
         inner: {
             width: '100%',
-            maxWidth: 1200,
+            maxWidth: 720,
             display: 'flex',
-            gap: 40,
-            alignItems: 'center'
+            gap: 24,
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexDirection: 'column'
         },
-        left: {
-            flex: 1,
-            color: '#222',
-            padding: 24
-        },
-        title: {
-            fontSize: 44,
-            fontWeight: 700,
-            marginBottom: 10
-        },
-        subtitle: {
-            fontSize: 16,
-            color: '#6b6b6b',
-            marginBottom: 18
-        },
-        ctaRow: {
-            display: 'flex',
-            gap: 12,
-            marginTop: 8
-        },
-        ctaBtn: {
-            background: 'linear-gradient(180deg,#ff8c1a,#ff6b00)',
-            border: 'none',
-            color: 'white',
-            padding: '8px 16px',
-            borderRadius: 8,
-            boxShadow: '0 6px 18px rgba(255,107,0,0.18)'
-        },
-        right: {
-            width: 520,
-            maxWidth: '45%'
+        cardWrapper: {
+            width: '100%',
+            maxWidth: 460
         },
         cardBody: {
-            background: 'rgba(255,255,255,0.9)'
+            background: 'rgba(255,255,255,0.95)'
         }
     };
 
@@ -102,43 +77,25 @@ const LoginPage = ({ onLoginSuccess }) => {
     return (
         <div style={styles.page}>
             <div style={styles.inner}>
-                <div style={styles.left}>
-                    <img src="/Logo.png" alt="logo" style={{ width: 56, marginBottom: 12 }} />
-                    <div style={styles.title}>Welcome to Steamy Bites</div>
-                    <div style={styles.subtitle}>Delicious meals delivered hot — explore our menu and order in a few taps.</div>
+                {/* Floating logo above centered auth card */}
+                <motion.img src="/Logo.png" alt="Steamy Bites logo" style={{ width: 110, height: 'auto', marginBottom: 18 }} initial={{ y: -40, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.8 }} />
 
-                    <div style={styles.ctaRow}>
-                        <button style={styles.ctaBtn}>Login</button>
-                        <button style={{ ...styles.ctaBtn, background: 'white', color: '#ff6b00', border: '1px solid rgba(255,107,0,0.12)' }}>Register</button>
-                    </div>
-                </div>
-
-                <div style={styles.right}>
+                <div style={styles.cardWrapper}>
                     <Card style={{ borderRadius: 16, boxShadow: '0 12px 40px rgba(0,0,0,0.06)' }}>
                         <Card.Body style={styles.cardBody}>
-                            <div className="d-flex align-items-center mb-3">
-                                <div className="brand-logo me-3"><img src="/Logo.png" alt="logo" style={{ width:38 }} /></div>
+                            <div className="d-flex align-items-center mb-3 justify-content-center">
                                 <div>
-                                    <h5 className="mb-0">Customer Login</h5>
-                                    <small className="text-muted">Sign in with Google or use email</small>
+                                    <h5 className="mb-0 text-center">Customer Login</h5>
+                                    <small className="text-muted d-block text-center">Sign in with Google</small>
                                 </div>
                             </div>
 
                             {error && <Alert variant="danger">{error}</Alert>}
 
-                            <div className="mb-3">
-                                <div id="google-signin-button" className="d-flex justify-content-center"></div>
+                            <div className="mb-3 d-flex justify-content-center">
+                                <div id="google-signin-button"></div>
                             </div>
 
-                            <div className="text-center text-muted">— or —</div>
-
-                            <Form className="mt-3">
-                                <Form.Group className="mb-2"><Form.Label>Email</Form.Label><Form.Control type="email" placeholder="you@example.com" /></Form.Group>
-                                <Form.Group className="mb-3"><Form.Label>Password</Form.Label><Form.Control type="password" placeholder="Password" /></Form.Group>
-                                <div className="d-grid">
-                                    <button type="button" className="btn btn-cta">Sign in</button>
-                                </div>
-                            </Form>
                         </Card.Body>
                     </Card>
                 </div>

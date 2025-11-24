@@ -25,11 +25,6 @@ const WelcomePage = () => {
                     <motion.a href="#/login" whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}>
                         <Button style={{ padding: '12px 24px', fontSize: 18, borderRadius: 12, background: 'linear-gradient(90deg,#ff8a00,#ff6a00)', border: 'none' }}>Login</Button>
                     </motion.a>
-                    <motion.button
-                        onClick={() => { window.location.href = '#/auth/google'; }}
-                        style={{ padding: '12px 18px', fontSize: 16, borderRadius: 12, background: '#fff', border: '1px solid #ddd', minWidth: 200 }}
-                        whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}
-                    >Sign in with Google</motion.button>
                 </motion.div>
             </div>
         </div>
