@@ -4,7 +4,6 @@ import { api } from '../api';
 import formatINR from '../utils/currency';
 import MenuItem from '../components/MenuItem';
 import { motion } from 'framer-motion';
-import { useState } from 'react';
 
 // --- Coupon Display Component ---
 const CouponDisplay = () => {
