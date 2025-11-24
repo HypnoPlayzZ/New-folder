@@ -1,7 +1,10 @@
 import axios from 'axios';
 
+// Use Vite env var to allow switching between deployed and local backends
+const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://steamybitesbackend.onrender.com/api';
+
 const api = axios.create({
-    baseURL: 'https://steamybitesbackend.onrender.com/api',
+    baseURL,
 });
 
 api.interceptors.request.use(config => {
