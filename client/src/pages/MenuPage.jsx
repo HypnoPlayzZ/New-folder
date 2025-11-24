@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Button, Modal, Form, Row, Col } from 'react-bootstrap';
 import { api } from '../api';
 import formatINR from '../utils/currency';
+import MenuItem from '../components/MenuItem';
 
 // --- Coupon Display Component ---
 const CouponDisplay = () => {
@@ -178,7 +179,21 @@ const MenuPage = ({ onAddToCart }) => {
         <div className="fade-in">
             <HeroSection />
             <CouponDisplay />
-            
+
+            {/* Sticky category nav */}
+            {menu.length > 1 && (
+                <nav className="category-nav" aria-label="Categories">
+                    <div className="category-nav-inner">
+                        {menu.map((c) => (
+                            <button key={c.name} className="category-nav-button" onClick={() => {
+                                const el = document.getElementById(`category-${c.name.replace(/\s+/g,'-')}`);
+                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }}>{c.name}</button>
+                        ))}
+                    </div>
+                </nav>
+            )}
+
             {menu.length === 0 && !loading && (
                 <div className="text-center">
                     <h2>Our menu is currently empty.</h2>
@@ -187,32 +202,14 @@ const MenuPage = ({ onAddToCart }) => {
             )}
 
             {menu.map(({ name: category, items }) => (
-                <div key={category} className="menu-list-container mb-4">
+                <section key={category} id={`category-${category.replace(/\s+/g,'-')}`} className="menu-list-container mb-4">
                     <h2 className="mb-4">{category}</h2>
                     {items.map((item, index) => (
-                        <div className="menu-list-item" key={item._id} style={{ animationDelay: `${index * 0.05}s` }}>
-                            <div className="menu-item-details">
-                                <h5 className="item-name">{item.name}</h5>
-                                <p className="item-price">
-                                    {item.price.half != null && <span>{formatINR(item.price.half)} (Half)</span>}
-                                    {item.price.half != null && item.price.full != null && " / "}
-                                    {item.price.full != null && <span>{formatINR(item.price.full)} (Full)</span>}
-                                </p>
-                                <p className="item-description">{item.description}</p>
-                            </div>
-                            <div className="menu-item-action">
-                                <div className="menu-item-image-container">
-                                     <img src={item.imageUrl || 'https://placehold.co/150x150/ffecd2/212529?text=Steamy'} alt={item.name} onError={(e) => { e.target.onerror = null; e.target.src='https://placehold.co/150x150/ffecd2/212529?text=Steamy'; }}/>
-                                    <div className="add-button-container">
-                                        <Button variant="light" onClick={() => handleShowModal(item)}>ADD</Button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <MenuItem key={item._id} item={item} index={index} onAdd={(it) => handleShowModal(it)} />
                     ))}
-                </div>
+                </section>
             ))}
-            
+
             {selectedItem && (
                 <CustomizationModal
                     show={showModal}
