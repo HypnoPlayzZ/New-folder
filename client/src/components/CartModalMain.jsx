@@ -4,7 +4,7 @@ import QRCode from 'qrcode';
 import LocationPickerModal from './LocationPickerModal';
 import { api } from '../api';
 import { auth } from '../firebase.config';
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
+import { RecaptchaVerifier, signInWithPhoneNumber, getAuth } from 'firebase/auth';
 
 // --- UPDATED: Add props for the new UPI flow ---
 const CartModalMain = ({
@@ -271,12 +271,20 @@ const CartModalMain = ({
                                 try {
                                     // setup invisible reCAPTCHA if not already
                                     if (!window.recaptchaVerifier) {
-                                        window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
-                                            size: 'invisible',
-                                            callback: (response) => {
-                                                // reCAPTCHA solved - will proceed with signInWithPhoneNumber
-                                            }
-                                        }, auth);
+                                        try {
+                                            const appAuth = auth || getAuth();
+                                            window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
+                                                size: 'invisible',
+                                                callback: (response) => {
+                                                    // reCAPTCHA solved - will proceed with signInWithPhoneNumber
+                                                }
+                                            }, appAuth);
+                                        } catch (recapErr) {
+                                            console.error('Recaptcha init failed', recapErr);
+                                            alert('reCAPTCHA initialization failed. Please reload the page and try again.');
+                                            setSendOtpLoading(false);
+                                            return;
+                                        }
                                     }
 
                                     // Prepend country code if needed (default +91)
@@ -529,6 +537,8 @@ const CartModalMain = ({
                 {orderError && <Alert variant="danger" className="mt-3">{orderError}</Alert>}
                 <LocationPickerModal show={showLocationPicker} handleClose={() => setShowLocationPicker(false)} onLocationSelect={handleLocationSelect} />
             </Modal.Body>
+            {/* Invisible container for Firebase reCAPTCHA */}
+            <div id="recaptcha-container" style={{ display: 'none' }} />
             <Modal.Footer>
                 <Button variant="secondary" onClick={internalHandleClose}>
                     {orderForPayment ? 'Cancel' : 'Close'}
