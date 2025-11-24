@@ -3,7 +3,7 @@ import { Modal, Button, ListGroup, Form, Row, Col, InputGroup, Alert, Spinner } 
 import QRCode from 'qrcode';
 import LocationPickerModal from './LocationPickerModal';
 import { api } from '../api';
-import { auth } from '../firebase.config'; // We will use this directly
+import { auth } from '../firebase.config'; // We use this exported auth instance directly
 import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
 const CartModalMain = ({
@@ -156,16 +156,21 @@ const CartModalMain = ({
 
         try {
             // 1. Initialize Recaptcha
-            // FIX: 'auth' is now the FIRST argument.
             if (!window.recaptchaVerifier) {
+                
+                // --- FIX: Clear the container manually to prevent "already rendered" error ---
+                const recaptchaContainer = document.getElementById('recaptcha-container');
+                if (recaptchaContainer) {
+                    recaptchaContainer.innerHTML = ''; 
+                }
+
+                // Initialize verify with 'auth' as the first argument
                 window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
                     'size': 'invisible',
                     'callback': (response) => {
-                        // reCAPTCHA solved, allow signInWithPhoneNumber.
                         console.log("Recaptcha verified");
                     },
                     'expired-callback': () => {
-                        // Response expired. Ask user to solve reCAPTCHA again.
                         console.warn("Recaptcha expired");
                     }
                 });
@@ -185,12 +190,15 @@ const CartModalMain = ({
         } catch (err) {
             console.error('Firebase Send OTP failed', err);
             
-            // If it fails, clear the verifier so the user can try again
+            // If it fails, clear the verifier AND the DOM so the user can try again
             if(window.recaptchaVerifier) {
                 try {
                     window.recaptchaVerifier.clear();
                 } catch(e) {}
                 window.recaptchaVerifier = null;
+                
+                const recaptchaContainer = document.getElementById('recaptcha-container');
+                if (recaptchaContainer) recaptchaContainer.innerHTML = '';
             }
             
             alert(err.message || 'Failed to send OTP. Please refresh and try again.');
@@ -295,7 +303,6 @@ const CartModalMain = ({
                 <div className="mb-3">
                     {!otpVerified ? (
                         <div className="d-flex gap-2 align-items-center">
-                            {/* UPDATED SEND OTP BUTTON */}
                             <Button 
                                 variant="outline-primary" 
                                 size="sm" 
@@ -519,7 +526,7 @@ const CartModalMain = ({
                 <LocationPickerModal show={showLocationPicker} handleClose={() => setShowLocationPicker(false)} onLocationSelect={handleLocationSelect} />
             </Modal.Body>
             
-            {/* FIX: Removed 'display: none'. The container must be present for Captcha to work. */}
+            {/* The hidden container for reCAPTCHA - MUST be present */}
             <div id="recaptcha-container"></div>
             
             <Modal.Footer>
