@@ -3,28 +3,42 @@ import { Button } from 'react-bootstrap';
 import { motion } from 'framer-motion';
 
 const WelcomePage = () => {
+    // Motion variants
+    const headingVariants = {
+        hidden: { opacity: 0, y: 30 },
+        visible: (i = 1) => ({ opacity: 1, y: 0, transition: { delay: 0.3 * i, duration: 0.6 } })
+    };
+    const blobFloat = {
+        animate: {
+            y: [0, -12, 0],
+            x: [0, 8, 0],
+            transition: { duration: 6, repeat: Infinity, ease: 'easeInOut' }
+        }
+    };
+
     return (
-        <div className="hero">
-            <motion.div 
-                className="blob blob-1" 
-                aria-hidden
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 1, delay: 0.5 }}
-            ></motion.div>
-            <motion.div 
-                className="blob blob-2" 
-                aria-hidden
-                initial={{ scale: 0 }}
-                animate={{ scale: 1 }}
-                transition={{ duration: 1, delay: 0.8 }}
-            ></motion.div>
-            <div className="hero-inner">
-                <motion.div 
-                    className="hero-left"
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.8, delay: 1 }}
+        <div className="hero hero--clean">
+            {/* decorative blobs with subtle floating motion */}
+            <motion.div className="blob blob-1" aria-hidden
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.8 }}
+                variants={blobFloat}
+                whileHover={{ scale: 1.05 }}
+            />
+            <motion.div className="blob blob-2" aria-hidden
+                initial={{ scale: 0.7, opacity: 0 }}
+                animate={{ scale: 1, opacity: 0.9 }}
+                transition={{ duration: 0.9, delay: 0.2 }}
+                variants={blobFloat}
+            />
+
+            <div className="hero-inner hero-inner--center">
+                <motion.div className="hero-left hero-left--center"
+                    initial="hidden"
+                    animate="visible"
+                    custom={1}
+                    variants={headingVariants}
                 >
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
                         <div className="brand-logo mb-3">
@@ -32,64 +46,52 @@ const WelcomePage = () => {
                         </div>
                     </div>
 
-                    <h1 className="mb-2">Welcome to Steamy Bites</h1>
-                    <p className="lead">Delicious meals delivered hot — explore our menu and order in a few taps.</p>
+                    <motion.h1 className="mb-2"
+                        initial={{ opacity: 0, scale: 0.98 }}
+                        animate={{ opacity: 1, scale: 1 }}
+                        transition={{ duration: 0.7, delay: 0.2 }}
+                    >
+                        Welcome to Steamy Bites
+                    </motion.h1>
 
-                    <div className="d-flex justify-content-center gap-3 mt-3">
-                        <Button href="#/login" className="btn-cta">Login</Button>
-                        <Button href="#/about" variant="outline-primary">About</Button>
-                        <Button href="#/contact" variant="outline-primary">Contact Us</Button>
-                    </div>
-                </motion.div>
+                    <motion.p className="lead"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.7, delay: 0.4 }}
+                    >
+                        Delicious meals delivered hot — order in a few taps.
+                    </motion.p>
 
-                <motion.div 
-                    className="hero-right" 
-                    aria-hidden
-                    initial={{ opacity: 0, x: 100 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ duration: 0.8, delay: 1.2 }}
-                >
-                    <img src="/assets/hero-illustration.svg" alt="Hero illustration" className="hero-illustration" />
-                </motion.div>
-            </div>
+                    <motion.div className="d-flex justify-content-center gap-3 mt-3"
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        transition={{ duration: 0.6, delay: 0.6 }}
+                    >
+                        <motion.a href="#/login" whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}>
+                            <Button className="btn-cta">Login</Button>
+                        </motion.a>
+                        <motion.button
+                            className="btn-outline-small"
+                            onClick={() => window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' })}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                        >About</motion.button>
+                        <motion.button
+                            className="btn-outline-small"
+                            onClick={() => window.location.href = '#/contact'}
+                            whileHover={{ scale: 1.03 }}
+                            whileTap={{ scale: 0.97 }}
+                        >Contact Us</motion.button>
+                    </motion.div>
 
-            {/* Feature Cards Section */}
-            <div className="feature-cards-container">
-                <motion.div 
-                    className="feature-card"
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 1.5 }}
-                >
-                    <div className="card-icon">
-                        <img src="/assets/fast-delivery.svg" alt="Fast Delivery" />
-                    </div>
-                    <h3>Fast Delivery</h3>
-                    <p>Get your favorite meals delivered to your doorstep in minutes.</p>
-                </motion.div>
-                <motion.div 
-                    className="feature-card"
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 1.7 }}
-                >
-                    <div className="card-icon">
-                        <img src="/assets/fresh-ingredients.svg" alt="Fresh Ingredients" />
-                    </div>
-                    <h3>Fresh Ingredients</h3>
-                    <p>Our chefs use only the freshest ingredients for the best taste.</p>
-                </motion.div>
-                <motion.div 
-                    className="feature-card"
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, delay: 1.9 }}
-                >
-                    <div className="card-icon">
-                        <img src="/assets/secure-payments.svg" alt="Secure Payments" />
-                    </div>
-                    <h3>Secure Payments</h3>
-                    <p>Pay with confidence using our secure and encrypted payment gateway.</p>
+                    <motion.div className="cta-wrap mt-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
+                        <motion.button className="btn-order-now"
+                            whileHover={{ scale: 1.03, boxShadow: '0 8px 24px rgba(255,120,40,0.18)' }}
+                            whileTap={{ scale: 0.98 }}
+                            animate={{ y: [0, -6, 0] }}
+                            transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                        >Order Now</motion.button>
+                    </motion.div>
                 </motion.div>
             </div>
         </div>
