@@ -1,0 +1,13 @@
+{
+  "name": "new-folder-root",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "install-server": "npm --prefix server install",
+    "start-server": "npm --prefix server start",
+    "dev-server": "npm --prefix server run dev"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
