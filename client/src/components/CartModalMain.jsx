@@ -34,6 +34,7 @@ const CartModalMain = ({
     const [otpSent, setOtpSent] = useState(false);
     const [otpCode, setOtpCode] = useState('');
     const [otpVerified, setOtpVerified] = useState(false);
+    const [firebaseUser, setFirebaseUser] = useState(null);
     const [sendOtpLoading, setSendOtpLoading] = useState(false);
     const [verifyOtpLoading, setVerifyOtpLoading] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
@@ -75,7 +76,12 @@ const CartModalMain = ({
         if (typeof submitOrder === 'function') {
             try {
                 // Pass mobile and location as additional optional args
-                await submitOrder(finalPrice, couponDiscount ? couponDiscount.coupon : null, address, customerName, paymentMethod, mobile, locationCoords);
+                // attach firebase ID token if available
+                let firebaseToken = undefined;
+                if (firebaseUser) {
+                    try { firebaseToken = await firebaseUser.getIdToken(); } catch (e) { console.warn('Could not get firebase token', e); }
+                }
+                await submitOrder(finalPrice, couponDiscount ? couponDiscount.coupon : null, address, customerName, paymentMethod, mobile, locationCoords, firebaseToken);
             } catch (err) {
                 console.error('Error placing order via submitOrder:', err);
             } finally {
@@ -114,6 +120,10 @@ const CartModalMain = ({
         };
 
         if (typeof onPlaceOrder === 'function') {
+            // attach firebase ID token if available
+            if (firebaseUser) {
+                try { orderDetails.firebaseToken = await firebaseUser.getIdToken(); } catch (e) { console.warn('Could not get firebase token', e); }
+            }
             await onPlaceOrder(orderDetails);
         } else {
             console.warn('onPlaceOrder is not a function', onPlaceOrder);
@@ -299,6 +309,7 @@ const CartModalMain = ({
                                             const result = await confirmationResult.confirm(otpCode);
                                             // result.user contains Firebase user info; treat this as verified
                                             setOtpVerified(true);
+                                            setFirebaseUser(result.user);
                                             setOtpSent(false);
                                             setOtpCode('');
                                             setResendTimer(0);
