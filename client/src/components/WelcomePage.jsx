@@ -40,16 +40,20 @@ const WelcomePage = () => {
                     custom={1}
                     variants={headingVariants}
                 >
+                    {/* Logo appears first with a floating entrance, then the rest of the hero shows */}
                     <div style={{ display: 'flex', justifyContent: 'center' }}>
-                        <div className="brand-logo mb-3">
-                            <img src="/Logo.png" alt="logo" style={{ width: 44, height: 44 }} />
-                        </div>
+                        <motion.img src="/Logo.png" alt="logo" className="brand-logo mb-3"
+                            style={{ width: 64, height: 64 }}
+                            initial={{ y: -120, opacity: 0, scale: 0.7 }}
+                            animate={{ y: 0, opacity: 1, scale: 1 }}
+                            transition={{ duration: 0.8, ease: 'easeOut' }}
+                        />
                     </div>
 
                     <motion.h1 className="mb-2"
                         initial={{ opacity: 0, scale: 0.98 }}
                         animate={{ opacity: 1, scale: 1 }}
-                        transition={{ duration: 0.7, delay: 0.2 }}
+                        transition={{ duration: 0.7, delay: 0.9 }}
                     >
                         Welcome to Steamy Bites
                     </motion.h1>
@@ -62,26 +66,34 @@ const WelcomePage = () => {
                         Delicious meals delivered hot — order in a few taps.
                     </motion.p>
 
-                    <motion.div className="d-flex justify-content-center gap-3 mt-3"
+                    <motion.div className="d-flex flex-column align-items-center gap-3 mt-3"
                         initial={{ opacity: 0 }}
                         animate={{ opacity: 1 }}
-                        transition={{ duration: 0.6, delay: 0.6 }}
+                        transition={{ duration: 0.6, delay: 1.1 }}
                     >
                         <motion.a href="#/login" whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}>
                             <Button className="btn-cta">Login</Button>
                         </motion.a>
                         <motion.button
-                            className="btn-outline-small"
-                            onClick={() => window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' })}
+                            className="btn-google btn-outline-small"
+                            onClick={() => { /* handled by your auth flow; placeholder */ window.location.href = '#/auth/google'; }}
                             whileHover={{ scale: 1.03 }}
                             whileTap={{ scale: 0.97 }}
-                        >About</motion.button>
-                        <motion.button
-                            className="btn-outline-small"
-                            onClick={() => window.location.href = '#/contact'}
-                            whileHover={{ scale: 1.03 }}
-                            whileTap={{ scale: 0.97 }}
-                        >Contact Us</motion.button>
+                        >Sign in with Google</motion.button>
+                        <div className="d-flex gap-2 mt-2">
+                            <motion.button
+                                className="btn-outline-small"
+                                onClick={() => window.scrollTo({ top: document.body.scrollHeight / 2, behavior: 'smooth' })}
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                            >About</motion.button>
+                            <motion.button
+                                className="btn-outline-small"
+                                onClick={() => window.location.href = '#/contact'}
+                                whileHover={{ scale: 1.03 }}
+                                whileTap={{ scale: 0.97 }}
+                            >Contact Us</motion.button>
+                        </div>
                     </motion.div>
 
                     <motion.div className="cta-wrap mt-4" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.9 }}>
