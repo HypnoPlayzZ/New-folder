@@ -5,7 +5,9 @@
   "scripts": {
     "install-server": "npm --prefix server install",
     "start-server": "npm --prefix server start",
-    "dev-server": "npm --prefix server run dev"
+    "dev-server": "npm --prefix server run dev",
+    "install": "npm run install-server",
+    "start": "npm run start-server"
   },
   "engines": {
     "node": ">=18"
