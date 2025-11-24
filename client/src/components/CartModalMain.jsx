@@ -3,6 +3,8 @@ import { Modal, Button, ListGroup, Form, Row, Col, InputGroup, Alert, Spinner } 
 import QRCode from 'qrcode';
 import LocationPickerModal from './LocationPickerModal';
 import { api } from '../api';
+import { auth } from '../firebase.config';
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
 // --- UPDATED: Add props for the new UPI flow ---
 const CartModalMain = ({
@@ -255,30 +257,29 @@ const CartModalMain = ({
                         <div className="d-flex gap-2 align-items-center">
                             <Button variant="outline-primary" size="sm" onClick={async () => {
                                 if (!/^[0-9]{10}$/.test(mobile)) { alert('Enter a valid 10-digit mobile number'); return; }
-                                // No auth required: allow guest users to request OTP for mobile-only verification
-
                                 setSendOtpLoading(true);
                                 try {
-                                    await api.post('/send-otp', { mobile });
+                                    // setup invisible reCAPTCHA if not already
+                                    if (!window.recaptchaVerifier) {
+                                        window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
+                                            size: 'invisible',
+                                            callback: (response) => {
+                                                // reCAPTCHA solved - will proceed with signInWithPhoneNumber
+                                            }
+                                        }, auth);
+                                    }
+
+                                    // Prepend country code if needed (default +91)
+                                    const phoneNumber = `+91${mobile}`;
+                                    const appVerifier = window.recaptchaVerifier;
+                                    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+                                    window.confirmationResult = confirmationResult;
                                     setOtpSent(true);
                                     setResendTimer(60);
+                                    alert('OTP sent via Firebase.');
                                 } catch (err) {
-                                    console.error('Send OTP failed', err);
-                                    // Helpful messages for common failure modes
-                                    if (err.response) {
-                                        const status = err.response.status;
-                                        if (status === 401) {
-                                            alert('Authentication required. Please login again.');
-                                        } else if (status === 404) {
-                                            alert('OTP service not available on the server (404). Try again later or contact support.');
-                                        } else if (err.response.data?.message) {
-                                            alert(err.response.data.message);
-                                        } else {
-                                            alert('Failed to send OTP (server error).');
-                                        }
-                                    } else {
-                                        alert('Failed to send OTP. Check your network connection.');
-                                    }
+                                    console.error('Firebase Send OTP failed', err);
+                                    alert(err.message || 'Failed to send OTP');
                                 } finally {
                                     setSendOtpLoading(false);
                                 }
@@ -293,14 +294,17 @@ const CartModalMain = ({
                                         if (!otpCode || otpCode.length < 4) { alert('Enter the OTP'); return; }
                                         setVerifyOtpLoading(true);
                                         try {
-                                            await api.post('/verify-otp', { mobile, code: otpCode });
+                                            const confirmationResult = window.confirmationResult;
+                                            if (!confirmationResult) throw new Error('No confirmation result found. Please request OTP again.');
+                                            const result = await confirmationResult.confirm(otpCode);
+                                            // result.user contains Firebase user info; treat this as verified
                                             setOtpVerified(true);
                                             setOtpSent(false);
                                             setOtpCode('');
                                             setResendTimer(0);
                                         } catch (err) {
-                                            console.error('Verify OTP failed', err);
-                                            alert(err.response?.data?.message || 'OTP verification failed');
+                                            console.error('Firebase Verify OTP failed', err);
+                                            alert(err.message || 'OTP verification failed');
                                         } finally {
                                             setVerifyOtpLoading(false);
                                         }
