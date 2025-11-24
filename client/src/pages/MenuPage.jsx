@@ -141,6 +141,7 @@ const MenuPage = ({ onAddToCart }) => {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
+    const [selectedCategory, setSelectedCategory] = useState(null);
 
     useEffect(() => {
         api.get('/menu')
@@ -154,6 +155,13 @@ const MenuPage = ({ onAddToCart }) => {
                 setLoading(false);
             });
     }, []);
+
+    // When menu loads, initialize selectedCategory if not set
+    useEffect(() => {
+        if (menu && menu.length && !selectedCategory) {
+            setSelectedCategory(menu[0].name);
+        }
+    }, [menu, selectedCategory]);
 
     const handleShowModal = (item) => {
         setSelectedItem(item);
@@ -176,7 +184,7 @@ const MenuPage = ({ onAddToCart }) => {
         return <div className="text-center"><div className="spinner-border text-danger" role="status"><span className="visually-hidden">Loading...</span></div></div>;
     }
 
-    const [selectedCategory, setSelectedCategory] = useState(menu.length ? menu[0].name : null);
+    
 
     const sectionVariants = {
         hidden: {},
