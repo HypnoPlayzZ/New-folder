@@ -5,6 +5,7 @@ import LocationPickerModal from './LocationPickerModal';
 import { api } from '../api';
 import { auth } from '../firebase.config';
 import { RecaptchaVerifier, signInWithPhoneNumber, getAuth } from 'firebase/auth';
+import { getApp } from 'firebase/app';
 
 // --- UPDATED: Add props for the new UPI flow ---
 const CartModalMain = ({
@@ -272,7 +273,28 @@ const CartModalMain = ({
                                     // setup invisible reCAPTCHA if not already
                                     if (!window.recaptchaVerifier) {
                                         try {
-                                            const appAuth = auth || getAuth();
+                                            // Log values to help debug initialization issues
+                                            try { console.debug('firebase auth export:', auth); } catch (e) {}
+                                            try { console.debug('getAuth():', getAuth()); } catch (e) {}
+                                            try { console.debug('getApp():', getApp()); } catch (e) {}
+
+                                            // Try several ways to obtain a valid Auth instance
+                                            let appAuth;
+                                            try { appAuth = auth; } catch (e) { appAuth = undefined; }
+                                            if (!appAuth) {
+                                                try { appAuth = getAuth(); } catch (e) { appAuth = undefined; }
+                                            }
+                                            if (!appAuth) {
+                                                try { appAuth = getAuth(getApp()); } catch (e) { appAuth = undefined; }
+                                            }
+
+                                            if (!appAuth) {
+                                                console.error('No valid Firebase Auth instance available for RecaptchaVerifier');
+                                                alert('reCAPTCHA initialization failed (no Firebase Auth). Please reload the page and try again.');
+                                                setSendOtpLoading(false);
+                                                return;
+                                            }
+
                                             window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
                                                 size: 'invisible',
                                                 callback: (response) => {
