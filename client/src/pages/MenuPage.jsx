@@ -3,6 +3,8 @@ import { Button, Modal, Form, Row, Col } from 'react-bootstrap';
 import { api } from '../api';
 import formatINR from '../utils/currency';
 import MenuItem from '../components/MenuItem';
+import { motion } from 'framer-motion';
+import { useState } from 'react';
 
 // --- Coupon Display Component ---
 const CouponDisplay = () => {
@@ -175,6 +177,17 @@ const MenuPage = ({ onAddToCart }) => {
         return <div className="text-center"><div className="spinner-border text-danger" role="status"><span className="visually-hidden">Loading...</span></div></div>;
     }
 
+    const [selectedCategory, setSelectedCategory] = useState(menu.length ? menu[0].name : null);
+
+    const sectionVariants = {
+        hidden: {},
+        visible: { transition: { staggerChildren: 0.05 } }
+    };
+    const itemVariants = {
+        hidden: { opacity: 0, y: 8 },
+        visible: { opacity: 1, y: 0 }
+    };
+
     return (
         <div className="fade-in">
             <HeroSection />
@@ -185,10 +198,15 @@ const MenuPage = ({ onAddToCart }) => {
                 <nav className="category-nav" aria-label="Categories">
                     <div className="category-nav-inner">
                         {menu.map((c) => (
-                            <button key={c.name} className="category-nav-button" onClick={() => {
-                                const el = document.getElementById(`category-${c.name.replace(/\s+/g,'-')}`);
-                                if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }}>{c.name}</button>
+                            <button
+                                key={c.name}
+                                className={"category-nav-button" + (selectedCategory === c.name ? ' active' : '')}
+                                onClick={() => {
+                                    setSelectedCategory(c.name);
+                                    const el = document.getElementById(`category-${c.name.replace(/\s+/g,'-')}`);
+                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                                }}
+                            >{c.name}</button>
                         ))}
                     </div>
                 </nav>
@@ -202,12 +220,21 @@ const MenuPage = ({ onAddToCart }) => {
             )}
 
             {menu.map(({ name: category, items }) => (
-                <section key={category} id={`category-${category.replace(/\s+/g,'-')}`} className="menu-list-container mb-4">
+                <motion.section
+                    key={category}
+                    id={`category-${category.replace(/\s+/g,'-')}`}
+                    className="menu-list-container mb-4"
+                    variants={sectionVariants}
+                    initial="hidden"
+                    animate="visible"
+                >
                     <h2 className="mb-4">{category}</h2>
                     {items.map((item, index) => (
-                        <MenuItem key={item._id} item={item} index={index} onAdd={(it) => handleShowModal(it)} />
+                        <motion.div key={item._id} variants={itemVariants} whileHover={{ scale: 1.01 }}>
+                            <MenuItem item={item} index={index} onAdd={(it) => handleShowModal(it)} />
+                        </motion.div>
                     ))}
-                </section>
+                </motion.section>
             ))}
 
             {selectedItem && (
