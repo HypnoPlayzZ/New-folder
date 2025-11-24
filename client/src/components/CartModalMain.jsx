@@ -3,11 +3,9 @@ import { Modal, Button, ListGroup, Form, Row, Col, InputGroup, Alert, Spinner } 
 import QRCode from 'qrcode';
 import LocationPickerModal from './LocationPickerModal';
 import { api } from '../api';
-import { auth } from '../firebase.config';
-import { RecaptchaVerifier, signInWithPhoneNumber, getAuth } from 'firebase/auth';
-import { getApp } from 'firebase/app';
+import { auth } from '../firebase.config'; // We will use this directly
+import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
-// --- UPDATED: Add props for the new UPI flow ---
 const CartModalMain = ({
     show,
     handleClose,
@@ -15,22 +13,22 @@ const CartModalMain = ({
     onRemoveFromCart = undefined,
     onUpdateQuantity = undefined,
     onPlaceOrder = undefined,
-    submitOrder = undefined, // App.jsx passes submitOrder
-    setCartItems = undefined, // App.jsx passes setCartItems
-    orderForPayment = null, // The new order object (if payment is pending)
-    onConfirmUpiPayment = async () => {}, // Function to call with UTR
-    onCancelUpiPayment = () => {},  // Function to call if user cancels
-    orderError = ''           // Error message from App.jsx
-    , waitingForAdmin = false
-    , adminWaitLeft = 0
-    , upiId = '8178767938-3@ybl'
-    , upiQrUrl = '/upi_qr.png'
+    submitOrder = undefined,
+    setCartItems = undefined,
+    orderForPayment = null,
+    onConfirmUpiPayment = async () => {},
+    onCancelUpiPayment = () => {},
+    orderError = '',
+    waitingForAdmin = false,
+    adminWaitLeft = 0,
+    upiId = '8178767938-3@ybl',
+    upiQrUrl = '/upi_qr.png'
 }) => {
     const [customerName, setCustomerName] = useState('');
     const [address, setAddress] = useState('');
-    const [locationCoords, setLocationCoords] = useState(''); // 'lat, lng'
+    const [locationCoords, setLocationCoords] = useState('');
     const [showLocationPicker, setShowLocationPicker] = useState(false);
-    const [paymentMethod, setPaymentMethod] = useState('UPI'); // default to UPI
+    const [paymentMethod, setPaymentMethod] = useState('UPI');
     const [mobile, setMobile] = useState('');
     const [otpSent, setOtpSent] = useState(false);
     const [otpCode, setOtpCode] = useState('');
@@ -41,7 +39,7 @@ const CartModalMain = ({
     const [resendTimer, setResendTimer] = useState(0);
     const [utr, setUtr] = useState('');
     const [isSubmitting, setIsSubmitting] = useState(false);
-    const [timeLeft, setTimeLeft] = useState(120); // 2 minutes
+    const [timeLeft, setTimeLeft] = useState(120);
     const [isScanning, setIsScanning] = useState(false);
     const videoRef = useRef(null);
     const scanIntervalRef = useRef(null);
@@ -49,35 +47,28 @@ const CartModalMain = ({
     const streamRef = useRef(null);
     const [generatedQrDataUrl, setGeneratedQrDataUrl] = useState('');
 
-    // ... (coupon logic remains, though not fully hooked up in this example)
     const [couponCode, setCouponCode] = useState('');
     const [couponDiscount, setCouponDiscount] = useState(null);
 
     const totalPrice = useMemo(() => {
-    return cartItems.reduce((acc, item) => {
-        // Check if price is an object and pick the correct one
-        const price = (item.price && typeof item.price === 'object')
-                        ? (item.variant === 'half' ? item.price.half : item.price.full)
-                        : item.price;
-        return acc + (Number(price) || 0) * item.quantity;
-    }, 0);
-}, [cartItems]);
+        return cartItems.reduce((acc, item) => {
+            const price = (item.price && typeof item.price === 'object')
+                ? (item.variant === 'half' ? item.price.half : item.price.full)
+                : item.price;
+            return acc + (Number(price) || 0) * item.quantity;
+        }, 0);
+    }, [cartItems]);
 
     const finalPrice = couponDiscount ? totalPrice - couponDiscount.discountAmount : totalPrice;
 
     const handleApplyCoupon = async () => {
-        // Placeholder: Implement coupon logic
         console.log('Applying coupon:', couponCode);
     };
 
     const handleInternalPlaceOrder = async () => {
         setIsSubmitting(true);
-
-        // If parent passed `submitOrder` (App.jsx) prefer that API: submitOrder(finalTotal, appliedCoupon, address)
         if (typeof submitOrder === 'function') {
             try {
-                // Pass mobile and location as additional optional args
-                // attach firebase ID token if available
                 let firebaseToken = undefined;
                 if (firebaseUser) {
                     try { firebaseToken = await firebaseUser.getIdToken(); } catch (e) { console.warn('Could not get firebase token', e); }
@@ -91,7 +82,6 @@ const CartModalMain = ({
             return;
         }
 
-        // Otherwise construct the orderDetails object and call onPlaceOrder if provided
         const orderDetails = {
             items: cartItems.map(item => ({
                 menuItemId: item._id,
@@ -111,17 +101,13 @@ const CartModalMain = ({
                 code: couponDiscount.coupon.code,
                 discountType: couponDiscount.coupon.discountType,
                 discountValue: couponDiscount.coupon.discountValue
-            } : undefined
-            ,
-            // include optional coordinates and a maps link
+            } : undefined,
             locationCoords: locationCoords || undefined,
-            locationLink: locationCoords ? `https://maps.google.com/?q=${encodeURIComponent(locationCoords)}` : undefined
-            ,
+            locationLink: locationCoords ? `https://maps.google.com/?q=${encodeURIComponent(locationCoords)}` : undefined,
             mobile: mobile || undefined
         };
 
         if (typeof onPlaceOrder === 'function') {
-            // attach firebase ID token if available
             if (firebaseUser) {
                 try { orderDetails.firebaseToken = await firebaseUser.getIdToken(); } catch (e) { console.warn('Could not get firebase token', e); }
             }
@@ -142,10 +128,9 @@ const CartModalMain = ({
         setIsSubmitting(false);
     };
 
-    // Reset local state when modal is closed or payment is done
     const internalHandleClose = () => {
         if (orderForPayment) {
-            if (typeof onCancelUpiPayment === 'function') onCancelUpiPayment(); // Tell App.jsx to reset the order state
+            if (typeof onCancelUpiPayment === 'function') onCancelUpiPayment();
         }
         setCustomerName('');
         setAddress('');
@@ -157,10 +142,64 @@ const CartModalMain = ({
         setLocationCoords('');
         setMobile('');
         setShowLocationPicker(false);
-        handleClose(); // This is the original handleClose from App.jsx
+        handleClose();
     };
 
-    // --- Render logic for 2-step checkout ---
+    // --- RECAPTCHA & OTP LOGIC (FIXED) ---
+    const handleSendOtp = async () => {
+        if (!/^[0-9]{10}$/.test(mobile)) { 
+            alert('Enter a valid 10-digit mobile number'); 
+            return; 
+        }
+        
+        setSendOtpLoading(true);
+
+        try {
+            // 1. Initialize Recaptcha
+            // FIX: 'auth' is now the FIRST argument.
+            if (!window.recaptchaVerifier) {
+                window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
+                    'size': 'invisible',
+                    'callback': (response) => {
+                        // reCAPTCHA solved, allow signInWithPhoneNumber.
+                        console.log("Recaptcha verified");
+                    },
+                    'expired-callback': () => {
+                        // Response expired. Ask user to solve reCAPTCHA again.
+                        console.warn("Recaptcha expired");
+                    }
+                });
+            }
+
+            // 2. Send OTP
+            const phoneNumber = `+91${mobile}`;
+            const appVerifier = window.recaptchaVerifier;
+            
+            const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
+            
+            window.confirmationResult = confirmationResult;
+            setOtpSent(true);
+            setResendTimer(60);
+            alert('OTP sent via Firebase.');
+
+        } catch (err) {
+            console.error('Firebase Send OTP failed', err);
+            
+            // If it fails, clear the verifier so the user can try again
+            if(window.recaptchaVerifier) {
+                try {
+                    window.recaptchaVerifier.clear();
+                } catch(e) {}
+                window.recaptchaVerifier = null;
+            }
+            
+            alert(err.message || 'Failed to send OTP. Please refresh and try again.');
+        } finally {
+            setSendOtpLoading(false);
+        }
+    };
+
+    // --- RENDER HELPERS ---
     const renderCartContents = () => (
         <>
             <ListGroup variant="flush">
@@ -169,14 +208,10 @@ const CartModalMain = ({
                         <div>
                             <strong className="d-block">{item.name} ({item.variant})</strong>
                             <small className="text-muted">
-    ₹{
-        ((item.price && typeof item.price === 'object')
-            ? (item.variant === 'half' ? item.price.half : item.price.full)
-            : item.price)
-        ?.toFixed(2) || '0.00'
-    }
-</small>
-
+                                ₹{((item.price && typeof item.price === 'object')
+                                    ? (item.variant === 'half' ? item.price.half : item.price.full)
+                                    : item.price)?.toFixed(2) || '0.00'}
+                            </small>
                         </div>
                         <div className="d-flex align-items-center">
                             <Form.Control
@@ -200,9 +235,7 @@ const CartModalMain = ({
                                 } else if (typeof setCartItems === 'function') {
                                     setCartItems(prev => prev.filter(ci => !(ci._id === item._id && ci.variant === item.variant && ci.instructions === item.instructions)));
                                 }
-                            }}>
-                                &times;
-                            </Button>
+                            }}>×</Button>
                         </div>
                     </ListGroup.Item>
                 ))}
@@ -226,10 +259,8 @@ const CartModalMain = ({
                         </div>
                 </Form.Group>
 
-                {/* --- PAYMENT METHOD SELECTION --- */}
                 <Form.Group className="mb-3">
                     <Form.Label>Payment Method</Form.Label>
-                    {/* Only UPI is supported now; COD option removed */}
                     <div>
                         <Form.Check
                             type="radio"
@@ -250,10 +281,8 @@ const CartModalMain = ({
                         placeholder="10-digit mobile number"
                         value={mobile}
                         onChange={e => {
-                            // Allow only digits
                             const v = e.target.value.replace(/\D/g, '').slice(0, 10);
                             setMobile(v);
-                            // reset OTP verification when mobile changes
                             setOtpVerified(false);
                             setOtpSent(false);
                             setOtpCode('');
@@ -266,64 +295,13 @@ const CartModalMain = ({
                 <div className="mb-3">
                     {!otpVerified ? (
                         <div className="d-flex gap-2 align-items-center">
-                            <Button variant="outline-primary" size="sm" onClick={async () => {
-                                if (!/^[0-9]{10}$/.test(mobile)) { alert('Enter a valid 10-digit mobile number'); return; }
-                                setSendOtpLoading(true);
-                                try {
-                                    // setup invisible reCAPTCHA if not already
-                                    if (!window.recaptchaVerifier) {
-                                        try {
-                                            // Log values to help debug initialization issues
-                                            try { console.debug('firebase auth export:', auth); } catch (e) {}
-                                            try { console.debug('getAuth():', getAuth()); } catch (e) {}
-                                            try { console.debug('getApp():', getApp()); } catch (e) {}
-
-                                            // Try several ways to obtain a valid Auth instance
-                                            let appAuth;
-                                            try { appAuth = auth; } catch (e) { appAuth = undefined; }
-                                            if (!appAuth) {
-                                                try { appAuth = getAuth(); } catch (e) { appAuth = undefined; }
-                                            }
-                                            if (!appAuth) {
-                                                try { appAuth = getAuth(getApp()); } catch (e) { appAuth = undefined; }
-                                            }
-
-                                            if (!appAuth) {
-                                                console.error('No valid Firebase Auth instance available for RecaptchaVerifier');
-                                                alert('reCAPTCHA initialization failed (no Firebase Auth). Please reload the page and try again.');
-                                                setSendOtpLoading(false);
-                                                return;
-                                            }
-
-                                            window.recaptchaVerifier = new RecaptchaVerifier('recaptcha-container', {
-                                                size: 'invisible',
-                                                callback: (response) => {
-                                                    // reCAPTCHA solved - will proceed with signInWithPhoneNumber
-                                                }
-                                            }, appAuth);
-                                        } catch (recapErr) {
-                                            console.error('Recaptcha init failed', recapErr);
-                                            alert('reCAPTCHA initialization failed. Please reload the page and try again.');
-                                            setSendOtpLoading(false);
-                                            return;
-                                        }
-                                    }
-
-                                    // Prepend country code if needed (default +91)
-                                    const phoneNumber = `+91${mobile}`;
-                                    const appVerifier = window.recaptchaVerifier;
-                                    const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-                                    window.confirmationResult = confirmationResult;
-                                    setOtpSent(true);
-                                    setResendTimer(60);
-                                    alert('OTP sent via Firebase.');
-                                } catch (err) {
-                                    console.error('Firebase Send OTP failed', err);
-                                    alert(err.message || 'Failed to send OTP');
-                                } finally {
-                                    setSendOtpLoading(false);
-                                }
-                            }} disabled={sendOtpLoading || resendTimer > 0}>
+                            {/* UPDATED SEND OTP BUTTON */}
+                            <Button 
+                                variant="outline-primary" 
+                                size="sm" 
+                                onClick={handleSendOtp} 
+                                disabled={sendOtpLoading || resendTimer > 0}
+                            >
                                 {sendOtpLoading ? 'Sending...' : (resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Send OTP')}
                             </Button>
 
@@ -337,7 +315,6 @@ const CartModalMain = ({
                                             const confirmationResult = window.confirmationResult;
                                             if (!confirmationResult) throw new Error('No confirmation result found. Please request OTP again.');
                                             const result = await confirmationResult.confirm(otpCode);
-                                            // result.user contains Firebase user info; treat this as verified
                                             setOtpVerified(true);
                                             setFirebaseUser(result.user);
                                             setOtpSent(false);
@@ -360,8 +337,6 @@ const CartModalMain = ({
                     )}
                 </div>
             </Form>
-
-            {/* ... (Coupon Input Group) ... */}
             
             <h4 className="text-end mt-3">Total: ₹{finalPrice.toFixed(2)}</h4>
         </>
@@ -380,7 +355,6 @@ const CartModalMain = ({
                 <strong>Time left to pay:</strong> <span style={{ fontSize: '1.2rem' }}>{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</span>
             </div>
 
-            {/* Show generated QR (preferred), else provided QR image, else video preview for scanning */}
             <div className="mb-3 d-flex justify-content-center">
                 {generatedQrDataUrl ? (
                     <img src={generatedQrDataUrl} alt="UPI QR" style={{ width: 220, height: 220, objectFit: 'contain', border: '1px solid #eee', borderRadius: 8 }} />
@@ -424,21 +398,17 @@ const CartModalMain = ({
             )}
             <div className="mt-3">
                 <Button variant="outline-secondary" onClick={() => {
-                    // allow cancel while waiting
                     if (typeof onCancelUpiPayment === 'function') onCancelUpiPayment();
                 }}>Cancel</Button>
             </div>
         </div>
     );
 
-    // Scanner & timer effects when orderForPayment present
     useEffect(() => {
         let detector = null;
-
         const startCameraAndScan = async () => {
             if (!orderForPayment || orderForPayment.paymentMethod !== 'UPI') return;
             setTimeLeft(120);
-            // start timer
             if (timerRef.current) clearInterval(timerRef.current);
             timerRef.current = setInterval(() => {
                 setTimeLeft(t => {
@@ -451,7 +421,6 @@ const CartModalMain = ({
                 });
             }, 1000);
 
-            // BarcodeDetector API
             try {
                 if ('BarcodeDetector' in window) {
                     detector = new window.BarcodeDetector({ formats: ['qr_code'] });
@@ -465,17 +434,13 @@ const CartModalMain = ({
                             const detections = await detector.detect(videoRef.current);
                             if (detections && detections.length > 0) {
                                 const code = detections[0].rawValue;
-                                // Try to extract UTR-like numeric string
                                 const match = code.match(/\d{10,}/);
                                 if (match) {
                                     setUtr(match[0]);
-                                    // stop scanning
                                     stopScanning();
                                 }
                             }
-                        } catch (e) {
-                            // ignore detection errors
-                        }
+                        } catch (e) {}
                     }, 800);
                 }
             } catch (err) {
@@ -499,17 +464,14 @@ const CartModalMain = ({
             startCameraAndScan();
             return () => { stopScanning(); };
         }
-
         return () => {};
     }, [orderForPayment]);
 
-    // Generate QR code from UPI URI when upiId or amount changes
     useEffect(() => {
         let mounted = true;
         const generate = async () => {
             try {
                 if (!upiId || !orderForPayment) return setGeneratedQrDataUrl('');
-                // Build UPI deep link: UPI apps understand "upi://pay?pa=PAYEE_UPI&pn=PayeeName&am=AMOUNT&cu=INR"
                 const amount = (orderForPayment.finalPrice || finalPrice || 0).toFixed(2);
                 const payeeName = encodeURIComponent('Steamy Bites');
                 const uri = `upi://pay?pa=${encodeURIComponent(upiId)}&pn=${payeeName}&am=${amount}&cu=INR`;
@@ -524,7 +486,6 @@ const CartModalMain = ({
         return () => { mounted = false; };
     }, [upiId, orderForPayment, finalPrice]);
 
-    // resend timer effect
     useEffect(() => {
         if (resendTimer <= 0) return;
         const t = setInterval(() => {
@@ -536,9 +497,7 @@ const CartModalMain = ({
         return () => clearInterval(t);
     }, [resendTimer]);
 
-    // Location picker modal handler
     const handleLocationSelect = (coordsString) => {
-        // coordsString is like 'lat, lng'
         setLocationCoords(coordsString);
     };
 
@@ -559,8 +518,10 @@ const CartModalMain = ({
                 {orderError && <Alert variant="danger" className="mt-3">{orderError}</Alert>}
                 <LocationPickerModal show={showLocationPicker} handleClose={() => setShowLocationPicker(false)} onLocationSelect={handleLocationSelect} />
             </Modal.Body>
-            {/* Invisible container for Firebase reCAPTCHA */}
-            <div id="recaptcha-container" style={{ display: 'none' }} />
+            
+            {/* FIX: Removed 'display: none'. The container must be present for Captcha to work. */}
+            <div id="recaptcha-container"></div>
+            
             <Modal.Footer>
                 <Button variant="secondary" onClick={internalHandleClose}>
                     {orderForPayment ? 'Cancel' : 'Close'}
