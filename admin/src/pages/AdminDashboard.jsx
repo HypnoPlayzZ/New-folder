@@ -141,8 +141,37 @@ const OrderManager = ({ onNewOrder } = {}) => {
 
         // start polling every 10 seconds to detect new orders (silent)
         pollingRef.current = setInterval(() => fetchOrders({ notifyIfNew: true, showLoading: false }), 10000);
+
+        // Setup SSE connection for live admin notifications
+        let es;
+        try {
+            const token = localStorage.getItem('admin_token');
+            if (token) {
+                es = new EventSource(`/api/admin/notifications?token=${encodeURIComponent(token)}`);
+                es.onmessage = (e) => {
+                    try {
+                        const payload = JSON.parse(e.data);
+                        // refresh orders silently
+                        fetchOrders({ notifyIfNew: true, showLoading: false });
+                        // If payload contains a single order, show it as a new alert/modal
+                        if (payload && (payload.type === 'order_confirmed' || payload.type === 'order_status_updated')) {
+                            setNewOrderData(payload.order);
+                            if (!document.hidden) setNewOrderAlert(true);
+                        }
+                    } catch (err) {
+                        // ignore parse errors or comments
+                    }
+                };
+                es.onerror = (err) => {
+                    console.warn('Admin SSE error', err);
+                    try { es.close(); } catch (_) {}
+                };
+            }
+        } catch (err) { console.warn('Failed to open SSE', err); }
+
         return () => {
             if (pollingRef.current) clearInterval(pollingRef.current);
+            if (es) try { es.close(); } catch (_) {}
         };
     }, [fetchOrders]);
 
@@ -361,6 +390,9 @@ const OrderManager = ({ onNewOrder } = {}) => {
                                         <Button size="sm" variant="info" onClick={() => setViewOrder(order)}>View</Button>
                                         {order.locationLink && (
                                             <Button size="sm" variant="outline-secondary" onClick={() => window.open(order.locationLink, '_blank')}>Map</Button>
+                                        )}
+                                        {order.paymentMethod === 'UPI' && order.paymentStatus !== 'Failed' && (
+                                            <Button size="sm" variant="danger" onClick={() => handleStatusChange(order._id, 'Rejected')}>Payment Failed</Button>
                                         )}
                                     </div>
                                 </td>
