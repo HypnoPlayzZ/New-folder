@@ -247,51 +247,6 @@ app.get('/', (req, res) => {
 
 // --- API Routes ---
 
-// --- In-memory admin SSE clients and helper ---
-const adminSseClients = [];
-
-const sendAdminNotification = (notification) => {
-    try {
-        const payload = JSON.stringify(notification);
-        adminSseClients.forEach((res) => {
-            try { res.write(`data: ${payload}\n\n`); } catch (e) { /* ignore write errors */ }
-        });
-    } catch (e) { console.error('Failed to send admin notification', e); }
-};
-
-// SSE endpoint for admin live notifications. Accepts a JWT token via query param `token`.
-app.get('/api/admin/notifications', async (req, res) => {
-    try {
-        const token = req.query.token;
-        if (!token) return res.status(401).json({ message: 'Token required' });
-        let decoded;
-        try { decoded = jwt.verify(token, jwtSecret); } catch (e) { return res.status(401).json({ message: 'Invalid token' }); }
-        const user = await User.findById(decoded.userId);
-        if (!user || user.role !== 'admin') return res.status(403).json({ message: 'Admin only' });
-
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders && res.flushHeaders();
-
-        // send a ping comment to establish the stream
-        res.write(': connected\n\n');
-
-        adminSseClients.push(res);
-
-        req.on('close', () => {
-            const idx = adminSseClients.indexOf(res);
-            if (idx !== -1) adminSseClients.splice(idx, 1);
-        });
-
-    } catch (error) {
-        console.error('SSE subscribe error:', error);
-        res.status(500).end();
-    }
-});
-
-// --- API Routes ---
-
 // Public Routes
 app.get('/api/menu', async (req, res) => {
     try {
