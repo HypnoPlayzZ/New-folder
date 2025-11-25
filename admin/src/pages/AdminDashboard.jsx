@@ -306,11 +306,17 @@ const OrderManager = ({ onNewOrder } = {}) => {
                     <p><strong>Customer:</strong> {newOrderData.customerName}</p>
                     <p><strong>Total:</strong> ₹{(newOrderData.finalPrice ?? 0).toFixed(2)}</p>
                     {newOrderData.paymentMethod && (
-                        <p><strong>Payment:</strong> {newOrderData.paymentMethod} {newOrderData.utr ? `(UTR: ${newOrderData.utr})` : ''}</p>
+                        <p><strong>Payment:</strong> <Badge bg={newOrderData.paymentMethod === 'UPI' ? 'primary' : 'secondary'}>{newOrderData.paymentMethod}</Badge></p>
+                    )}
+                    {newOrderData.utr && (
+                        <p><strong>UTR:</strong> <code style={{ fontSize: '1.1rem', fontWeight: 'bold' }}>{newOrderData.utr}</code></p>
                     )}
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={handleDismissNewAlert}>Dismiss</Button>
+                    {newOrderData.paymentMethod === 'UPI' && newOrderData.paymentStatus !== 'Failed' && (
+                        <Button variant="danger" onClick={() => { if (newOrderData) handleStatusChange(newOrderData._id, 'Rejected'); handleDismissNewAlert(); }}>Payment Failed</Button>
+                    )}
                     <Button variant="outline-primary" onClick={() => { if (newOrderData) handleAcknowledge(newOrderData._id); handleDismissNewAlert(); }}>Acknowledge</Button>
                     <Button variant="primary" onClick={handleViewNewOrder}>View</Button>
                 </Modal.Footer>
