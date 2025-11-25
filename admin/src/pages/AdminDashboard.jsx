@@ -190,8 +190,9 @@ const OrderManager = ({ onNewOrder } = {}) => {
                 </Modal.Header>
                 <Modal.Body>
                     <p><strong>Customer:</strong> {viewOrder.customerName}</p>
-                    <p><strong>User Email:</strong> {viewOrder.user?.email || 'N/A'}</p>
-                    <p><strong>Address:</strong> {viewOrder.address}</p>
+                        <p><strong>Mobile:</strong> {viewOrder.mobile || 'N/A'}</p>
+                        <p><strong>User Email:</strong> {viewOrder.user?.email || 'N/A'}</p>
+                        <p><strong>Address:</strong> {viewOrder.address}</p>
                     {viewOrder.locationLink && (
                         <p><strong>Location:</strong> <a href={viewOrder.locationLink} target="_blank" rel="noreferrer">Open in Google Maps</a> {viewOrder.locationCoords && <small>({viewOrder.locationCoords})</small>}</p>
                     )}
@@ -316,7 +317,7 @@ const OrderManager = ({ onNewOrder } = {}) => {
                         {(orders || []).filter(o => o.status !== 'Delivered').map(order => (
                             <tr key={order._id}>
                                 <td><small>{order._id}</small></td>
-                                <td>{order.customerName}<br /><small>{order.user?.email}</small></td>
+                                <td>{order.customerName}<br /><small>{order.user?.email}</small><br /><small>📱 {order.mobile || '—'}</small></td>
                                 <td>{new Date(order.createdAt).toLocaleString()}</td>
                                 <td>₹{(order.finalPrice ?? 0).toFixed(2)}</td>
                                 {/* --- MODIFIED: Show payment status and UTR --- */}
@@ -414,6 +415,7 @@ const PastOrdersManager = () => {
                 </Modal.Header>
                 <Modal.Body>
                     <p><strong>Customer:</strong> {viewOrder.customerName}</p>
+                    <p><strong>Mobile:</strong> {viewOrder.mobile || 'N/A'}</p>
                     <p><strong>User Email:</strong> {viewOrder.user?.email || 'N/A'}</p>
                     <p><strong>Address:</strong> {viewOrder.address}</p>
                     {viewOrder.locationLink && (

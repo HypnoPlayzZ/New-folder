@@ -3,8 +3,6 @@ import { Modal, Button, ListGroup, Form, Row, Col, InputGroup, Alert, Spinner } 
 import QRCode from 'qrcode';
 import LocationPickerModal from './LocationPickerModal';
 import { api } from '../api';
-import { auth } from '../firebase.config'; // We use this exported auth instance directly
-import { RecaptchaVerifier, signInWithPhoneNumber } from 'firebase/auth';
 
 const CartModalMain = ({
     show,
@@ -33,7 +31,6 @@ const CartModalMain = ({
     const [otpSent, setOtpSent] = useState(false);
     const [otpCode, setOtpCode] = useState('');
     const [otpVerified, setOtpVerified] = useState(false);
-    const [firebaseUser, setFirebaseUser] = useState(null);
     const [sendOtpLoading, setSendOtpLoading] = useState(false);
     const [verifyOtpLoading, setVerifyOtpLoading] = useState(false);
     const [resendTimer, setResendTimer] = useState(0);
@@ -69,11 +66,7 @@ const CartModalMain = ({
         setIsSubmitting(true);
         if (typeof submitOrder === 'function') {
             try {
-                let firebaseToken = undefined;
-                if (firebaseUser) {
-                    try { firebaseToken = await firebaseUser.getIdToken(); } catch (e) { console.warn('Could not get firebase token', e); }
-                }
-                await submitOrder(finalPrice, couponDiscount ? couponDiscount.coupon : null, address, customerName, paymentMethod, mobile, locationCoords, firebaseToken);
+                await submitOrder(finalPrice, couponDiscount ? couponDiscount.coupon : null, address, customerName, paymentMethod, mobile, locationCoords);
             } catch (err) {
                 console.error('Error placing order via submitOrder:', err);
             } finally {
@@ -107,10 +100,7 @@ const CartModalMain = ({
             mobile: mobile || undefined
         };
 
-        if (typeof onPlaceOrder === 'function') {
-            if (firebaseUser) {
-                try { orderDetails.firebaseToken = await firebaseUser.getIdToken(); } catch (e) { console.warn('Could not get firebase token', e); }
-            }
+            if (typeof onPlaceOrder === 'function') {
             await onPlaceOrder(orderDetails);
         } else {
             console.warn('onPlaceOrder is not a function', onPlaceOrder);
@@ -145,67 +135,7 @@ const CartModalMain = ({
         handleClose();
     };
 
-    // --- RECAPTCHA & OTP LOGIC (FIXED) ---
-    const handleSendOtp = async () => {
-        if (!/^[0-9]{10}$/.test(mobile)) { 
-            alert('Enter a valid 10-digit mobile number'); 
-            return; 
-        }
-        
-        setSendOtpLoading(true);
-
-        try {
-            // 1. Initialize Recaptcha
-            if (!window.recaptchaVerifier) {
-                
-                // --- FIX: Clear the container manually to prevent "already rendered" error ---
-                const recaptchaContainer = document.getElementById('recaptcha-container');
-                if (recaptchaContainer) {
-                    recaptchaContainer.innerHTML = ''; 
-                }
-
-                // Initialize verify with 'auth' as the first argument
-                window.recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-                    'size': 'invisible',
-                    'callback': (response) => {
-                        console.log("Recaptcha verified");
-                    },
-                    'expired-callback': () => {
-                        console.warn("Recaptcha expired");
-                    }
-                });
-            }
-
-            // 2. Send OTP
-            const phoneNumber = `+91${mobile}`;
-            const appVerifier = window.recaptchaVerifier;
-            
-            const confirmationResult = await signInWithPhoneNumber(auth, phoneNumber, appVerifier);
-            
-            window.confirmationResult = confirmationResult;
-            setOtpSent(true);
-            setResendTimer(60);
-            alert('OTP sent via Firebase.');
-
-        } catch (err) {
-            console.error('Firebase Send OTP failed', err);
-            
-            // If it fails, clear the verifier AND the DOM so the user can try again
-            if(window.recaptchaVerifier) {
-                try {
-                    window.recaptchaVerifier.clear();
-                } catch(e) {}
-                window.recaptchaVerifier = null;
-                
-                const recaptchaContainer = document.getElementById('recaptcha-container');
-                if (recaptchaContainer) recaptchaContainer.innerHTML = '';
-            }
-            
-            alert(err.message || 'Failed to send OTP. Please refresh and try again.');
-        } finally {
-            setSendOtpLoading(false);
-        }
-    };
+    // OTP removed: we will accept the customer's mobile number as provided and include it on the order.
 
     // --- RENDER HELPERS ---
     const renderCartContents = () => (
@@ -299,50 +229,7 @@ const CartModalMain = ({
                     />
                     <Form.Text className="text-muted">Needed for delivery updates. Enter 10 digits.</Form.Text>
                 </Form.Group>
-
-                <div className="mb-3">
-                    {!otpVerified ? (
-                        <div className="d-flex gap-2 align-items-center">
-                            <Button 
-                                variant="outline-primary" 
-                                size="sm" 
-                                onClick={handleSendOtp} 
-                                disabled={sendOtpLoading || resendTimer > 0}
-                            >
-                                {sendOtpLoading ? 'Sending...' : (resendTimer > 0 ? `Resend in ${resendTimer}s` : 'Send OTP')}
-                            </Button>
-
-                            {otpSent && (
-                                <div className="d-flex gap-2 align-items-center">
-                                    <Form.Control type="text" size="sm" placeholder="Enter OTP" value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0,6))} style={{ width: 140 }} />
-                                    <Button size="sm" variant="success" onClick={async () => {
-                                        if (!otpCode || otpCode.length < 4) { alert('Enter the OTP'); return; }
-                                        setVerifyOtpLoading(true);
-                                        try {
-                                            const confirmationResult = window.confirmationResult;
-                                            if (!confirmationResult) throw new Error('No confirmation result found. Please request OTP again.');
-                                            const result = await confirmationResult.confirm(otpCode);
-                                            setOtpVerified(true);
-                                            setFirebaseUser(result.user);
-                                            setOtpSent(false);
-                                            setOtpCode('');
-                                            setResendTimer(0);
-                                        } catch (err) {
-                                            console.error('Firebase Verify OTP failed', err);
-                                            alert(err.message || 'OTP verification failed');
-                                        } finally {
-                                            setVerifyOtpLoading(false);
-                                        }
-                                    }} disabled={verifyOtpLoading}>
-                                        {verifyOtpLoading ? 'Verifying...' : 'Verify OTP'}
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    ) : (
-                        <Alert variant="success">Mobile number verified ✓</Alert>
-                    )}
-                </div>
+                
             </Form>
             
             <h4 className="text-end mt-3">Total: ₹{finalPrice.toFixed(2)}</h4>
@@ -526,8 +413,7 @@ const CartModalMain = ({
                 <LocationPickerModal show={showLocationPicker} handleClose={() => setShowLocationPicker(false)} onLocationSelect={handleLocationSelect} />
             </Modal.Body>
             
-            {/* The hidden container for reCAPTCHA - MUST be present */}
-            <div id="recaptcha-container"></div>
+            {/* reCAPTCHA removed - not used anymore */}
             
             <Modal.Footer>
                 <Button variant="secondary" onClick={internalHandleClose}>
@@ -538,7 +424,7 @@ const CartModalMain = ({
                     <Button 
                         variant="danger" 
                         onClick={handleInternalPlaceOrder}
-                        disabled={!customerName || !address || mobile.length !== 10 || !locationCoords || !otpVerified || isSubmitting}
+                        disabled={!customerName || !address || mobile.length !== 10 || !locationCoords || isSubmitting}
                     >
                         {isSubmitting ? <Spinner as="span" animation="border" size="sm" /> : `Place Order (${paymentMethod})`}
                     </Button>

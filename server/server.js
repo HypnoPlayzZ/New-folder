@@ -131,6 +131,7 @@ const OrderSchema = new mongoose.Schema({
         discountValue: Number
     },
     customerName: { type: String, required: true },
+    mobile: { type: String, required: true },
     address: { type: String, required: true },
     status: { 
         type: String, 
