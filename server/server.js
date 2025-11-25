@@ -84,6 +84,20 @@ app.use((req, res, next) => {
   next();
 });
 
+// --- SSE Admin Notifications Setup ---
+const adminSseClients = new Set();
+
+const sendAdminNotification = (notification) => {
+  const message = JSON.stringify(notification);
+  adminSseClients.forEach(res => {
+    try {
+      res.write(`data: ${message}\n\n`);
+    } catch (e) {
+      adminSseClients.delete(res);
+    }
+  });
+};
+
 // --- Database Connection ---
 mongoose.connect(mongoURI)
     .then(() => {
@@ -554,6 +568,23 @@ app.get('/api/my-complaints', authMiddleware, async (req, res) => {
 // --- Admin Router ---
 const adminRouter = express.Router();
 app.use('/api/admin', authMiddleware, adminMiddleware, adminRouter);
+
+// SSE Notifications endpoint for admins
+adminRouter.get('/notifications', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+
+    adminSseClients.add(res);
+
+    res.write(':connected\n\n');
+
+    req.on('close', () => {
+        adminSseClients.delete(res);
+        res.end();
+    });
+});
 
 adminRouter.post('/register', async (req, res) => {
     try {
