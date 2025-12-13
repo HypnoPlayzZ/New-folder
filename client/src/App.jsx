@@ -30,6 +30,17 @@ import WelcomePage from './components/WelcomePage.jsx'; // <-- Import the new We
 function App() {
   const [route, setRoute] = useState(window.location.hash || '#/');
   const [menuItems, setMenuItems] = useState([]);
+  const [theme, setTheme] = useState(() => {
+    if (typeof window === 'undefined') return 'light';
+    try {
+      const stored = localStorage.getItem('theme');
+      if (stored === 'dark' || stored === 'light') return stored;
+      return window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    } catch (e) {
+      console.warn('Failed to read theme from storage', e);
+      return 'light';
+    }
+  });
   const [cartItems, setCartItems] = useState(() => {
     try {
       const raw = localStorage.getItem('cart_items');
@@ -81,6 +92,16 @@ function App() {
   }, [isCustomerLoggedIn]);
 
   const handleLoginSuccess = (token, name, role) => {
+    useEffect(() => {
+      try {
+        document.documentElement.setAttribute('data-theme', theme);
+        localStorage.setItem('theme', theme);
+      } catch (e) {
+        console.warn('Failed to persist theme', e);
+      }
+    }, [theme]);
+
+    const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
       if (role === 'admin') {
           localStorage.setItem('admin_token', token);
           localStorage.setItem('admin_name', name);
@@ -216,6 +237,7 @@ function App() {
           }
           return s - 1;
         });
+
       }, 1000);
 
       return updatedOrder;
@@ -293,6 +315,8 @@ function App() {
         handleLogout={handleLogout}
         setShowCart={setShowCart}
         cartItems={cartItems}
+        theme={theme}
+        onToggleTheme={toggleTheme}
       />
       <main className="container my-5 flex-grow-1">{renderPage()}</main>
       <Footer />

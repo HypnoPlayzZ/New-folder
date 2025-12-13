@@ -12,6 +12,24 @@ export const GlobalStyles = () => (
         --text-muted: #6c757d;
         --primary-accent: #ff8c00;
         --primary-hover: #e67e00;
+        --surface-strong: rgba(255, 255, 255, 0.82);
+        --surface-soft: #fffaf0;
+        --border-subtle: #dee2e6;
+        --shadow-soft: 0 10px 40px rgba(0,0,0,0.08);
+    }
+
+    :root[data-theme='dark'] {
+        --bg-light-start: #0d1117;
+        --bg-light-end: #161b22;
+        --bg-card: #1e242f;
+        --text-dark: #e6edf3;
+        --text-muted: #9da9ba;
+        --primary-accent: #ff9f1c;
+        --primary-hover: #ffb347;
+        --surface-strong: rgba(22, 27, 34, 0.92);
+        --surface-soft: #242c37;
+        --border-subtle: #2f3845;
+        --shadow-soft: 0 10px 40px rgba(0,0,0,0.35);
     }
 
     body { 
@@ -38,8 +56,9 @@ export const GlobalStyles = () => (
 
     /* Header & Navigation */
     .navbar {
-        background-color: rgba(255, 255, 255, 0.8) !important;
+        background-color: var(--surface-strong) !important;
         backdrop-filter: blur(10px);
+        color: var(--text-dark);
     }
     .navbar-brand .fw-bold { 
         color: var(--primary-accent); 
@@ -99,22 +118,22 @@ export const GlobalStyles = () => (
         background-color: var(--bg-card);
         padding: 2rem 3rem;
         border-radius: 1rem;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        box-shadow: var(--shadow-soft);
     }
     .menu-list-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 1.5rem;
-        border-bottom: 1px solid #dee2e6;
+        border-bottom: 1px solid var(--border-subtle);
         animation: fadeIn 0.5s ease-in-out forwards;
         transition: all 0.3s ease-in-out;
         border-radius: 0.75rem;
     }
     .menu-list-item:hover {
         transform: scale(1.03);
-        background-color: #fffaf0;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        background-color: var(--surface-soft);
+        box-shadow: var(--shadow-soft);
     }
     .menu-list-item:last-child {
         border-bottom: none;
@@ -244,14 +263,15 @@ export const GlobalStyles = () => (
         background-color: var(--bg-card);
         color: var(--text-dark);
         border: none;
+        box-shadow: var(--shadow-soft);
     }
     .form-control {
-        background-color: #f8f9fa;
-        border-color: #dee2e6;
+        background-color: var(--surface-soft);
+        border-color: var(--border-subtle);
         color: var(--text-dark);
     }
     .form-control:focus {
-        background-color: #fff;
+        background-color: var(--bg-card);
         border-color: var(--primary-accent);
         color: var(--text-dark);
         box-shadow: 0 0 0 0.25rem rgba(255, 140, 0, 0.25);
@@ -259,17 +279,18 @@ export const GlobalStyles = () => (
 
     .list-group-item {
         background-color: transparent;
-        border-color: #dee2e6;
+        border-color: var(--border-subtle);
     }
 
     .nav-tabs .nav-link.active { 
         background-color: var(--bg-card);
         color: var(--primary-accent); 
-        border-color: #dee2e6 #dee2e6 var(--bg-card); 
+        border-color: var(--border-subtle) var(--border-subtle) var(--bg-card); 
     }
 
     footer {
         background-color: var(--bg-card) !important;
+        color: var(--text-muted);
     }
     footer a {
         color: var(--primary-accent) !important;
