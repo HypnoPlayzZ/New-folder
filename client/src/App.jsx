@@ -19,6 +19,7 @@ import RegisterPage from './pages/RegisterPage.jsx';
 import AdminRegisterPage from './pages/AdminRegisterPage.jsx';
 import MenuPage from './pages/MenuPage.jsx';
 import AdminLoginPage from './pages/AdminLoginPage.jsx';
+import HomePage from './pages/HomePage.jsx';
 import { AboutPage, ContactPage } from './pages/StaticPage.jsx';
 import CartModal from './components/CartModalMain.jsx';
 import Header from './components/HeaderMain.jsx';
@@ -302,11 +303,12 @@ function App() {
       case '#/contact': return <ContactPage />;
       case '#/login': return <LoginPage onLoginSuccess={handleLoginSuccess} />;
       case '#/register': return <RegisterPage />;
-      case '#/dashboard': return isCustomerLoggedIn ? <CustomerDashboard userName={auth.customer.name} /> : <WelcomePage />;
-      case '#/menu': return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} menuItems={menuItems} /> : <WelcomePage />;
+      case '#/dashboard': return isCustomerLoggedIn ? <CustomerDashboard userName={auth.customer.name} /> : <HomePage />;
+      case '#/menu': return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} menuItems={menuItems} /> : <HomePage />;
+      case '#/home': return <HomePage />;
       case '#/': 
       default: 
-        return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} menuItems={menuItems}/> : <WelcomePage />;
+        return <HomePage />;
     }
   };
 

@@ -551,6 +551,227 @@ export const GlobalStyles = () => (
     footer a {
         color: var(--primary-accent) !important;
     }
+
+    /* Home Page Styles */
+    .home-page {
+        min-height: calc(100vh - 200px);
+        padding: 0;
+        margin: -2rem -15px 0;
+    }
+    .home-hero {
+        display: grid;
+        grid-template-columns: 1.2fr 1fr;
+        gap: 2rem;
+        align-items: center;
+        padding: 4rem 3rem;
+        background: linear-gradient(135deg, 
+            var(--bg-light-start) 0%, 
+            var(--bg-light-end) 50%,
+            var(--bg-light-start) 100%);
+        position: relative;
+        overflow: hidden;
+    }
+    .home-hero::before {
+        content: '';
+        position: absolute;
+        top: -50%;
+        right: -20%;
+        width: 600px;
+        height: 600px;
+        background: radial-gradient(circle, rgba(255,107,0,0.15), transparent 70%);
+        border-radius: 50%;
+        animation: float 8s ease-in-out infinite;
+    }
+    .hero-content {
+        position: relative;
+        z-index: 2;
+        text-align: left;
+    }
+    .hero-badge {
+        display: inline-block;
+        padding: 0.5rem 1.5rem;
+        background: linear-gradient(120deg, #ffd700, #ffed4e);
+        color: #000;
+        font-weight: 700;
+        border-radius: 50px;
+        font-size: 0.95rem;
+        margin-bottom: 1.5rem;
+        box-shadow: 0 8px 25px rgba(255, 215, 0, 0.4);
+        animation: pulse-orange 2s infinite;
+    }
+    .hero-title {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(3rem, 7vw, 5rem);
+        font-weight: 700;
+        color: var(--primary-accent);
+        margin-bottom: 1rem;
+        line-height: 1.1;
+        text-shadow: 2px 4px 8px rgba(0,0,0,0.1);
+    }
+    .hero-subtitle {
+        font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+        color: var(--text-muted);
+        margin-bottom: 2rem;
+        font-weight: 400;
+    }
+    .promo-banner {
+        background: linear-gradient(120deg, rgba(255,107,0,0.95), rgba(255,158,61,0.9));
+        padding: 1.5rem 2rem;
+        border-radius: 20px;
+        margin-bottom: 2.5rem;
+        box-shadow: 0 15px 50px rgba(255,107,0,0.3);
+        animation: pulse-glow 2s ease-in-out infinite;
+    }
+    .promo-text {
+        font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+        font-weight: 700;
+        color: #fff;
+        text-align: center;
+        text-shadow: 0 2px 10px rgba(0,0,0,0.3);
+        letter-spacing: 0.5px;
+    }
+    .order-now-btn {
+        padding: 1rem 3rem !important;
+        font-size: 1.3rem !important;
+        font-weight: 700 !important;
+        border-radius: 50px !important;
+        background: linear-gradient(120deg, #dc3545, #c82333) !important;
+        border: none !important;
+        box-shadow: 0 10px 30px rgba(220, 53, 69, 0.4) !important;
+        transition: all 0.3s ease !important;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    .order-now-btn:hover {
+        transform: translateY(-3px) !important;
+        box-shadow: 0 15px 40px rgba(220, 53, 69, 0.5) !important;
+        background: linear-gradient(120deg, #c82333, #dc3545) !important;
+    }
+    .hero-image-container {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        justify-content: flex-end;
+        align-items: center;
+        max-width: 100%;
+        margin: 0;
+        padding-right: 2rem;
+    }
+    .image-glow {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 100%;
+        height: 100%;
+        background: radial-gradient(circle, rgba(255,107,0,0.3), transparent 70%);
+        border-radius: 50%;
+        animation: pulse 3s ease-in-out infinite;
+        z-index: 0;
+    }
+    @keyframes pulse {
+        0%, 100% { transform: translate(-50%, -50%) scale(1); opacity: 0.6; }
+        50% { transform: translate(-50%, -50%) scale(1.1); opacity: 0.8; }
+    }
+    .hero-image {
+        width: 100%;
+        max-width: 500px;
+        height: auto;
+        border-radius: 30px;
+        box-shadow: 0 25px 60px rgba(0,0,0,0.25);
+        position: relative;
+        z-index: 1;
+        animation: float 6s ease-in-out infinite;
+        display: block;
+    }
+    .home-reviews-section {
+        padding: 4rem 3rem;
+        background: var(--bg-card);
+        position: relative;
+        z-index: 10;
+        overflow: hidden;
+    }
+    .reviews-section-title {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(2rem, 4vw, 3rem);
+        font-weight: 700;
+        text-align: center;
+        color: var(--text-dark);
+        margin-bottom: 3rem;
+    }
+    .reviews-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+        max-width: 1400px;
+        margin: 0 auto;
+    }
+    .reviews-column {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+        animation: scroll-up 30s linear infinite;
+    }
+    .reviews-column:nth-child(2) {
+        animation: scroll-down 30s linear infinite;
+    }
+    @keyframes scroll-up {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-50%); }
+    }
+    @keyframes scroll-down {
+        0% { transform: translateY(-50%); }
+        100% { transform: translateY(0); }
+    }
+    .home-review-card {
+        background: linear-gradient(135deg, var(--surface-soft), var(--bg-card));
+        padding: 1.5rem;
+        border-radius: 16px;
+        border: 1px solid var(--border-subtle);
+        box-shadow: var(--shadow-soft);
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+    .home-review-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 15px 50px rgba(0,0,0,0.15);
+    }
+    .home-review-rating {
+        font-size: 1.2rem;
+        letter-spacing: 2px;
+        margin-bottom: 0.75rem;
+        color: #ffd700;
+        text-shadow: 0 2px 8px rgba(255,215,0,0.3);
+    }
+    .home-review-text {
+        font-size: 1.05rem;
+        line-height: 1.6;
+        color: var(--text-dark);
+        margin-bottom: 0.75rem;
+        font-style: italic;
+    }
+    .home-review-name {
+        font-size: 0.95rem;
+        color: var(--text-muted);
+        font-weight: 600;
+        text-align: right;
+    }
+
+    @media (max-width: 992px) {
+        .home-hero {
+            grid-template-columns: 1fr;
+            gap: 3rem;
+            padding: 3rem 2rem;
+        }
+        .hero-content {
+            text-align: center;
+        }
+        .reviews-grid {
+            grid-template-columns: 1fr;
+        }
+        .reviews-column:nth-child(2) {
+            animation: scroll-up 30s linear infinite;
+        }
+    }
   `}</style>
 );
 

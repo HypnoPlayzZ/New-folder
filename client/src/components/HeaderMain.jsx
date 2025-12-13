@@ -228,8 +228,8 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
                     <Navbar.Toggle aria-controls="basic-navbar-nav" />
                     <Navbar.Collapse id="basic-navbar-nav">
                         <Nav className="ms-auto align-items-center">
-                            {isCustomerLoggedIn && <Nav.Link href="#/menu" className="nav-link-style">Menu</Nav.Link>}
                             <Nav.Link href="#/" className="nav-link-style">Home</Nav.Link>
+                            {isCustomerLoggedIn && <Nav.Link href="#/menu" className="nav-link-style">Menu</Nav.Link>}
                             <Nav.Link href="#/about" className="nav-link-style">About</Nav.Link>
                             <Nav.Link href="#/contact" className="nav-link-style">Contact</Nav.Link>
                             <Button 
