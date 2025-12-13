@@ -5,13 +5,6 @@ import formatINR from '../utils/currency';
 import MenuItem from '../components/MenuItem';
 import { motion } from 'framer-motion';
 
-const sampleReviews = [
-    { name: 'Ananya', text: 'Super quick delivery and piping hot momos!', rating: '★★★★★' },
-    { name: 'Rohit', text: 'Loved the spicy chutney. Ordering again tonight.', rating: '★★★★☆' },
-    { name: 'Priya', text: 'Free delivery made my day. Great portions too.', rating: '★★★★★' },
-    { name: 'Kabir', text: 'Soft inside, crispy outside. Perfect!', rating: '★★★★☆' },
-];
-
 // --- Coupon Display Component ---
 const CouponDisplay = () => {
     const [coupons, setCoupons] = useState([]);
@@ -191,13 +184,12 @@ const CategorySection = ({ category, items, onItemClick }) => {
 
 
 // --- Main Menu Page Component ---
-const MenuPage = ({ onAddToCart, isLoggedIn = false }) => {
+const MenuPage = ({ onAddToCart }) => {
     const [menu, setMenu] = useState([]); // CORRECTED: Expect an array of categories
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState(null);
-    const [showOverlay, setShowOverlay] = useState(isLoggedIn);
 
     useEffect(() => {
         api.get('/menu')
@@ -218,10 +210,6 @@ const MenuPage = ({ onAddToCart, isLoggedIn = false }) => {
             setSelectedCategory(menu[0].name);
         }
     }, [menu, selectedCategory]);
-
-    useEffect(() => {
-        if (isLoggedIn) setShowOverlay(true);
-    }, [isLoggedIn]);
 
     const handleShowModal = (item) => {
         setSelectedItem(item);
@@ -250,38 +238,6 @@ const MenuPage = ({ onAddToCart, isLoggedIn = false }) => {
 
     return (
         <div className="fade-in">
-            {isLoggedIn && showOverlay && (
-                <div className="glass-overlay" role="dialog" aria-label="Welcome back">
-                    <div className="glass-card">
-                        <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
-                            <div className="flex-grow-1">
-                                <div className="delivery-pill mb-2">Free Home Delivery</div>
-                                <h4 className="mb-2">Welcome back! Your next order is on the house.</h4>
-                                <p className="text-muted mb-3">Zero delivery fee today. Add your favorites and we will rush them to you hot.</p>
-                                <div className="d-flex gap-2 flex-wrap">
-                                    <Button variant="primary" className="btn-style-fill" onClick={() => setShowOverlay(false)}>Start ordering</Button>
-                                    <Button variant="outline-secondary" className="btn-style-outline" onClick={() => setShowOverlay(false)}>Maybe later</Button>
-                                </div>
-                            </div>
-                            <div className="reviews-panel">
-                                <div className="reviews-title">Live love from diners</div>
-                                <div className="reviews-window">
-                                    <div className="reviews-track">
-                                        {[...sampleReviews, ...sampleReviews].map((rev, idx) => (
-                                            <div key={idx} className="review-item">
-                                                <div className="review-rating">{rev.rating}</div>
-                                                <div className="review-text">“{rev.text}”</div>
-                                                <div className="review-name">— {rev.name}</div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </div>
-                            <button className="overlay-close" onClick={() => setShowOverlay(false)} aria-label="Close welcome overlay">×</button>
-                        </div>
-                    </div>
-                </div>
-            )}
             <HeroSection />
             <CouponDisplay />
 
@@ -314,4 +270,5 @@ const MenuPage = ({ onAddToCart, isLoggedIn = false }) => {
 };
 
 export default MenuPage;
+
 

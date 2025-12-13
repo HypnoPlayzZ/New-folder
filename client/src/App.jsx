@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Button } from 'react-bootstrap';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 
 // Import the separated components with corrected paths
@@ -57,6 +58,7 @@ function App() {
   const [adminWaitLeft, setAdminWaitLeft] = useState(600); // 10 minutes
   const adminPollRef = React.useRef(null);
   const adminTimerRef = React.useRef(null);
+  const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(false);
   
   const [auth, setAuth] = useState({
       customer: { token: null, name: null },
@@ -114,6 +116,7 @@ function App() {
       localStorage.setItem('customer_token', token);
       localStorage.setItem('customer_name', name);
       setAuth(prev => ({ ...prev, customer: { token, name } }));
+      setShowWelcomeOverlay(true);
       window.location.hash = '#/menu'; // <-- Redirect to menu after login
     }
   };
@@ -300,16 +303,65 @@ function App() {
       case '#/login': return <LoginPage onLoginSuccess={handleLoginSuccess} />;
       case '#/register': return <RegisterPage />;
       case '#/dashboard': return isCustomerLoggedIn ? <CustomerDashboard userName={auth.customer.name} /> : <WelcomePage />;
-      case '#/menu': return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} isLoggedIn={isCustomerLoggedIn} menuItems={menuItems} /> : <WelcomePage />;
+      case '#/menu': return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} menuItems={menuItems} /> : <WelcomePage />;
       case '#/': 
       default: 
-        return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} isLoggedIn={isCustomerLoggedIn} menuItems={menuItems}/> : <WelcomePage />;
+        return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} menuItems={menuItems}/> : <WelcomePage />;
     }
   };
 
   return (
     <div className="d-flex flex-column min-vh-100">
       <GlobalStyles />
+      {isCustomerLoggedIn && showWelcomeOverlay && (
+        <div className="glass-overlay" role="dialog" aria-label="Welcome back">
+          <div className="glass-card">
+            <div className="promo-bubble-container">
+              <div className="promo-bubble">
+                <div className="promo-bubble-text">Order Now for Free Home Delivery and 10% Instant Discount</div>
+              </div>
+            </div>
+            <div className="overlay-content">
+              <div className="overlay-main">
+                <h4 className="overlay-title">Welcome back! 🎉</h4>
+                <p className="overlay-subtitle">Your next order comes with exclusive perks</p>
+                <div className="d-flex gap-3 justify-content-center mt-4 flex-wrap">
+                  <Button variant="primary" size="lg" className="btn-style-fill" onClick={() => setShowWelcomeOverlay(false)}>Start ordering</Button>
+                  <Button variant="outline-light" size="lg" className="btn-style-outline" onClick={() => setShowWelcomeOverlay(false)}>Maybe later</Button>
+                </div>
+              </div>
+              <div className="reviews-panel">
+                <div className="reviews-title">⭐ Live Reviews from Happy Diners</div>
+                <div className="reviews-window">
+                  <div className="reviews-track">
+                    {[
+                      { name: 'Ananya', text: 'Super quick delivery and piping hot momos!', rating: '★★★★★' },
+                      { name: 'Rohit', text: 'Loved the spicy chutney. Ordering again tonight.', rating: '★★★★☆' },
+                      { name: 'Priya', text: 'Free delivery made my day. Great portions too.', rating: '★★★★★' },
+                      { name: 'Kabir', text: 'Soft inside, crispy outside. Perfect!', rating: '★★★★☆' },
+                      { name: 'Meera', text: 'Best momos in town! Fresh and delicious.', rating: '★★★★★' },
+                      { name: 'Sanjay', text: 'The garlic sauce is addictive. Must try!', rating: '★★★★★' },
+                      { name: 'Nikita', text: 'Generous portions, fair prices. Love it!', rating: '★★★★☆' },
+                      { name: 'Arjun', text: 'Delivery in 15 minutes! Amazing service.', rating: '★★★★★' },
+                      { name: 'Ananya', text: 'Super quick delivery and piping hot momos!', rating: '★★★★★' },
+                      { name: 'Rohit', text: 'Loved the spicy chutney. Ordering again tonight.', rating: '★★★★☆' },
+                      { name: 'Priya', text: 'Free delivery made my day. Great portions too.', rating: '★★★★★' },
+                      { name: 'Kabir', text: 'Soft inside, crispy outside. Perfect!', rating: '★★★★☆' },
+                    ].map((rev, idx) => (
+                      <div key={idx} className="review-item">
+                        <div className="review-rating">{rev.rating}</div>
+                        <div className="review-text">"{rev.text}"</div>
+                        <div className="review-name">— {rev.name}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+            <button className="overlay-close" onClick={() => setShowWelcomeOverlay(false)} aria-label="Close welcome overlay">×</button>
+          </div>
+        </div>
+      )}
       <Header 
         route={route}
         auth={auth}

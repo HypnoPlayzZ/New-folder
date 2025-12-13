@@ -316,83 +316,172 @@ export const GlobalStyles = () => (
     .glass-overlay {
         position: fixed;
         inset: 0;
-        background: radial-gradient(circle at 20% 20%, rgba(255,107,0,0.08), transparent 32%),
-                    radial-gradient(circle at 80% 10%, rgba(0,150,255,0.08), transparent 30%),
-                    rgba(5,10,20,0.55);
-        backdrop-filter: blur(12px);
+        background: radial-gradient(circle at 20% 20%, rgba(255,107,0,0.12), transparent 40%),
+                    radial-gradient(circle at 80% 80%, rgba(0,150,255,0.12), transparent 40%),
+                    rgba(5,10,20,0.75);
+        backdrop-filter: blur(16px);
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 1.5rem;
+        padding: 0;
         z-index: 1300;
+        animation: overlay-fade-in 0.5s ease;
+    }
+    @keyframes overlay-fade-in {
+        from { opacity: 0; }
+        to { opacity: 1; }
     }
     .glass-card {
         position: relative;
-        width: min(960px, 94vw);
-        background: linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
-        border: 1px solid rgba(255,255,255,0.14);
-        box-shadow: 0 24px 60px rgba(0,0,0,0.35);
-        backdrop-filter: blur(16px);
-        border-radius: 20px;
-        padding: 1.5rem;
-        color: var(--text-dark);
-    }
-    .delivery-pill {
-        display: inline-flex;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(135deg, rgba(255,255,255,0.04), rgba(255,255,255,0.01));
+        border: none;
+        box-shadow: none;
+        backdrop-filter: blur(24px);
+        border-radius: 0;
+        padding: 0;
+        display: flex;
+        flex-direction: column;
         align-items: center;
-        gap: 8px;
-        padding: 0.35rem 0.85rem;
-        border-radius: 999px;
-        font-weight: 700;
-        font-size: 0.9rem;
-        background: linear-gradient(120deg, rgba(255,107,0,0.9), rgba(255,158,61,0.85));
+        justify-content: center;
+        color: var(--text-dark);
+        overflow: hidden;
+    }
+    .promo-bubble-container {
+        position: absolute;
+        top: 10%;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 10;
+        animation: float 4s ease-in-out infinite;
+    }
+    @keyframes float {
+        0%, 100% { transform: translate(-50%, 0); }
+        50% { transform: translate(-50%, -20px); }
+    }
+    .promo-bubble {
+        position: relative;
+        padding: 2rem 3.5rem;
+        background: linear-gradient(135deg, rgba(255,107,0,0.95), rgba(255,158,61,0.9));
+        border-radius: 50px;
+        box-shadow: 0 20px 60px rgba(255,107,0,0.5),
+                    0 0 80px rgba(255,158,61,0.3),
+                    inset 0 -2px 20px rgba(255,255,255,0.3);
+        animation: pulse-glow 2s ease-in-out infinite;
+        border: 3px solid rgba(255,255,255,0.4);
+    }
+    @keyframes pulse-glow {
+        0%, 100% { box-shadow: 0 20px 60px rgba(255,107,0,0.5), 0 0 80px rgba(255,158,61,0.3), inset 0 -2px 20px rgba(255,255,255,0.3); }
+        50% { box-shadow: 0 25px 80px rgba(255,107,0,0.7), 0 0 120px rgba(255,158,61,0.5), inset 0 -2px 20px rgba(255,255,255,0.4); }
+    }
+    .promo-bubble-text {
+        font-size: clamp(1.25rem, 3vw, 2rem);
+        font-weight: 800;
         color: #fff;
-        box-shadow: 0 10px 25px rgba(255,107,0,0.25);
+        text-align: center;
+        text-shadow: 0 4px 20px rgba(0,0,0,0.4),
+                     0 2px 8px rgba(0,0,0,0.3);
+        letter-spacing: 0.5px;
+        line-height: 1.3;
+        text-transform: uppercase;
+    }
+    .overlay-content {
+        display: flex;
+        gap: 4rem;
+        align-items: center;
+        justify-content: center;
+        max-width: 1400px;
+        padding: 2rem;
+        margin-top: 8rem;
+        flex-wrap: wrap;
+    }
+    .overlay-main {
+        flex: 1;
+        min-width: 300px;
+        text-align: center;
+    }
+    .overlay-title {
+        font-family: 'Playfair Display', serif;
+        font-size: clamp(2.5rem, 5vw, 4rem);
+        font-weight: 700;
+        line-height: 1.2;
+        margin-bottom: 1rem;
+        color: #fff;
+        text-shadow: 0 6px 30px rgba(0,0,0,0.5);
+    }
+    .overlay-subtitle {
+        font-size: clamp(1.1rem, 2.5vw, 1.6rem);
+        line-height: 1.6;
+        color: rgba(255,255,255,0.85);
+        text-shadow: 0 3px 15px rgba(0,0,0,0.4);
+        margin-bottom: 0;
     }
     .reviews-panel {
-        width: 260px;
+        flex: 1;
+        min-width: 340px;
+        max-width: 420px;
     }
     .reviews-title {
         font-weight: 700;
-        margin-bottom: 0.4rem;
-        color: var(--text-dark);
+        font-size: clamp(1.1rem, 2vw, 1.4rem);
+        margin-bottom: 1rem;
+        color: #fff;
+        text-shadow: 0 3px 15px rgba(0,0,0,0.4);
+        text-align: center;
     }
     .reviews-window {
-        height: 160px;
+        height: 400px;
         overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.12);
-        border-radius: 14px;
-        background: rgba(255,255,255,0.05);
-        padding: 0.5rem;
+        border: 2px solid rgba(255,255,255,0.2);
+        border-radius: 20px;
+        background: linear-gradient(135deg, rgba(0,0,0,0.4), rgba(0,0,0,0.3));
+        padding: 1rem;
         position: relative;
-        backdrop-filter: blur(6px);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 15px 50px rgba(0,0,0,0.4),
+                    inset 0 1px 0 rgba(255,255,255,0.15);
     }
     .reviews-track {
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
-        animation: reviews-scroll 14s linear infinite;
+        gap: 1rem;
+        animation: reviews-scroll 25s linear infinite;
+    }
+    .reviews-track:hover {
+        animation-play-state: paused;
     }
     .review-item {
-        padding: 0.6rem 0.75rem;
-        border-radius: 10px;
-        background: rgba(0,0,0,0.18);
-        color: #f5f8ff;
-        box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+        padding: 1.1rem 1.3rem;
+        border-radius: 14px;
+        background: linear-gradient(135deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+        color: #fff;
+        box-shadow: 0 8px 24px rgba(0,0,0,0.3);
+        border: 1px solid rgba(255,255,255,0.15);
+        transition: transform 0.2s ease;
+    }
+    .review-item:hover {
+        transform: translateY(-2px);
+        background: linear-gradient(135deg, rgba(255,255,255,0.15), rgba(255,255,255,0.08));
     }
     .review-rating {
-        font-size: 0.9rem;
-        letter-spacing: 1px;
-        margin-bottom: 4px;
-        color: #ffd166;
+        font-size: 1.1rem;
+        letter-spacing: 2px;
+        margin-bottom: 8px;
+        color: #ffd700;
+        text-shadow: 0 2px 8px rgba(255,215,0,0.5);
     }
     .review-text {
-        font-size: 0.95rem;
-        margin-bottom: 4px;
+        font-size: 1.05rem;
+        line-height: 1.6;
+        margin-bottom: 8px;
+        font-style: italic;
     }
     .review-name {
-        font-size: 0.8rem;
-        color: #cbd5f5;
+        font-size: 0.95rem;
+        color: rgba(255,255,255,0.65);
+        font-weight: 600;
+        text-align: right;
     }
     @keyframes reviews-scroll {
         0% { transform: translateY(0); }
@@ -400,23 +489,25 @@ export const GlobalStyles = () => (
     }
     .overlay-close {
         position: absolute;
-        top: 10px;
-        right: 12px;
-        background: rgba(0,0,0,0.35);
+        top: 2rem;
+        right: 2rem;
+        background: rgba(255,255,255,0.12);
         color: #fff;
         border: none;
-        width: 32px;
-        height: 32px;
+        width: 48px;
+        height: 48px;
         border-radius: 50%;
         display: grid;
         place-items: center;
-        font-size: 1.1rem;
+        font-size: 1.75rem;
         cursor: pointer;
         transition: transform 0.2s ease, background-color 0.2s ease;
+        backdrop-filter: blur(8px);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.2);
     }
     .overlay-close:hover {
-        transform: scale(1.08);
-        background: rgba(0,0,0,0.55);
+        transform: scale(1.1);
+        background: rgba(255,255,255,0.2);
     }
     .coupon-input-group {
         display: flex;
