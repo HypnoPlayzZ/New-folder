@@ -5,31 +5,31 @@ export const GlobalStyles = () => (
     @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap');
     
     :root {
-        --bg-light-start: #ffffff;
-        --bg-light-end: #ffecd2;
+        --bg-light-start: #f8f9fb;
+        --bg-light-end: #e8f0ff;
         --bg-card: #ffffff;
-        --text-dark: #212529;
-        --text-muted: #6c757d;
-        --primary-accent: #ff8c00;
-        --primary-hover: #e67e00;
-        --surface-strong: rgba(255, 255, 255, 0.82);
-        --surface-soft: #fffaf0;
-        --border-subtle: #dee2e6;
+        --text-dark: #1b1f24;
+        --text-muted: #5c6b7a;
+        --primary-accent: #ff6b00;
+        --primary-hover: #e15d00;
+        --surface-strong: rgba(255, 255, 255, 0.9);
+        --surface-soft: #f9fafb;
+        --border-subtle: #e5e7eb;
         --shadow-soft: 0 10px 40px rgba(0,0,0,0.08);
     }
 
     :root[data-theme='dark'] {
-        --bg-light-start: #0d1117;
-        --bg-light-end: #161b22;
-        --bg-card: #1e242f;
-        --text-dark: #e6edf3;
-        --text-muted: #9da9ba;
-        --primary-accent: #ff9f1c;
-        --primary-hover: #ffb347;
-        --surface-strong: rgba(22, 27, 34, 0.92);
-        --surface-soft: #242c37;
-        --border-subtle: #2f3845;
-        --shadow-soft: 0 10px 40px rgba(0,0,0,0.35);
+        --bg-light-start: #0b1320;
+        --bg-light-end: #132036;
+        --bg-card: #16243a;
+        --text-dark: #eaf2ff;
+        --text-muted: #a6b3c5;
+        --primary-accent: #ff9e3d;
+        --primary-hover: #ffb369;
+        --surface-strong: rgba(19, 32, 54, 0.92);
+        --surface-soft: #1b2a41;
+        --border-subtle: #24354f;
+        --shadow-soft: 0 10px 40px rgba(0,0,0,0.5);
     }
 
     body { 

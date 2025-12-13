@@ -137,7 +137,7 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
                 }
                 .nav-link-style:hover,
                 .nav-link-style.active {
-                    color: #000 !important;
+                    color: var(--brand-dark) !important;
                     transform: translateY(-4px);
                 }
                 .nav-link-style:hover::after,
@@ -145,7 +145,7 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
                     transform: translateX(-50%) scaleX(1);
                 }
 
-                .btn-style-fill, .btn-style-outline, .cart-button-style {
+                .btn-style-fill, .btn-style-outline, .cart-button-style, .theme-toggle {
                     border-radius: 50px;
                     font-weight: 600;
                     padding: 0.5rem 1.25rem;
@@ -154,6 +154,15 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
                     display: inline-flex;
                     align-items: center;
                     justify-content: center;
+                }
+
+                /* Smaller, well-aligned theme toggle */
+                .theme-toggle {
+                    padding: 0.3rem 0.75rem;
+                    font-size: 0.85rem;
+                    line-height: 1;
+                    border-radius: 24px;
+                    gap: 6px;
                 }
 
                 .btn-style-fill {
@@ -225,11 +234,11 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
                             <Button 
                                 variant="outline-secondary" 
                                 onClick={onToggleTheme} 
-                                className="ms-2 btn-style-outline d-flex align-items-center"
+                                className="me-2 btn-style-outline theme-toggle d-flex align-items-center"
                                 aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
                             >
-                                {theme === 'dark' ? <IconSun className="me-2" /> : <IconMoon className="me-2" />}
-                                {theme === 'dark' ? 'Light' : 'Dark'} Mode
+                                {theme === 'dark' ? <IconSun /> : <IconMoon />}
+                                <span className="ms-1">{theme === 'dark' ? 'Light' : 'Dark'}</span>
                             </Button>
                             
                             {/* Render Login or (Dashboard + Logout) */}
