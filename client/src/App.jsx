@@ -68,6 +68,19 @@ function App() {
   
   const handleHashChange = () => setRoute(window.location.hash || '#/');
 
+  // Persist current theme to DOM and localStorage
+  useEffect(() => {
+    try {
+      document.documentElement.setAttribute('data-theme', theme);
+      localStorage.setItem('theme', theme);
+    } catch (e) {
+      console.warn('Failed to persist theme', e);
+    }
+  }, [theme]);
+
+  // Toggle between dark and light theme
+  const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+
   useEffect(() => {
     const customerToken = localStorage.getItem('customer_token');
     const customerName = localStorage.getItem('customer_name');
@@ -92,27 +105,17 @@ function App() {
   }, [isCustomerLoggedIn]);
 
   const handleLoginSuccess = (token, name, role) => {
-    useEffect(() => {
-      try {
-        document.documentElement.setAttribute('data-theme', theme);
-        localStorage.setItem('theme', theme);
-      } catch (e) {
-        console.warn('Failed to persist theme', e);
-      }
-    }, [theme]);
-
-    const toggleTheme = () => setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
-      if (role === 'admin') {
-          localStorage.setItem('admin_token', token);
-          localStorage.setItem('admin_name', name);
-          setAuth(prev => ({ ...prev, admin: { token, name } }));
-          window.location.hash = '#/admin';
-      } else {
-          localStorage.setItem('customer_token', token);
-          localStorage.setItem('customer_name', name);
-          setAuth(prev => ({ ...prev, customer: { token, name } }));
-          window.location.hash = '#/menu'; // <-- Redirect to menu after login
-      }
+    if (role === 'admin') {
+      localStorage.setItem('admin_token', token);
+      localStorage.setItem('admin_name', name);
+      setAuth(prev => ({ ...prev, admin: { token, name } }));
+      window.location.hash = '#/admin';
+    } else {
+      localStorage.setItem('customer_token', token);
+      localStorage.setItem('customer_name', name);
+      setAuth(prev => ({ ...prev, customer: { token, name } }));
+      window.location.hash = '#/menu'; // <-- Redirect to menu after login
+    }
   };
 
   const handleLogout = (role) => {
