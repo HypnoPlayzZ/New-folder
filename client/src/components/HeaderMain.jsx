@@ -191,20 +191,21 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
                 }
 
                 .cart-button-style {
-                    background-color: var(--brand-orange);
-                    border-color: var(--brand-orange);
-                    color: white;
+                    background-color: var(--surface-soft);
+                    border-color: var(--border-subtle);
+                    color: var(--brand-orange);
                 }
                 .cart-button-style .badge {
-                    background-color: white !important;
-                    color: var(--brand-orange) !important;
+                    background-color: var(--brand-orange) !important;
+                    color: #fff !important;
                     transition: transform 0.2s ease;
                 }
                 .cart-button-style:hover {
-                    background-color: #ff8f33;
-                    border-color: #ff8f33;
+                    background-color: var(--bg-card);
+                    border-color: var(--brand-orange);
+                    color: var(--brand-orange);
                     transform: translateY(-3px);
-                    box-shadow: 0 8px 20px rgba(255,122,0,0.18);
+                    box-shadow: 0 8px 20px rgba(0,0,0,0.2);
                 }
                 .cart-button-style:hover .badge {
                     transform: scale(1.12);

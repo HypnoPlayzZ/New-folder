@@ -5,6 +5,13 @@ import formatINR from '../utils/currency';
 import MenuItem from '../components/MenuItem';
 import { motion } from 'framer-motion';
 
+const sampleReviews = [
+    { name: 'Ananya', text: 'Super quick delivery and piping hot momos!', rating: '★★★★★' },
+    { name: 'Rohit', text: 'Loved the spicy chutney. Ordering again tonight.', rating: '★★★★☆' },
+    { name: 'Priya', text: 'Free delivery made my day. Great portions too.', rating: '★★★★★' },
+    { name: 'Kabir', text: 'Soft inside, crispy outside. Perfect!', rating: '★★★★☆' },
+];
+
 // --- Coupon Display Component ---
 const CouponDisplay = () => {
     const [coupons, setCoupons] = useState([]);
@@ -134,14 +141,63 @@ const CustomizationModal = ({ show, handleClose, item, onAddToCart }) => {
     );
 };
 
+// --- Category Nav ---
+const CategoryNav = ({ menu, selectedCategory, onSelect }) => {
+    if (!menu?.length) return null;
+    return (
+        <nav className="category-nav" aria-label="Categories">
+            <div className="category-nav-inner">
+                {menu.map((c) => (
+                    <button
+                        key={c.name}
+                        className={"category-nav-button" + (selectedCategory === c.name ? ' active' : '')}
+                        onClick={() => onSelect(c.name)}
+                    >{c.name}</button>
+                ))}
+            </div>
+        </nav>
+    );
+};
+
+// --- Single Category Section ---
+const CategorySection = ({ category, items, onItemClick }) => {
+    if (!category) return null;
+    const sectionVariants = {
+        hidden: {},
+        visible: { transition: { staggerChildren: 0.05 } }
+    };
+    const itemVariants = {
+        hidden: { opacity: 0, y: 8 },
+        visible: { opacity: 1, y: 0 }
+    };
+    return (
+        <motion.section
+            id={`category-${category.replace(/\s+/g,'-')}`}
+            className="menu-list-container mb-4"
+            variants={sectionVariants}
+            initial="hidden"
+            animate="visible"
+        >
+            <h2 className="mb-4">{category}</h2>
+            {items?.map((item, index) => (
+                <motion.div key={item._id} variants={itemVariants} whileHover={{ scale: 1.01 }}>
+                    <MenuItem item={item} index={index} onAdd={(it) => onItemClick(it)} />
+                </motion.div>
+            ))}
+            {!items?.length && <div className="text-muted">No items in this category yet.</div>}
+        </motion.section>
+    );
+};
+
 
 // --- Main Menu Page Component ---
-const MenuPage = ({ onAddToCart }) => {
+const MenuPage = ({ onAddToCart, isLoggedIn = false }) => {
     const [menu, setMenu] = useState([]); // CORRECTED: Expect an array of categories
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [selectedItem, setSelectedItem] = useState(null);
     const [selectedCategory, setSelectedCategory] = useState(null);
+    const [showOverlay, setShowOverlay] = useState(isLoggedIn);
 
     useEffect(() => {
         api.get('/menu')
@@ -162,6 +218,10 @@ const MenuPage = ({ onAddToCart }) => {
             setSelectedCategory(menu[0].name);
         }
     }, [menu, selectedCategory]);
+
+    useEffect(() => {
+        if (isLoggedIn) setShowOverlay(true);
+    }, [isLoggedIn]);
 
     const handleShowModal = (item) => {
         setSelectedItem(item);
@@ -186,38 +246,47 @@ const MenuPage = ({ onAddToCart }) => {
 
     
 
-    const sectionVariants = {
-        hidden: {},
-        visible: { transition: { staggerChildren: 0.05 } }
-    };
-    const itemVariants = {
-        hidden: { opacity: 0, y: 8 },
-        visible: { opacity: 1, y: 0 }
-    };
+    const activeCategoryData = menu.find((c) => c.name === selectedCategory);
 
     return (
         <div className="fade-in">
+            {isLoggedIn && showOverlay && (
+                <div className="glass-overlay" role="dialog" aria-label="Welcome back">
+                    <div className="glass-card">
+                        <div className="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+                            <div className="flex-grow-1">
+                                <div className="delivery-pill mb-2">Free Home Delivery</div>
+                                <h4 className="mb-2">Welcome back! Your next order is on the house.</h4>
+                                <p className="text-muted mb-3">Zero delivery fee today. Add your favorites and we will rush them to you hot.</p>
+                                <div className="d-flex gap-2 flex-wrap">
+                                    <Button variant="primary" className="btn-style-fill" onClick={() => setShowOverlay(false)}>Start ordering</Button>
+                                    <Button variant="outline-secondary" className="btn-style-outline" onClick={() => setShowOverlay(false)}>Maybe later</Button>
+                                </div>
+                            </div>
+                            <div className="reviews-panel">
+                                <div className="reviews-title">Live love from diners</div>
+                                <div className="reviews-window">
+                                    <div className="reviews-track">
+                                        {[...sampleReviews, ...sampleReviews].map((rev, idx) => (
+                                            <div key={idx} className="review-item">
+                                                <div className="review-rating">{rev.rating}</div>
+                                                <div className="review-text">“{rev.text}”</div>
+                                                <div className="review-name">— {rev.name}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+                            <button className="overlay-close" onClick={() => setShowOverlay(false)} aria-label="Close welcome overlay">×</button>
+                        </div>
+                    </div>
+                </div>
+            )}
             <HeroSection />
             <CouponDisplay />
 
-            {/* Sticky category nav */}
-            {menu.length > 1 && (
-                <nav className="category-nav" aria-label="Categories">
-                    <div className="category-nav-inner">
-                        {menu.map((c) => (
-                            <button
-                                key={c.name}
-                                className={"category-nav-button" + (selectedCategory === c.name ? ' active' : '')}
-                                onClick={() => {
-                                    setSelectedCategory(c.name);
-                                    const el = document.getElementById(`category-${c.name.replace(/\s+/g,'-')}`);
-                                    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                                }}
-                            >{c.name}</button>
-                        ))}
-                    </div>
-                </nav>
-            )}
+            {/* Category nav */}
+            <CategoryNav menu={menu} selectedCategory={selectedCategory} onSelect={setSelectedCategory} />
 
             {menu.length === 0 && !loading && (
                 <div className="text-center">
@@ -226,23 +295,11 @@ const MenuPage = ({ onAddToCart }) => {
                 </div>
             )}
 
-            {menu.map(({ name: category, items }) => (
-                <motion.section
-                    key={category}
-                    id={`category-${category.replace(/\s+/g,'-')}`}
-                    className="menu-list-container mb-4"
-                    variants={sectionVariants}
-                    initial="hidden"
-                    animate="visible"
-                >
-                    <h2 className="mb-4">{category}</h2>
-                    {items.map((item, index) => (
-                        <motion.div key={item._id} variants={itemVariants} whileHover={{ scale: 1.01 }}>
-                            <MenuItem item={item} index={index} onAdd={(it) => handleShowModal(it)} />
-                        </motion.div>
-                    ))}
-                </motion.section>
-            ))}
+            <CategorySection
+                category={activeCategoryData?.name}
+                items={activeCategoryData?.items}
+                onItemClick={handleShowModal}
+            />
 
             {selectedItem && (
                 <CustomizationModal

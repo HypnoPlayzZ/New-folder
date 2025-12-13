@@ -115,7 +115,7 @@ export const GlobalStyles = () => (
 
     /* --- Menu List Styles --- */
     .menu-list-container {
-        background-color: var(--bg-card);
+        background-color: var(--surface-strong);
         padding: 2rem 3rem;
         border-radius: 1rem;
         box-shadow: var(--shadow-soft);
@@ -125,7 +125,8 @@ export const GlobalStyles = () => (
         justify-content: space-between;
         align-items: center;
         padding: 1.5rem;
-        border-bottom: 1px solid var(--border-subtle);
+        background-color: var(--surface-soft);
+        border: 1px solid var(--border-subtle);
         animation: fadeIn 0.5s ease-in-out forwards;
         transition: all 0.3s ease-in-out;
         border-radius: 0.75rem;
@@ -209,17 +210,20 @@ export const GlobalStyles = () => (
         flex: 0 0 280px;
         padding: 1.5rem;
         border-radius: 1rem;
-        background: var(--primary-accent);
-        color: white;
+        background: var(--bg-card);
+        color: var(--text-dark);
         text-align: center;
         position: relative;
         overflow: hidden;
-        transition: transform 0.3s ease, box-shadow 0.3s ease;
+        transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
         cursor: pointer;
+        border: 1px solid var(--border-subtle);
+        box-shadow: var(--shadow-soft);
     }
     .coupon-card:hover {
-        transform: translateY(-10px) scale(1.05);
-        box-shadow: 0 15px 30px rgba(230, 126, 34, 0.4);
+        transform: translateY(-8px) scale(1.03);
+        box-shadow: 0 15px 30px rgba(0,0,0,0.25);
+        border-color: var(--primary-accent);
     }
     /* Creates the "ticket" cutout effect */
     .coupon-card::before, .coupon-card::after {
@@ -227,7 +231,7 @@ export const GlobalStyles = () => (
         position: absolute;
         width: 30px;
         height: 30px;
-        background: var(--bg-light-end);
+        background: var(--surface-soft);
         border-radius: 50%;
     }
     .coupon-card::before {
@@ -244,14 +248,175 @@ export const GlobalStyles = () => (
         font-weight: 700;
         font-family: 'Playfair Display', serif;
         margin-bottom: 0.5rem;
-        font-size: 1.5rem;
-        border: 2px dashed rgba(255,255,255,0.7);
+        font-size: 1.25rem;
+        border: 2px dashed rgba(255, 107, 0, 0.35);
         padding: 0.5rem;
         border-radius: 0.5rem;
+        color: var(--text-dark);
     }
     .coupon-description {
         font-size: 0.9rem;
-        opacity: 0.9;
+        opacity: 0.8;
+        color: var(--text-muted);
+    }
+
+    /* Category nav buttons */
+    .category-nav {
+        position: sticky;
+        top: 72px;
+        z-index: 10;
+        padding: 0.35rem 0.5rem;
+        background: linear-gradient(90deg, rgba(255,255,255,0.65), rgba(255,255,255,0.4));
+        backdrop-filter: blur(10px);
+        border-radius: 14px;
+        margin-bottom: 1rem;
+        box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+    }
+    :root[data-theme='dark'] .category-nav {
+        background: linear-gradient(90deg, rgba(22,36,58,0.9), rgba(17,30,48,0.82));
+        box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    }
+    .category-nav-inner {
+        display: flex;
+        gap: 0.6rem;
+        overflow-x: auto;
+        padding: 0.1rem;
+        scrollbar-width: thin;
+    }
+    .category-nav-button {
+        border: 1px solid var(--border-subtle);
+        background: var(--bg-card);
+        color: var(--text-dark);
+        padding: 0.55rem 1.1rem;
+        border-radius: 999px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.08);
+        transition: transform 0.2s ease, box-shadow 0.25s ease, border-color 0.25s ease, background 0.25s ease, color 0.25s ease;
+        white-space: nowrap;
+    }
+    .category-nav-button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 12px 28px rgba(0,0,0,0.12);
+        border-color: var(--primary-accent);
+    }
+    .category-nav-button.active {
+        background: linear-gradient(120deg, var(--primary-accent), var(--primary-hover));
+        color: #fff;
+        border-color: transparent;
+        box-shadow: 0 12px 30px rgba(255,107,0,0.25);
+        transform: translateY(-1px);
+    }
+    .category-nav-button:active {
+        transform: translateY(0);
+        box-shadow: 0 8px 20px rgba(0,0,0,0.12);
+    }
+
+    /* Glass overlay for logged-in welcome */
+    .glass-overlay {
+        position: fixed;
+        inset: 0;
+        background: radial-gradient(circle at 20% 20%, rgba(255,107,0,0.08), transparent 32%),
+                    radial-gradient(circle at 80% 10%, rgba(0,150,255,0.08), transparent 30%),
+                    rgba(5,10,20,0.55);
+        backdrop-filter: blur(12px);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 1.5rem;
+        z-index: 1300;
+    }
+    .glass-card {
+        position: relative;
+        width: min(960px, 94vw);
+        background: linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03));
+        border: 1px solid rgba(255,255,255,0.14);
+        box-shadow: 0 24px 60px rgba(0,0,0,0.35);
+        backdrop-filter: blur(16px);
+        border-radius: 20px;
+        padding: 1.5rem;
+        color: var(--text-dark);
+    }
+    .delivery-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 0.35rem 0.85rem;
+        border-radius: 999px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        background: linear-gradient(120deg, rgba(255,107,0,0.9), rgba(255,158,61,0.85));
+        color: #fff;
+        box-shadow: 0 10px 25px rgba(255,107,0,0.25);
+    }
+    .reviews-panel {
+        width: 260px;
+    }
+    .reviews-title {
+        font-weight: 700;
+        margin-bottom: 0.4rem;
+        color: var(--text-dark);
+    }
+    .reviews-window {
+        height: 160px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 14px;
+        background: rgba(255,255,255,0.05);
+        padding: 0.5rem;
+        position: relative;
+        backdrop-filter: blur(6px);
+    }
+    .reviews-track {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        animation: reviews-scroll 14s linear infinite;
+    }
+    .review-item {
+        padding: 0.6rem 0.75rem;
+        border-radius: 10px;
+        background: rgba(0,0,0,0.18);
+        color: #f5f8ff;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.18);
+    }
+    .review-rating {
+        font-size: 0.9rem;
+        letter-spacing: 1px;
+        margin-bottom: 4px;
+        color: #ffd166;
+    }
+    .review-text {
+        font-size: 0.95rem;
+        margin-bottom: 4px;
+    }
+    .review-name {
+        font-size: 0.8rem;
+        color: #cbd5f5;
+    }
+    @keyframes reviews-scroll {
+        0% { transform: translateY(0); }
+        100% { transform: translateY(-50%); }
+    }
+    .overlay-close {
+        position: absolute;
+        top: 10px;
+        right: 12px;
+        background: rgba(0,0,0,0.35);
+        color: #fff;
+        border: none;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
+        display: grid;
+        place-items: center;
+        font-size: 1.1rem;
+        cursor: pointer;
+        transition: transform 0.2s ease, background-color 0.2s ease;
+    }
+    .overlay-close:hover {
+        transform: scale(1.08);
+        background: rgba(0,0,0,0.55);
     }
     .coupon-input-group {
         display: flex;

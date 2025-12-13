@@ -300,10 +300,10 @@ function App() {
       case '#/login': return <LoginPage onLoginSuccess={handleLoginSuccess} />;
       case '#/register': return <RegisterPage />;
       case '#/dashboard': return isCustomerLoggedIn ? <CustomerDashboard userName={auth.customer.name} /> : <WelcomePage />;
-      case '#/menu': return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} menuItems={menuItems} /> : <WelcomePage />;
+      case '#/menu': return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} isLoggedIn={isCustomerLoggedIn} menuItems={menuItems} /> : <WelcomePage />;
       case '#/': 
       default: 
-        return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} menuItems={menuItems}/> : <WelcomePage />;
+        return isCustomerLoggedIn ? <MenuPage onAddToCart={handleAddToCart} isLoggedIn={isCustomerLoggedIn} menuItems={menuItems}/> : <WelcomePage />;
     }
   };
 
