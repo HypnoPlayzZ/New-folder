@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Modal, Form, Row, Col } from 'react-bootstrap';
-import { api } from '../api';
+import { api, getMenuCached, getCouponsCached } from '../api';
 import formatINR from '../utils/currency';
 import MenuItem from '../components/MenuItem';
 import { motion } from 'framer-motion';
@@ -10,7 +10,7 @@ const CouponDisplay = () => {
     const [coupons, setCoupons] = useState([]);
 
     useEffect(() => {
-        api.get('/coupons').then(res => setCoupons(res.data)).catch(console.error);
+        getCouponsCached().then(setCoupons).catch(console.error);
     }, []);
 
     if (coupons.length === 0) return null;
@@ -192,16 +192,10 @@ const MenuPage = ({ onAddToCart }) => {
     const [selectedCategory, setSelectedCategory] = useState(null);
 
     useEffect(() => {
-        api.get('/menu')
-            .then(res => {
-                setMenu(res.data);
-            })
-            .catch(err => {
-                console.error("Error fetching menu:", err);
-            })
-            .finally(() => {
-                setLoading(false);
-            });
+        getMenuCached()
+            .then((data) => setMenu(data))
+            .catch((err) => console.error("Error fetching menu:", err))
+            .finally(() => setLoading(false));
     }, []);
 
     // When menu loads, initialize selectedCategory if not set

@@ -548,6 +548,47 @@ export const GlobalStyles = () => (
         background-color: var(--bg-card) !important;
         color: var(--text-muted);
     }
+    /* Server wake-up toast */
+    .server-toast {
+        position: fixed;
+        left: 50%;
+        bottom: 24px;
+        transform: translateX(-50%);
+        z-index: 2000;
+        pointer-events: none;
+        animation: overlay-fade-in 0.25s ease;
+    }
+    .server-toast-inner {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        background: rgba(20, 28, 40, 0.85);
+        color: #fff;
+        border: 1px solid rgba(255,255,255,0.2);
+        border-radius: 14px;
+        padding: 0.75rem 1rem;
+        box-shadow: 0 12px 40px rgba(0,0,0,0.35);
+        backdrop-filter: blur(8px);
+    }
+    :root[data-theme='light'] .server-toast-inner {
+        background: rgba(255,255,255,0.9);
+        color: #111827;
+        border-color: rgba(0,0,0,0.08);
+    }
+    .server-toast-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        background: #ff9e3d;
+        animation: pulse-dot 1s ease-in-out infinite;
+        box-shadow: 0 0 0 0 rgba(255,158,61,0.6);
+    }
+    @keyframes pulse-dot {
+        0% { box-shadow: 0 0 0 0 rgba(255,158,61,0.6); }
+        70% { box-shadow: 0 0 0 10px rgba(255,158,61,0); }
+        100% { box-shadow: 0 0 0 0 rgba(255,158,61,0); }
+    }
+
     footer a {
         color: var(--primary-accent) !important;
     }

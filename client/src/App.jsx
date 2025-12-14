@@ -60,6 +60,7 @@ function App() {
   const adminPollRef = React.useRef(null);
   const adminTimerRef = React.useRef(null);
   const [showWelcomeOverlay, setShowWelcomeOverlay] = useState(false);
+  const [showWakeToast, setShowWakeToast] = useState(false);
   
   const [auth, setAuth] = useState({
       customer: { token: null, name: null },
@@ -98,12 +99,39 @@ function App() {
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
   }, []);
+
+  // Periodic keep-alive while the app is open to mitigate cold starts
+  useEffect(() => {
+    let timer;
+    import('./api.js').then(({ pingBackend }) => {
+      // ping immediately, then every 12 minutes
+      pingBackend();
+      timer = setInterval(() => pingBackend(), 12 * 60 * 1000);
+    });
+    return () => timer && clearInterval(timer);
+  }, []);
+
+  // Listen for backend wake-up notifications (from axios retries)
+  useEffect(() => {
+    const onWake = () => {
+      setShowWakeToast(true);
+      // auto-hide after 6s
+      const t = setTimeout(() => setShowWakeToast(false), 6000);
+      return () => clearTimeout(t);
+    };
+    window.addEventListener('server:wakeup', onWake);
+    return () => window.removeEventListener('server:wakeup', onWake);
+  }, []);
   
   useEffect(() => {
     if (isCustomerLoggedIn) { // Only fetch menu if a customer is logged in
-        api.get('/menu')
-          .then(response => setMenuItems(response.data))
-          .catch(error => console.error("Error fetching menu items:", error));
+        // Warm the backend before heavy calls
+        import('./api.js').then(({ pingBackend, getMenuCached }) => {
+          pingBackend();
+          getMenuCached()
+            .then((data) => setMenuItems(data))
+            .catch((error) => console.error("Error fetching menu items:", error));
+        });
     }
   }, [isCustomerLoggedIn]);
 
@@ -315,6 +343,14 @@ function App() {
   return (
     <div className="d-flex flex-column min-vh-100">
       <GlobalStyles />
+      {showWakeToast && (
+        <div className="server-toast" role="status" aria-live="polite">
+          <div className="server-toast-inner">
+            <span className="server-toast-dot" />
+            Waking up server… this may take a few seconds
+          </div>
+        </div>
+      )}
       {isCustomerLoggedIn && showWelcomeOverlay && (
         <div className="glass-overlay" role="dialog" aria-label="Welcome back">
           <div className="glass-card">
