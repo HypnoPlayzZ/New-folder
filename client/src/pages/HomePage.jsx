@@ -18,7 +18,7 @@ const HomePage = () => {
   ];
 
   const handleOrderNow = () => {
-    window.location.hash = '#/menu';
+    window.location.hash = '#/login';
   };
 
   return (
