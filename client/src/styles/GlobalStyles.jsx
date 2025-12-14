@@ -560,10 +560,12 @@ export const GlobalStyles = () => (
     }
     .home-hero {
         display: grid;
-        grid-template-columns: 1.2fr 1fr;
-        gap: 2rem;
+        grid-template-columns: 1fr 0.9fr;
+        gap: 3rem;
         align-items: center;
-        padding: 4rem 3rem;
+        padding: 5rem 4rem;
+        max-width: 1600px;
+        margin: 0 auto;
         background: linear-gradient(135deg, 
             var(--bg-light-start) 0%, 
             var(--bg-light-end) 50%,
@@ -586,6 +588,8 @@ export const GlobalStyles = () => (
         position: relative;
         z-index: 2;
         text-align: left;
+        max-width: 650px;
+        padding-right: 2rem;
     }
     .hero-badge {
         display: inline-block;
@@ -601,26 +605,29 @@ export const GlobalStyles = () => (
     }
     .hero-title {
         font-family: 'Playfair Display', serif;
-        font-size: clamp(3rem, 7vw, 5rem);
+        font-size: clamp(3rem, 6vw, 4.5rem);
         font-weight: 700;
         color: var(--primary-accent);
-        margin-bottom: 1rem;
-        line-height: 1.1;
+        margin-bottom: 1.2rem;
+        line-height: 1.15;
         text-shadow: 2px 4px 8px rgba(0,0,0,0.1);
+        letter-spacing: -0.5px;
     }
     .hero-subtitle {
-        font-size: clamp(1.2rem, 2.5vw, 1.8rem);
+        font-size: clamp(1.15rem, 2vw, 1.5rem);
         color: var(--text-muted);
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
         font-weight: 400;
+        line-height: 1.6;
     }
     .promo-banner {
         background: linear-gradient(120deg, rgba(255,107,0,0.95), rgba(255,158,61,0.9));
-        padding: 1.5rem 2rem;
+        padding: 1.75rem 2.5rem;
         border-radius: 20px;
-        margin-bottom: 2.5rem;
+        margin-bottom: 3rem;
         box-shadow: 0 15px 50px rgba(255,107,0,0.3);
         animation: pulse-glow 2s ease-in-out infinite;
+        max-width: 600px;
     }
     .promo-text {
         font-size: clamp(1.2rem, 2.5vw, 1.8rem);
@@ -651,11 +658,10 @@ export const GlobalStyles = () => (
         position: relative;
         z-index: 1;
         display: flex;
-        justify-content: flex-end;
+        justify-content: center;
         align-items: center;
         max-width: 100%;
         margin: 0;
-        padding-right: 2rem;
     }
     .image-glow {
         position: absolute;
@@ -675,7 +681,7 @@ export const GlobalStyles = () => (
     }
     .hero-image {
         width: 100%;
-        max-width: 500px;
+        max-width: 550px;
         height: auto;
         border-radius: 30px;
         box-shadow: 0 25px 60px rgba(0,0,0,0.25);
@@ -683,13 +689,16 @@ export const GlobalStyles = () => (
         z-index: 1;
         animation: float 6s ease-in-out infinite;
         display: block;
+        object-fit: cover;
     }
     .home-reviews-section {
-        padding: 4rem 3rem;
+        padding: 5rem 4rem;
         background: var(--bg-card);
         position: relative;
         z-index: 10;
         overflow: hidden;
+        max-width: 1600px;
+        margin: 0 auto;
     }
     .reviews-section-title {
         font-family: 'Playfair Display', serif;
@@ -764,12 +773,30 @@ export const GlobalStyles = () => (
         }
         .hero-content {
             text-align: center;
+            max-width: 100%;
+            padding-right: 0;
+        }
+        .hero-badge {
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .promo-banner {
+            max-width: 100%;
+        }
+        .hero-image-container {
+            justify-content: center;
+        }
+        .hero-image {
+            max-width: 450px;
         }
         .reviews-grid {
             grid-template-columns: 1fr;
         }
         .reviews-column:nth-child(2) {
             animation: scroll-up 30s linear infinite;
+        }
+        .home-reviews-section {
+            padding: 3rem 2rem;
         }
     }
   `}</style>
