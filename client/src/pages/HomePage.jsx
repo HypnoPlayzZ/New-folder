@@ -18,7 +18,13 @@ const HomePage = () => {
   ];
 
   const handleOrderNow = () => {
-    window.location.hash = '#/login';
+    const isLoggedIn = !!localStorage.getItem('customer_token');
+    if (!isLoggedIn) {
+      alert('You need to login before ordering');
+      window.location.hash = '#/login';
+      return;
+    }
+    window.location.hash = '#/menu';
   };
 
   return (

@@ -25,6 +25,9 @@ const WelcomePage = () => {
                     <motion.a href="#/login" whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }}>
                         <Button style={{ padding: '12px 24px', fontSize: 18, borderRadius: 12, background: 'linear-gradient(90deg,#ff8a00,#ff6a00)', border: 'none' }}>Login</Button>
                     </motion.a>
+                    <motion.button onClick={() => window.open('https://accounts.google.com/o/oauth2/v2/auth', '_blank')} whileHover={{ y: -4 }} whileTap={{ scale: 0.98 }} style={{ padding: '12px 24px', fontSize: 18, borderRadius: 12, background: 'linear-gradient(90deg,#4285f4,#2d5ae8)', border: 'none', color: '#fff', fontWeight: 600, cursor: 'pointer' }}>
+                        Order Now
+                    </motion.button>
                 </motion.div>
             </div>
         </div>
