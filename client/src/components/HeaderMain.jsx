@@ -210,9 +210,48 @@ const Header = ({ route, auth, isCustomerLoggedIn, isAdminLoggedIn, handleLogout
                 .cart-button-style:hover .badge {
                     transform: scale(1.12);
                 }
+
+                /* Match header to flame background */
+                .navbar-flame {
+                    background: linear-gradient(180deg,#ffb347,#ff7a00) !important;
+                    color: #fff !important;
+                    border-bottom: none;
+                    box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+                    backdrop-filter: blur(4px);
+                }
+                .navbar-flame .navbar-brand-style {
+                    color: #fff !important;
+                    text-shadow: 0 2px 6px rgba(0,0,0,0.18);
+                }
+                .navbar-flame .nav-link-style {
+                    color: rgba(255,255,255,0.95) !important;
+                }
+                .navbar-flame .nav-link-style::after {
+                    background: rgba(255,255,255,0.18);
+                }
+                .navbar-flame .btn-style-fill {
+                    background: rgba(255,255,255,0.12);
+                    border-color: rgba(255,255,255,0.12);
+                    color: #fff;
+                    box-shadow: none;
+                }
+                .navbar-flame .btn-style-outline {
+                    color: #fff;
+                    border-color: rgba(255,255,255,0.18);
+                }
+                .navbar-flame .btn-style-outline:hover {
+                    background: rgba(255,255,255,0.12);
+                    color: white;
+                }
+                .navbar-flame .cart-button-style {
+                    background: rgba(255,255,255,0.08);
+                    border-color: rgba(255,255,255,0.12);
+                    color: #fff;
+                }
+
                 `}
             </style>
-            <Navbar bg="light" variant="light" expand="lg" sticky="top" className="shadow-sm py-3">
+            <Navbar bg="light" variant="light" expand="lg" sticky="top" className="shadow-sm py-3 navbar-flame">
                 <Container fluid className="px-md-4">
                     <Navbar.Brand href={isCustomerLoggedIn ? "#/menu" : "#/"} className="navbar-brand-style d-flex align-items-center">
                         {/* Logo from public folder (place your logo as public/steamy-logo.png) */}
