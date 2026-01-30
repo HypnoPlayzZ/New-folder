@@ -19,18 +19,19 @@ export const GlobalStyles = () => (
     }
 
     :root[data-theme='dark'] {
-        --bg-light-start: #1a3636;
-        --bg-light-end: #0f2628;
-        --bg-card: #1e3a39;
+        /* Warmer dark theme to match flame background */
+        --bg-light-start: #0b0b0d;
+        --bg-light-end: #071214;
+        --bg-card: #111316;
         --text-dark: #e8f0ef;
-        --text-muted: #a8b5b0;
-        --primary-accent: #40534c;
-        --primary-hover: #2d3d37;
-        --surface-strong: rgba(30, 58, 57, 0.92);
-        --surface-soft: #16282a;
-        --border-subtle: #2a4543;
+        --text-muted: #b8b1a8;
+        --primary-accent: #ff7a00; /* flame orange */
+        --primary-hover: #e15d00;  /* slightly deeper orange */
+        --surface-strong: rgba(20,18,18,0.95);
+        --surface-soft: #0f1413;
+        --border-subtle: rgba(255,122,0,0.12);
         --accent-warm: #d6bd98;
-        --shadow-soft: 0 10px 40px rgba(0,0,0,0.5);
+        --shadow-soft: 0 10px 40px rgba(0,0,0,0.6);
     }
 
     body { 
