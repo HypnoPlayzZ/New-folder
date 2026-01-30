@@ -62,7 +62,8 @@ const HomePage = () => {
       </div>
 
       <div className="home-reviews-section">
-        <h2 className="reviews-section-title">⭐ What Our Customers Say</h2>
+        <h2 className="reviews-section-title">What Customers say</h2>
+
         <div className="reviews-grid">
           <div className="reviews-column">
             {reviews.slice(0, 6).map((rev, idx) => (

@@ -39,6 +39,34 @@ export const GlobalStyles = () => (
         color: var(--text-dark);
     }
 
+    /* Typography Enhancements */
+    h1 {
+        font-size: clamp(2.2rem, 3.5vw, 3.2rem);
+        line-height: 1.1;
+        letter-spacing: -0.02em;
+        font-weight: 800;
+    }
+    h2 {
+        font-size: clamp(1.6rem, 2.4vw, 2.2rem);
+        line-height: 1.2;
+        letter-spacing: -0.01em;
+        font-weight: 700;
+    }
+    h3 {
+        font-size: clamp(1.25rem, 1.8vw, 1.6rem);
+        line-height: 1.25;
+        font-weight: 700;
+    }
+    p, .paragraph {
+        font-size: clamp(1rem, 1.15vw, 1.05rem);
+        line-height: 1.65;
+        color: var(--text-muted);
+    }
+    .btn, button {
+        font-weight: 700;
+        letter-spacing: 0.02em;
+    }
+
     /* Animations */
     @keyframes fadeIn { 
         from { opacity: 0; transform: translateY(20px); } 
@@ -531,10 +559,72 @@ export const GlobalStyles = () => (
         border: none;
         box-shadow: var(--shadow-soft);
     }
+    
+    /* Dark theme modal text - force all text to white */
+    :root[data-theme='dark'] .modal-content,
+    :root[data-theme='dark'] .modal-content *:not(.btn):not(button),
+    :root[data-theme='dark'] .modal-header,
+    :root[data-theme='dark'] .modal-header *,
+    :root[data-theme='dark'] .modal-body,
+    :root[data-theme='dark'] .modal-body *:not(.btn):not(button),
+    :root[data-theme='dark'] .modal-footer,
+    :root[data-theme='dark'] .modal-footer *:not(.btn):not(button),
+    :root[data-theme='dark'] .modal-title,
+    :root[data-theme='dark'] .form-label,
+    :root[data-theme='dark'] label,
+    :root[data-theme='dark'] .list-group-item,
+    :root[data-theme='dark'] .modal-body p,
+    :root[data-theme='dark'] .modal-body span,
+    :root[data-theme='dark'] .modal-body div,
+    :root[data-theme='dark'] .modal-body strong,
+    :root[data-theme='dark'] .modal-body small,
+    :root[data-theme='dark'] .modal-body h1,
+    :root[data-theme='dark'] .modal-body h2,
+    :root[data-theme='dark'] .modal-body h3,
+    :root[data-theme='dark'] .modal-body h4,
+    :root[data-theme='dark'] .modal-body h5,
+    :root[data-theme='dark'] .modal-body h6,
+    :root[data-theme='dark'] .form-control,
+    :root[data-theme='dark'] .form-select,
+    :root[data-theme='dark'] input,
+    :root[data-theme='dark'] textarea,
+    :root[data-theme='dark'] select {
+        color: #ffffff !important;
+    }
+    
+    :root[data-theme='dark'] .form-control,
+    :root[data-theme='dark'] .form-select,
+    :root[data-theme='dark'] input:not([type="radio"]):not([type="checkbox"]),
+    :root[data-theme='dark'] textarea,
+    :root[data-theme='dark'] select {
+        background-color: rgba(255,255,255,0.1) !important;
+        border-color: rgba(255,255,255,0.2) !important;
+        color: #ffffff !important;
+    }
+    
+    :root[data-theme='dark'] .form-control::placeholder,
+    :root[data-theme='dark'] input::placeholder,
+    :root[data-theme='dark'] textarea::placeholder {
+        color: rgba(255,255,255,0.5) !important;
+    }
+    
+    .modal-header, .modal-body, .modal-footer {
+        color: var(--text-dark);
+    }
+    .modal-title, .form-label, label {
+        color: var(--text-dark) !important;
+    }
+    .list-group-item {
+        color: var(--text-dark);
+    }
     .form-control {
         background-color: var(--surface-soft);
         border-color: var(--border-subtle);
         color: var(--text-dark);
+    }
+    .form-control::placeholder {
+        color: var(--text-muted);
+        opacity: 0.7;
     }
     .form-control:focus {
         background-color: var(--bg-card);
@@ -666,7 +756,7 @@ export const GlobalStyles = () => (
     }
     .hero-subtitle {
         font-size: clamp(1.15rem, 2vw, 1.5rem);
-        color: var(--text-muted);
+        color: var(--text-dark);
         margin-bottom: 2.5rem;
         font-weight: 400;
         line-height: 1.6;
@@ -824,7 +914,7 @@ export const GlobalStyles = () => (
     }
     .home-review-name {
         font-size: 0.95rem;
-        color: var(--text-muted);
+        color: var(--accent-warm);
         font-weight: 600;
         text-align: right;
     }

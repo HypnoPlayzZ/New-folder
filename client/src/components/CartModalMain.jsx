@@ -240,10 +240,10 @@ const CartModalMain = ({
         <div className="text-center">
             <h4>Complete Your Payment</h4>
             <p className="lead">Your order (ID: {orderForPayment._id}) is pending.</p>
-            <Alert variant="info">
-                <p className="mb-0">Please pay <strong>₹{orderForPayment.finalPrice.toFixed(2)}</strong> to the following UPI ID:</p>
-                <h5 className="my-2" style={{ userSelect: 'all' }}>{upiId}</h5>
-                <p className="mt-2 mb-0">After paying, enter the 12-digit UTR (Transaction ID) below and click confirm.</p>
+            <Alert variant="info" style={{ color: '#000000' }}>
+                <p className="mb-0" style={{ color: '#000000' }}>Please pay <strong>₹{orderForPayment.finalPrice.toFixed(2)}</strong> to the following UPI ID:</p>
+                <h5 className="my-2" style={{ userSelect: 'all', color: '#000000' }}>{upiId}</h5>
+                <p className="mt-2 mb-0" style={{ color: '#000000' }}>After paying, enter the 12-digit UTR (Transaction ID) below and click confirm.</p>
             </Alert>
             <div className="mb-2">
                 <strong>Time left to pay:</strong> <span style={{ fontSize: '1.2rem' }}>{Math.floor(timeLeft/60)}:{String(timeLeft%60).padStart(2,'0')}</span>
