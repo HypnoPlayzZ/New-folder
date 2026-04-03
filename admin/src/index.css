@@ -1,4 +1,22 @@
-/* You can add global styles here */
+/* Global resets — full theming is handled in App.css */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
 body {
-  font-family: 'Poppins', sans-serif; /* A nice modern font */
+  margin: 0;
+  padding: 0;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+::selection {
+  background: rgba(67, 97, 238, 0.35);
+  color: #fff;
 }

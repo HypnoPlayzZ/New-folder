@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Table, Nav, Tab, Form, Button, Modal, Card, Alert, Accordion, Badge } from 'react-bootstrap';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { api } from '../api';
@@ -31,7 +31,7 @@ const AdminRegisterPage = () => {
     };
 
     return (
-         <div className="row justify-content-center fade-in mt-4">
+        <div className="row justify-content-center fade-in mt-4">
             <div className="col-md-8">
                 <Card className="shadow-sm">
                     <Card.Body className="p-5">
@@ -74,7 +74,7 @@ const OrderManager = () => {
                 alert('Failed to update order status.');
             });
     };
-    
+
     if (loading) return <div className="text-center"><div className="spinner-border text-danger" role="status"></div></div>;
     if (orders.length === 0) return <div className="text-center"><h2>No orders found.</h2></div>;
 
@@ -109,7 +109,7 @@ const MenuManager = () => {
     const [loading, setLoading] = useState(true);
     const [showModal, setShowModal] = useState(false);
     const [currentItem, setCurrentItem] = useState(null);
-    const [formData, setFormData] = useState({ name: '', description: '', category: '', price: { half: '', full: '' }});
+    const [formData, setFormData] = useState({ name: '', description: '', category: '', price: { half: '', full: '' } });
     const [imageFile, setImageFile] = useState(null);
     const [isClient, setIsClient] = useState(false);
 
@@ -133,7 +133,7 @@ const MenuManager = () => {
             setFormData(prev => ({ ...prev, [name]: value }));
         }
     };
-    
+
     const handleFileChange = (e) => {
         setImageFile(e.target.files[0]);
     };
@@ -142,9 +142,9 @@ const MenuManager = () => {
         setCurrentItem(item);
         setImageFile(null);
         if (item) {
-            const price = (typeof item.price === 'object' && item.price !== null) 
-                          ? item.price 
-                          : { half: '', full: '' };
+            const price = (typeof item.price === 'object' && item.price !== null)
+                ? item.price
+                : { half: '', full: '' };
             setFormData({
                 name: item.name || '',
                 description: item.description || '',
@@ -164,14 +164,14 @@ const MenuManager = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        
+
         const data = new FormData();
         data.append('name', formData.name);
         data.append('description', formData.description);
         data.append('category', formData.category || 'Uncategorized');
         data.append('priceHalf', formData.price.half);
         data.append('priceFull', formData.price.full);
-        
+
         if (imageFile) {
             data.append('image', imageFile);
         } else if (currentItem) {
@@ -216,19 +216,19 @@ const MenuManager = () => {
 
             const orderedIds = items.map(item => item._id);
             api.patch('/admin/menu/reorder', { category: sourceCategory, orderedIds })
-               .catch(err => {
+                .catch(err => {
                     alert('Failed to save new order. Reverting changes.');
                     fetchMenu();
-               });
+                });
         }
     };
-    
+
     if (loading) return <div className="text-center"><div className="spinner-border text-danger" role="status"></div></div>;
 
     return (
         <div>
             <Button variant="danger" className="mb-3" onClick={() => handleShowModal()}>Add New Menu Item</Button>
-            
+
             {isClient && (
                 <DragDropContext onDragEnd={onDragEnd}>
                     <Accordion defaultActiveKey="0" alwaysOpen>
@@ -257,7 +257,7 @@ const MenuManager = () => {
                                                             >
                                                                 <div className="col-1 text-center" style={{ cursor: 'grab' }}>
                                                                     <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" className="bi bi-grip-vertical" viewBox="0 0 16 16">
-                                                                        <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z"/>
+                                                                        <path d="M7 2a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zM7 8a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm-3 3a1 1 0 1 1-2 0 1 1 0 0 1 2 0zm3 0a1 1 0 1 1-2 0 1 1 0 0 1 2 0z" />
                                                                     </svg>
                                                                 </div>
                                                                 <div className="col">{item.name}</div>
@@ -293,7 +293,7 @@ const MenuManager = () => {
                         <Form.Group className="mb-3"><Form.Label>Full / Item Price</Form.Label><Form.Control type="number" step="0.01" name="full" value={formData.price.full} onChange={handleFormChange} required /></Form.Group>
                         <Form.Group className="mb-3">
                             <Form.Label>Image</Form.Label>
-                            {currentItem?.imageUrl && !imageFile && <img src={currentItem.imageUrl} alt="Current" width="100" className="mb-2 d-block"/>}
+                            {currentItem?.imageUrl && !imageFile && <img src={currentItem.imageUrl} alt="Current" width="100" className="mb-2 d-block" />}
                             <Form.Control type="file" name="image" onChange={handleFileChange} />
                         </Form.Group>
                         <Button variant="danger" type="submit">Save Changes</Button>
@@ -337,7 +337,7 @@ const ComplaintManager = () => {
                             <td>{c.orderId ? new Date(c.orderId.createdAt).toLocaleString() : 'N/A'}</td>
                             <td>{c.message}</td>
                             <td>
-                                 <Form.Select size="sm" value={c.status} onChange={(e) => handleStatusChange(c._id, e.target.value)}>
+                                <Form.Select size="sm" value={c.status} onChange={(e) => handleStatusChange(c._id, e.target.value)}>
                                     <option>Pending</option><option>In Progress</option><option>Resolved</option>
                                 </Form.Select>
                             </td>
@@ -391,13 +391,13 @@ const BulkUploadManager = () => {
 
     const handleDownloadSample = () => {
         const csvContent = "Item,Category,Item Price,Half,Full\n" +
-                           "Veg Momos,Appetizers,,130,250\n" +
-                           "Paneer Chilli Dry,Main Course,,350,500\n" +
-                           "Veg Burger,Snacks,100,,\n";
-        
+            "Veg Momos,Appetizers,,130,250\n" +
+            "Paneer Chilli Dry,Main Course,,350,500\n" +
+            "Veg Burger,Snacks,100,,\n";
+
         const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
         const link = document.createElement("a");
-        if (link.download !== undefined) { 
+        if (link.download !== undefined) {
             const url = URL.createObjectURL(blob);
             link.setAttribute("href", url);
             link.setAttribute("download", "sample-menu.csv");
@@ -471,7 +471,7 @@ const CouponManager = () => {
             alert('Failed to create coupon. Make sure the code is unique.');
         }
     };
-    
+
     const toggleCouponStatus = async (coupon) => {
         try {
             await api.patch(`/admin/coupons/${coupon._id}`, { isActive: !coupon.isActive });
@@ -511,7 +511,7 @@ const CouponManager = () => {
                     ))}
                 </tbody>
             </Table>
-            
+
             <Modal show={showModal} onHide={() => setShowModal(false)}>
                 <Modal.Header closeButton><Modal.Title>Create Coupon</Modal.Title></Modal.Header>
                 <Modal.Body>
@@ -528,35 +528,174 @@ const CouponManager = () => {
     );
 };
 
+// --- Gravity Particle Canvas Hook ---
+const useGravityCanvas = () => {
+    const canvasRef = useRef(null);
+    const mouseRef = useRef({ x: window.innerWidth / 2, y: window.innerHeight / 2 });
+    const animRef = useRef(null);
+
+    useEffect(() => {
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+
+        const resize = () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        };
+        resize();
+        window.addEventListener('resize', resize);
+
+        // Particle factory
+        const COLORS = [
+            'rgba(67,97,238,',
+            'rgba(114,9,183,',
+            'rgba(230,57,70,',
+            'rgba(100,180,255,',
+            'rgba(200,150,255,',
+        ];
+        const NUM = 90;
+        const particles = Array.from({ length: NUM }, () => ({
+            x: Math.random() * window.innerWidth,
+            y: Math.random() * window.innerHeight,
+            vx: (Math.random() - 0.5) * 0.6,
+            vy: (Math.random() - 0.5) * 0.6,
+            r: Math.random() * 2.2 + 0.6,
+            color: COLORS[Math.floor(Math.random() * COLORS.length)],
+            alpha: Math.random() * 0.55 + 0.2,
+        }));
+
+        const GRAVITY_STRENGTH = 0.018;
+        const MAX_SPEED = 2.8;
+        const DAMPING = 0.97;
+        const CONNECT_DIST = 110;
+
+        const animate = () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            const mx = mouseRef.current.x;
+            const my = mouseRef.current.y;
+
+            // Draw connections
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < CONNECT_DIST) {
+                        const opacity = (1 - dist / CONNECT_DIST) * 0.18;
+                        ctx.beginPath();
+                        ctx.strokeStyle = `rgba(120,140,255,${opacity})`;
+                        ctx.lineWidth = 0.7;
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            particles.forEach(p => {
+                // Gravity pull toward mouse
+                const dx = mx - p.x;
+                const dy = my - p.y;
+                const dist = Math.sqrt(dx * dx + dy * dy) || 1;
+                const force = GRAVITY_STRENGTH * (1 / (dist * 0.012 + 1));
+                p.vx += (dx / dist) * force;
+                p.vy += (dy / dist) * force;
+
+                // Speed cap
+                const speed = Math.sqrt(p.vx * p.vx + p.vy * p.vy);
+                if (speed > MAX_SPEED) {
+                    p.vx = (p.vx / speed) * MAX_SPEED;
+                    p.vy = (p.vy / speed) * MAX_SPEED;
+                }
+
+                p.vx *= DAMPING;
+                p.vy *= DAMPING;
+                p.x += p.vx;
+                p.y += p.vy;
+
+                // Wrap around edges
+                if (p.x < 0) p.x = canvas.width;
+                if (p.x > canvas.width) p.x = 0;
+                if (p.y < 0) p.y = canvas.height;
+                if (p.y > canvas.height) p.y = 0;
+
+                // Draw glow
+                const gradient = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, p.r * 4);
+                gradient.addColorStop(0, `${p.color}${p.alpha})`);
+                gradient.addColorStop(1, `${p.color}0)`);
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r * 4, 0, Math.PI * 2);
+                ctx.fillStyle = gradient;
+                ctx.fill();
+
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+                ctx.fillStyle = `${p.color}${Math.min(p.alpha + 0.3, 1)})`;
+                ctx.fill();
+            });
+
+            animRef.current = requestAnimationFrame(animate);
+        };
+
+        animate();
+
+        const handleMouseMove = (e) => {
+            mouseRef.current = { x: e.clientX, y: e.clientY };
+        };
+        window.addEventListener('mousemove', handleMouseMove);
+
+        return () => {
+            cancelAnimationFrame(animRef.current);
+            window.removeEventListener('resize', resize);
+            window.removeEventListener('mousemove', handleMouseMove);
+        };
+    }, []);
+
+    return canvasRef;
+};
+
 // --- Main Admin Dashboard Component ---
-const AdminDashboard = ({ adminName, handleLogout }) => (
-    <div className="fade-in">
-        <div className="d-flex justify-content-between align-items-center mb-4">
-            <h1>Admin Dashboard</h1>
-            <div>
-                <span className="me-3">Welcome, {adminName}</span>
-                <Button variant="outline-secondary" size="sm" onClick={() => handleLogout('admin')}>Logout</Button>
+const AdminDashboard = ({ adminName, handleLogout }) => {
+    const canvasRef = useGravityCanvas();
+
+    return (
+        <>
+            <canvas
+                ref={canvasRef}
+                id="gravity-canvas"
+                aria-hidden="true"
+            />
+            <div className="fade-in" style={{ position: 'relative', zIndex: 1 }}>
+                <div className="d-flex justify-content-between align-items-center mb-4">
+                    <h1>Admin Dashboard</h1>
+                    <div>
+                        <span className="me-3">Welcome, {adminName}</span>
+                        <Button variant="outline-secondary" size="sm" onClick={() => handleLogout('admin')}>Logout</Button>
+                    </div>
+                </div>
+                <Tab.Container defaultActiveKey="menu">
+                    <Nav variant="tabs" className="mb-3 justify-content-center">
+                        <Nav.Item><Nav.Link eventKey="menu">Manage Menu</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link eventKey="orders">Manage Orders</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link eventKey="complaints">Manage Complaints</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link eventKey="bulk-upload">Bulk Upload</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link eventKey="coupons">Manage Coupons</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link href="#/admin-register">Register New Admin</Nav.Link></Nav.Item>
+                    </Nav>
+                    <Tab.Content>
+                        <Tab.Pane eventKey="menu"><MenuManager /></Tab.Pane>
+                        <Tab.Pane eventKey="orders"><OrderManager /></Tab.Pane>
+                        <Tab.Pane eventKey="complaints"><ComplaintManager /></Tab.Pane>
+                        <Tab.Pane eventKey="bulk-upload"><BulkUploadManager /></Tab.Pane>
+                        <Tab.Pane eventKey="coupons"><CouponManager /></Tab.Pane>
+                    </Tab.Content>
+                </Tab.Container>
             </div>
-        </div>
-        <Tab.Container defaultActiveKey="menu">
-            <Nav variant="tabs" className="mb-3 justify-content-center">
-                <Nav.Item><Nav.Link eventKey="menu">Manage Menu</Nav.Link></Nav.Item>
-                <Nav.Item><Nav.Link eventKey="orders">Manage Orders</Nav.Link></Nav.Item>
-                <Nav.Item><Nav.Link eventKey="complaints">Manage Complaints</Nav.Link></Nav.Item>
-                <Nav.Item><Nav.Link eventKey="bulk-upload">Bulk Upload</Nav.Link></Nav.Item>
-                <Nav.Item><Nav.Link eventKey="coupons">Manage Coupons</Nav.Link></Nav.Item>
-                <Nav.Item><Nav.Link href="#/admin-register">Register New Admin</Nav.Link></Nav.Item>
-            </Nav>
-            <Tab.Content>
-                <Tab.Pane eventKey="menu"><MenuManager /></Tab.Pane>
-                <Tab.Pane eventKey="orders"><OrderManager /></Tab.Pane>
-                <Tab.Pane eventKey="complaints"><ComplaintManager /></Tab.Pane>
-                <Tab.Pane eventKey="bulk-upload"><BulkUploadManager /></Tab.Pane>
-                <Tab.Pane eventKey="coupons"><CouponManager /></Tab.Pane>
-            </Tab.Content>
-        </Tab.Container>
-    </div>
-);
+        </>
+    );
+};
 
 export default AdminDashboard;
 

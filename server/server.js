@@ -57,8 +57,10 @@ const allowedOrigins = [
     'https://www.steamybites.shop',
     'https://new-folder-ynyn.vercel.app',
     'https://new-folder-e329.vercel.app',
-    'http://localhost:5173', 
-    'http://localhost:5174'  
+    'http://localhost:5173',
+    'http://localhost:5174',
+    'http://localhost:5175',
+    'http://localhost:5176'
 ];
 
 const corsOptions = {
@@ -98,6 +100,19 @@ const sendAdminNotification = (notification) => {
   });
 };
 
+// --- SSE Customer Order Status Setup ---
+const customerSseClients = new Map(); // orderId -> Set of res objects
+
+const notifyCustomerOrderStatus = (orderId, status) => {
+  const clients = customerSseClients.get(orderId.toString());
+  if (!clients) return;
+  const message = JSON.stringify({ status });
+  clients.forEach(res => {
+    try { res.write(`data: ${message}\n\n`); }
+    catch (e) { clients.delete(res); }
+  });
+};
+
 // --- Database Connection ---
 mongoose.connect(mongoURI)
     .then(() => {
@@ -127,7 +142,8 @@ const CategorySchema = new mongoose.Schema({
 });
 
 const OrderItemSchema = new mongoose.Schema({
-    menuItemId: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem', required: true },
+    menuItemId: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem' },
+    itemName: { type: String },
     quantity: { type: Number, required: true },
     variant: { type: String, enum: ['half', 'full'], required: true },
     priceAtOrder: { type: Number, required: true },
@@ -145,7 +161,7 @@ const OrderSchema = new mongoose.Schema({
         discountValue: Number
     },
     customerName: { type: String, required: true },
-    mobile: { type: String, required: true },
+    mobile: { type: String, default: '' },
     address: { type: String, required: true },
     status: { 
         type: String, 
@@ -509,6 +525,43 @@ app.get('/api/my-orders', authMiddleware, async (req, res) => {
     const orders = await Order.find({ user: req.user.userId }).populate('items.menuItemId').sort({ createdAt: -1 });
     res.json(orders);
 });
+
+app.get('/api/orders/:id', authMiddleware, async (req, res) => {
+    try {
+        const order = await Order.findOne({ _id: req.params.id, user: req.user.userId });
+        if (!order) return res.status(404).json({ message: 'Order not found' });
+        res.json(order);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching order' });
+    }
+});
+
+// Customer SSE — subscribe to real-time status for a specific order
+// EventSource can't set headers, so we accept token via query param for this route only
+app.get('/api/orders/:id/status-stream', async (req, res) => {
+    const token = req.query.token || req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Authentication required' });
+    let userId;
+    try { userId = jwt.verify(token, jwtSecret).userId; }
+    catch { return res.status(401).json({ message: 'Invalid token' }); }
+
+    const orderId = req.params.id;
+    const order = await Order.findOne({ _id: orderId, user: userId });
+    if (!order) return res.status(404).json({ message: 'Order not found' });
+
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.write(`:connected\n\ndata: ${JSON.stringify({ status: order.status })}\n\n`);
+
+    if (!customerSseClients.has(orderId)) customerSseClients.set(orderId, new Set());
+    customerSseClients.get(orderId).add(res);
+
+    req.on('close', () => {
+        customerSseClients.get(orderId)?.delete(res);
+        res.end();
+    });
+});
 app.post('/api/complaints', authMiddleware, async (req, res) => {
     const complaint = new Complaint({ ...req.body, user: req.user.userId });
     await complaint.save();
@@ -595,6 +648,8 @@ adminRouter.patch('/orders/:id/status', async (req, res) => {
 
         // Notify admin UIs about status update
         try { sendAdminNotification({ type: 'order_status_updated', order: updatedOrder }); } catch(e) { console.warn('notify admin failed', e); }
+        // Notify the customer watching this order
+        try { notifyCustomerOrderStatus(req.params.id, updatedOrder.status); } catch(e) { console.warn('notify customer failed', e); }
     } catch (error) {
         res.status(500).json({ message: 'Error updating order status' });
     }
