@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cmd.exe /c \"dir c:\\\\Users\\\\csgov\\\\OneDrive\\\\Desktop\\\\New-folder\\\\client\\\\src\\\\\")",
+      "Read(//mnt/c/Users/csgov/OneDrive/Desktop/New-folder/client/**)"
+    ]
+  }
+}
