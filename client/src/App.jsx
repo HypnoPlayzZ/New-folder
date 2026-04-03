@@ -186,16 +186,7 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
       className="navbar-glass fixed top-0 left-0 right-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
         <button onClick={() => setPage("home")} className="flex items-center gap-2.5 group">
-          <div className="logo-mark w-9 h-9 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center shadow-lg shadow-orange-500/30">
-            <svg viewBox="0 0 24 24" fill="none" className="w-5 h-5 text-white" stroke="currentColor" strokeWidth="2">
-              <path d="M12 2C8 4 4 8 4 14a8 8 0 0016 0C20 8 16 4 12 2z" fill="currentColor" opacity="0.3"/>
-              <path d="M9 14c0-2 1.5-4 3-5 1.5 1 3 3 3 5a3 3 0 01-6 0z" fill="currentColor"/>
-            </svg>
-          </div>
-          <div className="leading-none">
-            <span style={{ color: t.text }} className="font-black text-lg tracking-tight">Steamy</span>
-            <span className="text-orange-500 font-black text-lg tracking-tight">Bites</span>
-          </div>
+          <img src="/Logo.png" alt="SteamyBites" className="h-10 w-auto object-contain" />
         </button>
 
         <div className="hidden md:flex items-center gap-1">
@@ -334,12 +325,7 @@ function AuthPage({ setUser, setPage, isDark }) {
               <div className="absolute bottom-2 right-8 text-white/20 text-5xl -rotate-6"><FoodIllustrations.Italian /></div>
             </div>
             <div className="relative z-10 flex flex-col items-center">
-              <div className="w-14 h-14 rounded-2xl bg-white/20 backdrop-blur-sm border border-white/30 flex items-center justify-center mb-1 shadow-xl">
-                <svg viewBox="0 0 24 24" fill="none" className="w-7 h-7 text-white" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 2C8 4 4 8 4 14a8 8 0 0016 0C20 8 16 4 12 2z" fill="currentColor" opacity="0.4"/>
-                  <path d="M9 14c0-2 1.5-4 3-5 1.5 1 3 3 3 5a3 3 0 01-6 0z" fill="currentColor"/>
-                </svg>
-              </div>
+              <img src="/Logo.png" alt="SteamyBites" className="h-14 w-auto object-contain drop-shadow-xl" />
               <p className="text-white/80 text-xs font-semibold tracking-widest uppercase">SteamyBites</p>
             </div>
           </div>
@@ -1059,10 +1045,7 @@ function HomePage({ setPage, setCart, isDark }) {
       {/* Footer */}
       <footer className="py-12 px-4 text-center" style={{ background: t.bg }}>
         <div className="flex items-center justify-center gap-2 mb-3">
-          <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 flex items-center justify-center">
-            <svg viewBox="0 0 24 24" fill="none" className="w-4 h-4" stroke="white" strokeWidth="2"><path d="M12 2C8 4 4 8 4 14a8 8 0 0016 0C20 8 16 4 12 2z" fill="white" opacity="0.4"/><path d="M9 14c0-2 1.5-4 3-5 1.5 1 3 3 3 5a3 3 0 01-6 0z" fill="white"/></svg>
-          </div>
-          <span style={{ color: t.text }} className="font-black">Steamy<span className="text-orange-500">Bites</span></span>
+          <img src="/Logo.png" alt="SteamyBites" className="h-8 w-auto object-contain" />
         </div>
         <p style={{ color: t.faint }} className="text-xs">© 2025 SteamyBites · Crafted with care</p>
       </footer>
