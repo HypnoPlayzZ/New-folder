@@ -903,3 +903,216 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ============================================================
+   FOOD CARD — Real Photo Image Support
+   ============================================================ */
+.food-card-img-wrap {
+  overflow: hidden;
+  position: relative;
+  height: 160px;
+  flex-shrink: 0;
+}
+.food-card-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  display: block;
+}
+.food-card:hover .food-card-img {
+  transform: scale(1.07);
+}
+
+/* ============================================================
+   TESTIMONIALS — Infinite Marquee
+   ============================================================ */
+@keyframes marqueeLeft {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+@keyframes marqueeRight {
+  from { transform: translateX(-50%); }
+  to   { transform: translateX(0); }
+}
+.marquee-track-left {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  animation: marqueeLeft 45s linear infinite;
+  will-change: transform;
+}
+.marquee-track-right {
+  display: flex;
+  gap: 16px;
+  width: max-content;
+  animation: marqueeRight 40s linear infinite;
+  will-change: transform;
+}
+.marquee-track-left:hover,
+.marquee-track-right:hover {
+  animation-play-state: paused;
+}
+.marquee-container {
+  overflow: hidden;
+  mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+  -webkit-mask-image: linear-gradient(90deg, transparent, black 8%, black 92%, transparent);
+}
+.review-chip {
+  flex-shrink: 0;
+  width: 290px;
+  padding: 18px 20px;
+  border-radius: 18px;
+  cursor: default;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.review-chip:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px rgba(0,0,0,0.12);
+}
+
+/* ============================================================
+   STATS SECTION
+   ============================================================ */
+.stat-value {
+  font-size: clamp(2rem, 4vw, 2.75rem);
+  font-weight: 900;
+  background: linear-gradient(135deg, #FF8C00 0%, #FFB347 60%, #FF6B00 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+}
+.stat-card-inner {
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s !important;
+}
+.stat-card-inner:hover {
+  transform: translateY(-6px) !important;
+  box-shadow: 0 20px 40px rgba(255,140,0,0.1) !important;
+}
+
+/* ============================================================
+   HOW IT WORKS — Steps
+   ============================================================ */
+.how-step-line {
+  height: 2px;
+  background: linear-gradient(90deg, rgba(255,140,0,0.6) 0%, rgba(255,140,0,0.1) 100%);
+  flex: 1;
+  margin: 0 8px;
+  align-self: center;
+  margin-top: -40px;
+}
+.step-icon-wrap {
+  transition: transform 0.3s var(--ease-spring), box-shadow 0.3s !important;
+}
+.step-icon-wrap:hover {
+  transform: scale(1.12) rotate(-5deg) !important;
+  box-shadow: 0 12px 32px rgba(255,140,0,0.25) !important;
+}
+
+/* ============================================================
+   FOOTER — Rich Layout
+   ============================================================ */
+.footer-link {
+  transition: color 0.2s ease, transform 0.2s ease;
+  display: inline-block;
+}
+.footer-link:hover {
+  color: #FF8C00 !important;
+  transform: translateX(3px);
+}
+.social-btn {
+  transition: transform 0.25s var(--ease-spring), background 0.2s, color 0.2s !important;
+}
+.social-btn:hover {
+  transform: translateY(-4px) scale(1.12) !important;
+  background: rgba(255,140,0,0.15) !important;
+  color: #FF8C00 !important;
+}
+.footer-divider {
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255,140,0,0.2), transparent);
+}
+
+/* ============================================================
+   MOBILE NAV DRAWER
+   ============================================================ */
+.mobile-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(300px, 80vw);
+  z-index: 110;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+.mobile-nav-item {
+  transition: background 0.18s ease, color 0.18s ease, transform 0.18s ease !important;
+}
+.mobile-nav-item:hover { transform: translateX(4px); }
+
+/* ============================================================
+   PROMO BANNER — Sticky scrolling text
+   ============================================================ */
+@keyframes marqueePromo {
+  from { transform: translateX(0); }
+  to   { transform: translateX(-50%); }
+}
+.promo-strip {
+  overflow: hidden;
+  background: linear-gradient(90deg, #FF8C00, #ff6b00, #FF8C00);
+}
+.promo-strip-track {
+  display: flex;
+  width: max-content;
+  animation: marqueePromo 20s linear infinite;
+}
+
+/* ============================================================
+   HERO — Enhanced Photo Frame
+   ============================================================ */
+.hero-photo-ring {
+  position: relative;
+  border-radius: 50%;
+  overflow: hidden;
+  box-shadow:
+    0 0 0 4px rgba(255,140,0,0.2),
+    0 0 0 12px rgba(255,140,0,0.06),
+    0 32px 80px rgba(255,140,0,0.25),
+    0 0 120px rgba(255,140,0,0.1);
+}
+.hero-photo-ring img {
+  transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.hero-photo-ring:hover img {
+  transform: scale(1.06) rotate(1.5deg);
+}
+
+/* ============================================================
+   SECTION HEADINGS
+   ============================================================ */
+.section-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 14px;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: rgba(255,140,0,0.1);
+  border: 1px solid rgba(255,140,0,0.2);
+  color: #FF8C00;
+  margin-bottom: 12px;
+}
+
+/* ============================================================
+   NOTIFICATION BANNER (server wake)
+   ============================================================ */
+.server-wake-banner {
+  animation: fadeUp 0.3s var(--ease-out) both;
+}
+

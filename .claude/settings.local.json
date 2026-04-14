@@ -5,7 +5,8 @@
       "Bash(rm -rf node_modules)",
       "Bash(npm install:*)",
       "Bash(find c:UserscsgovOneDriveDesktopNew-folderclient -name main.* -o -name index.html)",
-      "Bash(npm run:*)"
+      "Bash(npm run:*)",
+      "Bash(ls:*)"
     ]
   }
 }
