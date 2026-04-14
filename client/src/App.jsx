@@ -1013,6 +1013,12 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
   }
 
   async function placeOrder() {
+    if (!user || !localStorage.getItem('customer_token')) {
+      toast.error("Please sign in to place an order");
+      setOpen(false);
+      setPage("auth");
+      return;
+    }
     if (!address.trim()) {
       toast.warning("Please enter a delivery address");
       return;
@@ -1045,7 +1051,8 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
       }, 1800);
     } catch (err) {
       setProcessing(false);
-      toast.error(err.response?.data?.message || 'Failed to place order. Please sign in and try again.');
+      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to place order. Please try again.';
+      toast.error(msg);
     }
   }
 
