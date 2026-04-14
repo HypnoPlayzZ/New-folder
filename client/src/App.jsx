@@ -365,7 +365,7 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
                   {user.name.split(' ')[0]}
                 </span>
                 <button
-                  onClick={() => setUser(null)}
+                  onClick={() => { localStorage.removeItem('customer_token'); localStorage.removeItem('customer_name'); localStorage.removeItem('customer_email'); setUser(null); }}
                   style={{ color: t.faint }}
                   className="text-xs hover:text-orange-500 transition-colors ml-1"
                 >
@@ -468,7 +468,7 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
                   ) : (
                     <div className="flex items-center justify-between px-2">
                       <span style={{ color: t.text }} className="text-sm font-semibold">{user.name}</span>
-                      <button onClick={() => setUser(null)} style={{ color: t.faint }} className="text-xs hover:text-orange-500">Logout</button>
+                      <button onClick={() => { localStorage.removeItem('customer_token'); localStorage.removeItem('customer_name'); localStorage.removeItem('customer_email'); setUser(null); }} style={{ color: t.faint }} className="text-xs hover:text-orange-500">Logout</button>
                     </div>
                   )}
                 </div>
@@ -500,9 +500,12 @@ function AuthPage({ setUser, setPage, isDark }) {
             try {
               const res = await api.post('/auth/google', { token: googleResponse.credential });
               const { token, userName } = res.data;
-              localStorage.setItem('customer_token', token);
               const payload = JSON.parse(atob(googleResponse.credential.split(".")[1]));
-              setUser({ name: userName || payload.name || payload.email, email: payload.email, picture: payload.picture });
+              const name = userName || payload.name || payload.email;
+              localStorage.setItem('customer_token', token);
+              localStorage.setItem('customer_name', name);
+              localStorage.setItem('customer_email', payload.email || '');
+              setUser({ name, email: payload.email, picture: payload.picture });
               setPage("menu");
             } catch {
               setError("Google Sign-In failed. Please try again.");
@@ -1013,7 +1016,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
   }
 
   async function placeOrder() {
-    if (!user || !localStorage.getItem('customer_token')) {
+    if (!localStorage.getItem('customer_token')) {
       toast.error("Please sign in to place an order");
       setOpen(false);
       setPage("auth");
@@ -1999,7 +2002,13 @@ export default function App() {
   const [page, setPage] = useState("home");
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
-  const [user, setUser] = useState(null);
+  // Restore user from localStorage so state survives page refresh
+  const [user, setUser] = useState(() => {
+    const token = localStorage.getItem('customer_token');
+    const name = localStorage.getItem('customer_name');
+    if (token && name) return { name, email: localStorage.getItem('customer_email') || '' };
+    return null;
+  });
   const [isDark, setIsDark] = useState(true);
   const t = isDark ? themes.dark : themes.light;
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
