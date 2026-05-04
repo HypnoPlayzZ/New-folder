@@ -9,7 +9,13 @@ export default defineConfig({
     react(),
   ],
   server: {
-    // Required for Google Sign-In popup to work (window.postMessage)
+    // Required for Google Sign-In popup to postMessage back to the parent.
+    // Mirrors what client/vercel.json sets in production.
+    headers: {
+      'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
+    },
+  },
+  preview: {
     headers: {
       'Cross-Origin-Opener-Policy': 'same-origin-allow-popups',
     },

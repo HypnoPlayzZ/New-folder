@@ -1,1 +1,25 @@
 node_modules
+
+# Environment files (per-folder Vite picks these up). .env.example is committed.
+.env
+.env.local
+.env.*.local
+**/.env
+**/.env.local
+
+# Build output
+dist
+dist-ssr
+*.local
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+pnpm-debug.log*
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea

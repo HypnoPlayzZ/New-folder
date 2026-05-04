@@ -3,13 +3,17 @@ import cors from 'cors';
 import mongoose from 'mongoose';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import 'dotenv/config';
 import { v2 as cloudinary } from 'cloudinary';
 import multer from 'multer';
 import { CloudinaryStorage } from 'multer-storage-cloudinary';
 import csv from 'csv-parser';
 import stream from 'stream';
-import { OAuth2Client } from 'google-auth-library'; // <-- Merged Import
+import { OAuth2Client } from 'google-auth-library';
+import Razorpay from 'razorpay';
+import nodemailer from 'nodemailer';
+import twilio from 'twilio';
 
 // --- Configuration & Environment Variable Check ---
 const requiredEnvVars = [
@@ -28,7 +32,53 @@ for (const varName of requiredEnvVars) {
     }
 }
 
-const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID); // <-- Merged Google Client Setup
+const googleClient = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
+
+// --- Razorpay ----------------------------------------------------------------
+// Optional: server boots without these. Routes return 503 if not configured.
+const razorpayEnabled = !!(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+const razorpay = razorpayEnabled
+    ? new Razorpay({
+        key_id: process.env.RAZORPAY_KEY_ID,
+        key_secret: process.env.RAZORPAY_KEY_SECRET,
+    })
+    : null;
+if (!razorpayEnabled) console.warn('[razorpay] disabled — set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET to enable online payments.');
+
+// --- Email (nodemailer) ------------------------------------------------------
+// Optional. If SMTP_HOST + SMTP_USER + SMTP_PASS are all present, emails are sent.
+const emailEnabled = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+const mailer = emailEnabled
+    ? nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587', 10),
+        secure: process.env.SMTP_SECURE === 'true',
+        auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+    })
+    : null;
+const sendEmail = async ({ to, subject, html }) => {
+    if (!mailer || !to) return;
+    try {
+        await mailer.sendMail({
+            from: process.env.SMTP_FROM || `"Steamy Bites" <${process.env.SMTP_USER}>`,
+            to, subject, html,
+        });
+    } catch (e) { console.warn('[email] send failed:', e.message); }
+};
+if (!emailEnabled) console.warn('[email] disabled — set SMTP_HOST/SMTP_USER/SMTP_PASS to enable order emails.');
+
+// --- SMS (Twilio) ------------------------------------------------------------
+// Optional. If creds are missing we simply log OTPs to the console (dev mode).
+const smsEnabled = !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_FROM);
+const smsClient = smsEnabled ? twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN) : null;
+const sendSms = async (to, body) => {
+    if (!smsClient) return false;
+    try {
+        await smsClient.messages.create({ from: process.env.TWILIO_FROM, to, body });
+        return true;
+    } catch (e) { console.warn('[sms] send failed:', e.message); return false; }
+};
+if (!smsEnabled) console.warn('[sms] disabled — set TWILIO_ACCOUNT_SID/TWILIO_AUTH_TOKEN/TWILIO_FROM to enable SMS OTPs.');
 
 cloudinary.config({
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -78,13 +128,79 @@ const corsOptions = {
     }
 };
 app.use(cors(corsOptions));
-app.use(express.json());
+
+// Razorpay webhook needs the raw body to verify the HMAC signature, so it must
+// be mounted BEFORE express.json() globally consumes the body. The handler is
+// defined further down; we just register a forwarder here.
+app.post('/api/payments/webhook',
+    express.raw({ type: 'application/json' }),
+    (req, res, next) => handleRazorpayWebhook(req, res).catch(next)
+);
+
+app.use(express.json({ limit: '256kb' }));
 
 // This helps with the Cross-Origin-Opener-Policy warnings from Google OAuth
 app.use((req, res, next) => {
   res.setHeader('Cross-Origin-Opener-Policy', 'same-origin-allow-popups');
   next();
 });
+
+// --- Helpers: input sanitization, rate limiting, validation -------------------
+// Strip control chars and tags from user-supplied strings to keep admin UI safe.
+const sanitize = (val, max = 500) => {
+    if (val == null) return '';
+    return String(val)
+        .replace(/\p{C}/gu, '')
+        .replace(/<\/?[a-zA-Z][^>]*>/g, '')
+        .trim()
+        .slice(0, max);
+};
+
+// Simple in-memory token-bucket rate limiter (per key). Sufficient for one node;
+// for horizontal scale swap with Redis-backed limiter.
+const rateBuckets = new Map();
+const rateLimit = ({ key, limit, windowMs }) => {
+    const now = Date.now();
+    const bucket = rateBuckets.get(key) || { count: 0, resetAt: now + windowMs };
+    if (now > bucket.resetAt) { bucket.count = 0; bucket.resetAt = now + windowMs; }
+    bucket.count += 1;
+    rateBuckets.set(key, bucket);
+    return { allowed: bucket.count <= limit, retryAfterMs: Math.max(0, bucket.resetAt - now) };
+};
+const clientIp = (req) =>
+    (req.headers['x-forwarded-for']?.toString().split(',')[0].trim()) ||
+    req.ip || req.socket?.remoteAddress || 'unknown';
+
+const limiter = ({ limit, windowMs, scope = 'ip' }) => (req, res, next) => {
+    const ipKey = clientIp(req);
+    const key = `${scope}:${req.baseUrl || ''}${req.path}:${ipKey}`;
+    const { allowed, retryAfterMs } = rateLimit({ key, limit, windowMs });
+    if (!allowed) {
+        res.setHeader('Retry-After', Math.ceil(retryAfterMs / 1000));
+        return res.status(429).json({ message: 'Too many requests. Please slow down.' });
+    }
+    next();
+};
+
+// Periodic cleanup of expired rate buckets to bound memory.
+setInterval(() => {
+    const now = Date.now();
+    for (const [k, b] of rateBuckets) if (now > b.resetAt + 60_000) rateBuckets.delete(k);
+}, 5 * 60_000).unref?.();
+
+// Order status state machine. Keys are current state, values are allowed next states.
+const ORDER_STATUS_TRANSITIONS = {
+    'Pending Payment': ['Received', 'Rejected'],
+    'Received':        ['Preparing', 'Rejected'],
+    'Preparing':       ['Ready', 'Out for Delivery', 'Rejected'],
+    'Ready':           ['Out for Delivery', 'Rejected'],
+    'Out for Delivery': ['Delivered'],
+    'Delivered':       [],
+    'Rejected':        [],
+};
+const isValidStatusTransition = (from, to) =>
+    from === to || (ORDER_STATUS_TRANSITIONS[from] || []).includes(to);
+
 
 // --- SSE Admin Notifications Setup ---
 const adminSseClients = new Set();
@@ -117,7 +233,11 @@ const notifyCustomerOrderStatus = (orderId, status) => {
 mongoose.connect(mongoURI)
     .then(() => {
         console.log('MongoDB connected successfully');
-        seedAdminUser();
+        // Only seed default admin in environments that explicitly request it.
+        // Production must never ship with admin@example.com / password123.
+        if (process.env.SEED_ADMIN === 'true') {
+            seedAdminUser();
+        }
     })
     .catch(err => console.error('MongoDB connection error:', err));
 
@@ -173,7 +293,7 @@ const OrderSchema = new mongoose.Schema({
     paymentMethod: {
         type: String,
         required: true,
-        enum: ['COD', 'UPI']
+        enum: ['COD', 'UPI', 'RAZORPAY']
     },
     paymentStatus: {
         type: String,
@@ -181,14 +301,11 @@ const OrderSchema = new mongoose.Schema({
         default: 'Pending',
         enum: ['Pending', 'Paid', 'Failed']
     },
-    utr: { // Unique Transaction Reference
-        type: String,
-        trim: true
-    }
-    ,
-    locationCoords: { type: String, required: false }, // e.g. "12.34, 56.78"
-    locationLink: { type: String, required: false }, // e.g. Google Maps link
-    // --- END OF NEW FIELDS ---
+    utr: { type: String, trim: true }, // manual UPI reference (legacy flow)
+    razorpayOrderId: { type: String, index: true },
+    razorpayPaymentId: { type: String },
+    locationCoords: { type: String, required: false },
+    locationLink: { type: String, required: false },
 }, { timestamps: true });
 
 const UserSchema = new mongoose.Schema({
@@ -227,6 +344,8 @@ const OtpSchema = new mongoose.Schema({
     used: { type: Boolean, default: false },
     expiresAt: { type: Date, required: true }
 }, { timestamps: true });
+// TTL index: Mongo auto-purges expired OTP docs, no manual cleanup needed.
+OtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const Otp = mongoose.model('Otp', OtpSchema);
 
@@ -324,24 +443,9 @@ app.post('/api/coupons/validate', async (req, res) => {
     }
 });
 
-// Auth Routes
-
-// --- REMOVED Standard Register Route ---
-/*
-app.post('/api/auth/register', async (req, res) => {
-...
-});
-*/
-
-// --- REMOVED Standard Login Route ---
-/*
-app.post('/api/auth/login', async (req, res) => {
-...
-});
-*/
-
-// --- Merged Google Authentication Route ---
-app.post('/api/auth/google', async (req, res) => {
+// --- Auth Routes ---
+// Customer auth is Google-only; admin auth uses email/password below.
+app.post('/api/auth/google', limiter({ limit: 30, windowMs: 60_000 }), async (req, res) => {
     const { token } = req.body;
     try {
         const ticket = await googleClient.verifyIdToken({
@@ -370,7 +474,7 @@ app.post('/api/auth/google', async (req, res) => {
     }
 });
 
-app.post('/api/auth/admin/login', async (req, res) => {
+app.post('/api/auth/admin/login', limiter({ limit: 10, windowMs: 5 * 60_000 }), async (req, res) => {
     try {
         const { email, password } = req.body;
         const user = await User.findOne({ email, role: 'admin' });
@@ -392,7 +496,8 @@ app.post('/api/auth/admin/login', async (req, res) => {
 
 // --- OTP endpoints for mobile verification (supports guest users) ---
 // Public endpoint: allows sending OTP to a mobile number without authentication.
-app.post('/api/send-otp', async (req, res) => {
+// Layered limits: per-IP burst (10/min), per-mobile cooldown (60s) inside handler.
+app.post('/api/send-otp', limiter({ limit: 10, windowMs: 60_000 }), async (req, res) => {
     try {
         const { mobile } = req.body;
         if (!mobile || typeof mobile !== 'string' || !/^[0-9]{10}$/.test(mobile)) {
@@ -405,15 +510,21 @@ app.post('/api/send-otp', async (req, res) => {
             return res.status(429).json({ message: 'OTP recently sent. Please wait before retrying.' });
         }
 
-        // generate 6-digit code
-        const code = Math.floor(100000 + Math.random() * 900000).toString();
+        // crypto.randomInt is uniform and unpredictable; Math.random is neither.
+        const code = crypto.randomInt(100000, 1_000_000).toString();
         const expiresAt = new Date(Date.now() + 5 * 60 * 1000); // 5 minutes
 
         const otpDoc = new Otp({ user: req.user?.userId || undefined, mobile, code, expiresAt });
         await otpDoc.save();
 
-        // Mock send SMS: log to server console (replace with SMS gateway later)
-        console.log(`OTP for mobile ${mobile}: ${code} (expires ${expiresAt.toISOString()})`);
+        // Try SMS via Twilio first; fall back to console log only when SMS is
+        // unconfigured AND we're not in production (so prod never silently leaks
+        // OTPs to logs).
+        const smsTo = mobile.startsWith('+') ? mobile : `+91${mobile}`;
+        const sent = await sendSms(smsTo, `Your Steamy Bites OTP is ${code}. Valid for 5 minutes.`);
+        if (!sent && process.env.NODE_ENV !== 'production') {
+            console.log(`OTP for mobile ${mobile}: ${code} (expires ${expiresAt.toISOString()})`);
+        }
 
         res.json({ message: 'OTP sent' });
     } catch (error) {
@@ -422,7 +533,7 @@ app.post('/api/send-otp', async (req, res) => {
     }
 });
 
-app.post('/api/verify-otp', async (req, res) => {
+app.post('/api/verify-otp', limiter({ limit: 20, windowMs: 60_000 }), async (req, res) => {
     try {
         const { mobile, code } = req.body;
         if (!mobile || !code) return res.status(400).json({ message: 'Mobile and code are required.' });
@@ -451,31 +562,121 @@ app.post('/api/verify-otp', async (req, res) => {
 
 
 // Customer Routes (Protected)
-app.post('/api/orders', authMiddleware, async (req, res) => {
+app.post('/api/orders', authMiddleware, limiter({ limit: 30, windowMs: 60_000 }), async (req, res) => {
     try {
-        // --- MODIFIED: Handle COD vs UPI status ---
-        const orderData = { ...req.body, user: req.user.userId };
-
-        // If payment is Cash on Delivery, set status to 'Received' immediately
-        // If payment is 'UPI', it will use the schema default 'Pending Payment'
-        if (orderData.paymentMethod === 'COD') {
-            orderData.status = 'Received';
-            orderData.paymentStatus = 'Pending'; // Payment is pending for COD
-        } else {
-            orderData.status = 'Pending Payment';
-            orderData.paymentStatus = 'Pending'; // Payment is pending for UPI
+        const body = req.body || {};
+        const items = Array.isArray(body.items) ? body.items : [];
+        if (items.length === 0) {
+            return res.status(400).json({ message: 'Order must contain at least one item.' });
         }
-        
+
+        // Recompute totals server-side; never trust client prices/discounts.
+        const cleanItems = items.map((it) => {
+            const variant = it.variant === 'half' ? 'half' : 'full';
+            const price = Number(it.priceAtOrder);
+            const qty = parseInt(it.quantity, 10);
+            if (!Number.isFinite(price) || price < 0 || price > 100000) {
+                throw Object.assign(new Error('Invalid item price'), { status: 400 });
+            }
+            if (!Number.isInteger(qty) || qty < 1 || qty > 50) {
+                throw Object.assign(new Error('Invalid item quantity'), { status: 400 });
+            }
+            return {
+                menuItemId: it.menuItemId || undefined,
+                itemName: sanitize(it.itemName, 120),
+                quantity: qty,
+                variant,
+                priceAtOrder: price,
+                instructions: sanitize(it.instructions, 200),
+            };
+        });
+
+        const subtotal = cleanItems.reduce((s, it) => s + it.priceAtOrder * it.quantity, 0);
+        const delivery = subtotal >= 250 ? 0 : 40;
+
+        // Validate coupon server-side if one was applied.
+        let appliedCoupon, discountAmount = 0;
+        if (body.appliedCoupon?.code) {
+            const coupon = await Coupon.findOne({
+                code: String(body.appliedCoupon.code).toUpperCase(),
+                isActive: true,
+            });
+            if (!coupon) return res.status(400).json({ message: 'Coupon is invalid or expired.' });
+            discountAmount = coupon.discountType === 'percentage'
+                ? (subtotal * coupon.discountValue) / 100
+                : coupon.discountValue;
+            // Discount cannot exceed subtotal.
+            discountAmount = Math.min(discountAmount, subtotal);
+            appliedCoupon = {
+                code: coupon.code,
+                discountType: coupon.discountType,
+                discountValue: coupon.discountValue,
+            };
+        }
+
+        const finalPrice = Math.max(0, Math.round(subtotal + delivery - discountAmount));
+        const allowedMethods = ['COD', 'UPI', 'RAZORPAY'];
+        const paymentMethod = allowedMethods.includes(body.paymentMethod) ? body.paymentMethod : 'COD';
+
+        const orderData = {
+            user: req.user.userId,
+            items: cleanItems,
+            totalPrice: subtotal,
+            finalPrice,
+            appliedCoupon,
+            customerName: sanitize(body.customerName, 80) || 'Customer',
+            mobile: /^[0-9]{10}$/.test(body.mobile || '') ? body.mobile : '',
+            address: sanitize(body.address, 400),
+            paymentMethod,
+            paymentStatus: 'Pending',
+            // COD: kitchen starts immediately. UPI / Razorpay: wait for payment.
+            status: paymentMethod === 'COD' ? 'Received' : 'Pending Payment',
+            locationCoords: sanitize(body.locationCoords, 60),
+            locationLink: sanitize(body.locationLink, 300),
+        };
+
+        if (!orderData.address) {
+            return res.status(400).json({ message: 'Delivery address is required.' });
+        }
+
         const newOrder = new Order(orderData);
         const savedOrder = await newOrder.save();
         res.status(201).json(savedOrder);
-        // --- END MODIFICATION ---
+
+        // Notify admin UIs of new order
+        try { sendAdminNotification({ type: 'order_created', order: savedOrder }); } catch (e) { console.warn('notify admin failed', e); }
+        // Email customer (only for COD here; Razorpay/UPI emails fire after payment confirmed)
+        if (savedOrder.paymentMethod === 'COD') {
+            onOrderPlacedNotify(savedOrder).catch(e => console.warn('email failed', e));
+        }
     } catch (error) {
-        console.error("Order placement error:", error);
+        console.error('Order placement error:', error);
+        if (error.status === 400) return res.status(400).json({ message: error.message });
         if (error.name === 'ValidationError') {
             return res.status(400).json({ message: 'Order validation failed', error: error.message });
         }
-        res.status(500).json({ message: 'Error placing order', error: error.message });
+        res.status(500).json({ message: 'Error placing order' });
+    }
+});
+
+// Customer-side order cancellation. Allowed only while status is Pending Payment
+// or Received (kitchen hasn't started cooking).
+app.patch('/api/orders/:id/cancel', authMiddleware, async (req, res) => {
+    try {
+        const order = await Order.findOne({ _id: req.params.id, user: req.user.userId });
+        if (!order) return res.status(404).json({ message: 'Order not found.' });
+        if (!['Pending Payment', 'Received'].includes(order.status)) {
+            return res.status(400).json({ message: `Cannot cancel an order that is already ${order.status}.` });
+        }
+        order.status = 'Rejected';
+        order.paymentStatus = 'Failed';
+        await order.save();
+        res.json(order);
+        try { sendAdminNotification({ type: 'order_cancelled_by_customer', order }); } catch (e) { console.warn('notify admin failed', e); }
+        try { notifyCustomerOrderStatus(order._id, order.status); } catch (e) { console.warn('notify customer failed', e); }
+    } catch (error) {
+        console.error('Order cancellation error:', error);
+        res.status(500).json({ message: 'Error cancelling order.' });
     }
 });
 
@@ -521,6 +722,170 @@ app.patch('/api/orders/:id/confirm-payment', authMiddleware, async (req, res) =>
 });
 // --- END OF NEW ROUTE ---
 
+// --- Razorpay payment flow ---------------------------------------------------
+// 1) Customer creates an order in our DB with paymentMethod='RAZORPAY' (status
+//    = 'Pending Payment'). 2) Client calls create-order to get a Razorpay order
+//    id. 3) Razorpay checkout opens; on success client posts to /verify which
+//    HMACs the response and marks the order Paid + Received. 4) Webhook acts as
+//    a safety net if the client never makes it back to /verify.
+
+app.post('/api/payments/create-order', authMiddleware, limiter({ limit: 30, windowMs: 60_000 }), async (req, res) => {
+    if (!razorpay) return res.status(503).json({ message: 'Online payments are not configured.' });
+    try {
+        const { orderId } = req.body || {};
+        if (!orderId || !mongoose.Types.ObjectId.isValid(orderId)) {
+            return res.status(400).json({ message: 'Valid orderId is required.' });
+        }
+        const order = await Order.findOne({ _id: orderId, user: req.user.userId });
+        if (!order) return res.status(404).json({ message: 'Order not found.' });
+        if (order.paymentMethod !== 'RAZORPAY') return res.status(400).json({ message: 'Order is not a Razorpay order.' });
+        if (order.paymentStatus === 'Paid') return res.status(400).json({ message: 'Order is already paid.' });
+
+        // Razorpay expects the amount in the smallest currency unit (paise).
+        const amount = Math.round(order.finalPrice * 100);
+        const rOrder = await razorpay.orders.create({
+            amount,
+            currency: 'INR',
+            receipt: order._id.toString(),
+            notes: { appOrderId: order._id.toString(), userId: req.user.userId.toString() },
+        });
+
+        order.razorpayOrderId = rOrder.id;
+        await order.save();
+
+        res.json({
+            keyId: process.env.RAZORPAY_KEY_ID,
+            razorpayOrderId: rOrder.id,
+            amount: rOrder.amount,
+            currency: rOrder.currency,
+            order: { _id: order._id, finalPrice: order.finalPrice, customerName: order.customerName, mobile: order.mobile },
+        });
+    } catch (error) {
+        console.error('[razorpay] create-order failed:', error);
+        res.status(500).json({ message: 'Failed to create payment order.' });
+    }
+});
+
+const markRazorpayPaymentSuccessful = async (order, paymentId) => {
+    if (order.paymentStatus === 'Paid') return order;
+    order.paymentStatus = 'Paid';
+    order.razorpayPaymentId = paymentId;
+    // Move from 'Pending Payment' to 'Received' (kitchen can start cooking).
+    if (order.status === 'Pending Payment') order.status = 'Received';
+    await order.save();
+    try { sendAdminNotification({ type: 'order_confirmed', order }); } catch (e) { console.warn('notify admin failed', e); }
+    try { notifyCustomerOrderStatus(order._id, order.status); } catch (e) { console.warn('notify customer failed', e); }
+    try { await onOrderPlacedNotify(order); } catch (e) { console.warn('email failed', e); }
+    return order;
+};
+
+app.post('/api/payments/verify', authMiddleware, limiter({ limit: 30, windowMs: 60_000 }), async (req, res) => {
+    if (!razorpay) return res.status(503).json({ message: 'Online payments are not configured.' });
+    try {
+        const { razorpay_order_id, razorpay_payment_id, razorpay_signature, orderId } = req.body || {};
+        if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature || !orderId) {
+            return res.status(400).json({ message: 'Missing payment fields.' });
+        }
+
+        // Verify the signature exactly as Razorpay docs prescribe.
+        const expected = crypto
+            .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET)
+            .update(`${razorpay_order_id}|${razorpay_payment_id}`)
+            .digest('hex');
+        const ok = crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(razorpay_signature));
+        if (!ok) return res.status(400).json({ message: 'Invalid payment signature.' });
+
+        const order = await Order.findOne({ _id: orderId, user: req.user.userId, razorpayOrderId: razorpay_order_id });
+        if (!order) return res.status(404).json({ message: 'Order not found.' });
+
+        await markRazorpayPaymentSuccessful(order, razorpay_payment_id);
+        res.json({ message: 'Payment verified.', order });
+    } catch (error) {
+        console.error('[razorpay] verify failed:', error);
+        res.status(500).json({ message: 'Failed to verify payment.' });
+    }
+});
+
+// Razorpay → server webhook. Mounted at the top of the file with raw body so
+// we can recompute the HMAC over the exact bytes Razorpay signed.
+async function handleRazorpayWebhook(req, res) {
+    const secret = process.env.RAZORPAY_WEBHOOK_SECRET;
+    if (!razorpay || !secret) return res.status(503).json({ message: 'Webhook not configured.' });
+    try {
+        const signature = req.headers['x-razorpay-signature'];
+        const rawBody = req.body; // Buffer (express.raw)
+        const expected = crypto.createHmac('sha256', secret).update(rawBody).digest('hex');
+        if (!signature || !crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(String(signature)))) {
+            return res.status(400).json({ message: 'Invalid webhook signature.' });
+        }
+        const event = JSON.parse(rawBody.toString('utf8'));
+        // Acknowledge fast; do work after responding so Razorpay doesn't retry.
+        res.json({ ok: true });
+
+        if (event.event === 'payment.captured' || event.event === 'order.paid') {
+            const payment = event.payload?.payment?.entity;
+            const rOrderId = payment?.order_id;
+            if (!rOrderId) return;
+            const order = await Order.findOne({ razorpayOrderId: rOrderId });
+            if (order) await markRazorpayPaymentSuccessful(order, payment.id);
+        } else if (event.event === 'payment.failed') {
+            const payment = event.payload?.payment?.entity;
+            const rOrderId = payment?.order_id;
+            if (!rOrderId) return;
+            const order = await Order.findOne({ razorpayOrderId: rOrderId });
+            if (order && order.paymentStatus !== 'Paid') {
+                order.paymentStatus = 'Failed';
+                await order.save();
+                try { sendAdminNotification({ type: 'order_payment_failed', order }); } catch (e) { console.warn('notify admin failed', e); }
+            }
+        }
+    } catch (error) {
+        console.error('[razorpay] webhook error:', error);
+        // Don't echo error details to caller; they'd already get a 200 if we got past signature check.
+        if (!res.headersSent) res.status(500).json({ message: 'Webhook processing failed.' });
+    }
+}
+
+// --- Email + SMS notification helpers ---------------------------------------
+const formatItems = (items = []) =>
+    items.map(i => `<li>${i.quantity}× ${i.itemName || ''} (${i.variant}) — ₹${i.priceAtOrder * i.quantity}</li>`).join('');
+
+const onOrderPlacedNotify = async (order) => {
+    if (!order || !emailEnabled) return;
+    const populated = await Order.findById(order._id).populate('user', 'email name');
+    const email = populated?.user?.email;
+    if (!email) return;
+    await sendEmail({
+        to: email,
+        subject: `Order #${order._id.toString().slice(-6).toUpperCase()} confirmed`,
+        html: `
+            <h2>Thanks for your order, ${populated.user.name || ''}!</h2>
+            <p>We've received your order. Status: <b>${order.status}</b>.</p>
+            <ul>${formatItems(order.items)}</ul>
+            <p><b>Total: ₹${order.finalPrice}</b></p>
+            <p>Delivery to: ${order.address}</p>
+        `,
+    });
+};
+
+const onOrderStatusNotify = async (order) => {
+    if (!order || !emailEnabled) return;
+    if (!['Out for Delivery', 'Delivered', 'Rejected'].includes(order.status)) return;
+    const populated = await Order.findById(order._id).populate('user', 'email name');
+    const email = populated?.user?.email;
+    if (!email) return;
+    const subjects = {
+        'Out for Delivery': 'Your order is on the way',
+        'Delivered': 'Your order was delivered',
+        'Rejected': 'Your order was cancelled',
+    };
+    await sendEmail({
+        to: email,
+        subject: `${subjects[order.status]} — #${order._id.toString().slice(-6).toUpperCase()}`,
+        html: `<p>Hi ${populated.user.name || ''}, your order status is now <b>${order.status}</b>.</p>`,
+    });
+};
+
 app.get('/api/my-orders', authMiddleware, async (req, res) => {
     const orders = await Order.find({ user: req.user.userId }).populate('items.menuItemId').sort({ createdAt: -1 });
     res.json(orders);
@@ -562,10 +927,24 @@ app.get('/api/orders/:id/status-stream', async (req, res) => {
         res.end();
     });
 });
-app.post('/api/complaints', authMiddleware, async (req, res) => {
-    const complaint = new Complaint({ ...req.body, user: req.user.userId });
-    await complaint.save();
-    res.status(201).json(complaint);
+app.post('/api/complaints', authMiddleware, limiter({ limit: 10, windowMs: 60_000 }), async (req, res) => {
+    try {
+        const message = sanitize(req.body?.message, 1000);
+        if (!message) return res.status(400).json({ message: 'Complaint message is required.' });
+        const orderId = req.body?.orderId;
+        if (!orderId || !mongoose.Types.ObjectId.isValid(orderId)) {
+            return res.status(400).json({ message: 'Valid orderId is required.' });
+        }
+        // Customer must own the order they're complaining about.
+        const order = await Order.findOne({ _id: orderId, user: req.user.userId });
+        if (!order) return res.status(404).json({ message: 'Order not found.' });
+        const complaint = new Complaint({ user: req.user.userId, orderId, message });
+        await complaint.save();
+        res.status(201).json(complaint);
+    } catch (error) {
+        console.error('Error creating complaint:', error);
+        res.status(500).json({ message: 'Failed to create complaint.' });
+    }
 });
 app.get('/api/my-complaints', authMiddleware, async (req, res) => {
     const complaints = await Complaint.find({ user: req.user.userId }).populate('orderId').sort({ createdAt: -1 });
@@ -616,41 +995,49 @@ adminRouter.get('/orders', async (req, res) => {
 adminRouter.patch('/orders/:id/status', async (req, res) => {
     try {
         const { status } = req.body;
-        // Admin can now also mark a 'Pending Payment' as 'Rejected'
         const validStatuses = ['Pending Payment', 'Received', 'Preparing', 'Ready', 'Out for Delivery', 'Delivered', 'Rejected'];
         if (!validStatuses.includes(status)) {
             return res.status(400).json({ message: 'Invalid status update.' });
         }
-        
+
+        const existing = await Order.findById(req.params.id);
+        if (!existing) return res.status(404).json({ message: 'Order not found' });
+
+        // Reject illegal transitions (e.g. Delivered → Preparing, or skipping Out for Delivery).
+        if (!isValidStatusTransition(existing.status, status)) {
+            return res.status(400).json({
+                message: `Cannot transition from "${existing.status}" to "${status}".`,
+            });
+        }
+
         const updatePayload = { status };
 
-        // If admin confirms payment manually (e.g., UTR was wrong, then fixed)
-        // Or if admin marks a COD order as 'Delivered', mark it as 'Paid'
-        if (status === 'Received' || status === 'Delivered') {
+        // Payment status follows real-world events:
+        //  - UPI orders are paid via the customer confirm-payment route.
+        //  - COD orders become Paid only when actually Delivered.
+        //  - Any rejection marks payment Failed.
+        if (status === 'Delivered') {
             updatePayload.paymentStatus = 'Paid';
-        }
-        
-        // If admin rejects a pending payment
-        if (status === 'Rejected') {
-             updatePayload.paymentStatus = 'Failed';
+        } else if (status === 'Rejected') {
+            updatePayload.paymentStatus = 'Failed';
         }
 
         const updatedOrder = await Order.findByIdAndUpdate(
-            req.params.id, 
-            updatePayload, 
+            req.params.id,
+            updatePayload,
             { new: true }
         ).populate('items.menuItemId').populate('user', 'name email');
-        
+
         if (!updatedOrder) {
             return res.status(404).json({ message: 'Order not found' });
         }
         res.json(updatedOrder);
 
-        // Notify admin UIs about status update
         try { sendAdminNotification({ type: 'order_status_updated', order: updatedOrder }); } catch(e) { console.warn('notify admin failed', e); }
-        // Notify the customer watching this order
         try { notifyCustomerOrderStatus(req.params.id, updatedOrder.status); } catch(e) { console.warn('notify customer failed', e); }
+        onOrderStatusNotify(updatedOrder).catch(e => console.warn('email failed', e));
     } catch (error) {
+        console.error('Error updating order status:', error);
         res.status(500).json({ message: 'Error updating order status' });
     }
 });
@@ -685,17 +1072,29 @@ const ensureCategoryExists = async (categoryName) => {
 
 adminRouter.post('/menu', imageUpload.single('image'), async (req, res) => {
     try {
-        const { name, description, priceHalf, priceFull, category } = req.body;
+        const name = sanitize(req.body.name, 120);
+        const description = sanitize(req.body.description, 500);
+        const category = sanitize(req.body.category, 60) || 'Uncategorized';
+        const priceFull = parseFloat(req.body.priceFull);
+        const priceHalf = parseFloat(req.body.priceHalf);
+        if (!name || !description) return res.status(400).json({ message: 'Name and description required.' });
+        if (!Number.isFinite(priceFull) || priceFull < 0 || priceFull > 100000) {
+            return res.status(400).json({ message: 'Full price must be between 0 and 100000.' });
+        }
+        if (Number.isFinite(priceHalf) && (priceHalf < 0 || priceHalf > priceFull)) {
+            return res.status(400).json({ message: 'Half price must be between 0 and the full price.' });
+        }
+
         await ensureCategoryExists(category);
         const lastItem = await MenuItem.findOne({ category }).sort({ position: -1 });
         const newPosition = lastItem ? lastItem.position + 1 : 0;
-        
+
         const newMenuItem = new MenuItem({
             name,
             description,
-            price: { 
-                half: parseFloat(priceHalf) || undefined, 
-                full: parseFloat(priceFull) 
+            price: {
+                half: Number.isFinite(priceHalf) ? priceHalf : undefined,
+                full: priceFull,
             },
             imageUrl: req.file ? req.file.path : '',
             category,
@@ -704,6 +1103,7 @@ adminRouter.post('/menu', imageUpload.single('image'), async (req, res) => {
         await newMenuItem.save();
         res.status(201).json(newMenuItem);
     } catch (error) {
+        if (error.code === 11000) return res.status(400).json({ message: 'A menu item with this name already exists.' });
         res.status(400).json({ message: 'Error creating menu item', error: error.message });
     }
 });
@@ -760,28 +1160,41 @@ adminRouter.post('/categories', async (req, res) => {
 
 adminRouter.patch('/menu/:id', imageUpload.single('image'), async (req, res) => {
     try {
-        const { name, description, priceHalf, priceFull, category, imageUrl: existingImageUrl } = req.body;
+        const name = sanitize(req.body.name, 120);
+        const description = sanitize(req.body.description, 500);
+        const category = sanitize(req.body.category, 60) || 'Uncategorized';
+        const priceFull = parseFloat(req.body.priceFull);
+        const priceHalf = parseFloat(req.body.priceHalf);
+        if (!name || !description) return res.status(400).json({ message: 'Name and description required.' });
+        if (!Number.isFinite(priceFull) || priceFull < 0 || priceFull > 100000) {
+            return res.status(400).json({ message: 'Full price must be between 0 and 100000.' });
+        }
+        if (Number.isFinite(priceHalf) && (priceHalf < 0 || priceHalf > priceFull)) {
+            return res.status(400).json({ message: 'Half price must be between 0 and the full price.' });
+        }
+
         await ensureCategoryExists(category);
         const updateData = {
             name,
             description,
             category,
-            price: { 
-                half: parseFloat(priceHalf) || undefined,
-                full: parseFloat(priceFull) 
+            price: {
+                half: Number.isFinite(priceHalf) ? priceHalf : undefined,
+                full: priceFull,
             },
         };
 
         if (req.file) {
             updateData.imageUrl = req.file.path;
-        } else {
-            updateData.imageUrl = existingImageUrl;
+        } else if (typeof req.body.imageUrl === 'string') {
+            updateData.imageUrl = req.body.imageUrl;
         }
 
         const updatedItem = await MenuItem.findByIdAndUpdate(req.params.id, updateData, { new: true });
         if (!updatedItem) return res.status(404).json({ message: 'Menu item not found' });
         res.json(updatedItem);
     } catch (error) {
+        if (error.code === 11000) return res.status(400).json({ message: 'A menu item with this name already exists.' });
         res.status(400).json({ message: 'Error updating menu item', error: error.message });
     }
 });
@@ -797,8 +1210,22 @@ adminRouter.get('/complaints', async (req, res) => {
 });
 
 adminRouter.patch('/complaints/:id', async (req, res) => {
-    const updatedComplaint = await Complaint.findByIdAndUpdate(req.params.id, { status: req.body.status }, { new: true }).populate('user', 'name email').populate('orderId', 'createdAt');
-    res.json(updatedComplaint);
+    try {
+        const validStatuses = ['Pending', 'In Progress', 'Resolved'];
+        if (!validStatuses.includes(req.body.status)) {
+            return res.status(400).json({ message: 'Invalid complaint status.' });
+        }
+        const updatedComplaint = await Complaint.findByIdAndUpdate(
+            req.params.id,
+            { status: req.body.status },
+            { new: true }
+        ).populate('user', 'name email').populate('orderId', 'createdAt');
+        if (!updatedComplaint) return res.status(404).json({ message: 'Complaint not found.' });
+        res.json(updatedComplaint);
+    } catch (error) {
+        console.error('Error updating complaint:', error);
+        res.status(500).json({ message: 'Error updating complaint.' });
+    }
 });
 
 adminRouter.post('/menu/upload-csv', csvUpload.single('csvFile'), async (req, res) => {
@@ -902,21 +1329,27 @@ adminRouter.patch('/coupons/:id', async (req, res) => {
 // --- Server Start ---
 app.listen(port, () => console.log(`Server running on port ${port}`));
 
-// Seed initial admin user
+// Seed initial admin user. Only runs when SEED_ADMIN=true. Credentials must come
+// from env so we never bake real secrets into source.
 const seedAdminUser = async () => {
     try {
+        const seedEmail = process.env.SEED_ADMIN_EMAIL;
+        const seedPassword = process.env.SEED_ADMIN_PASSWORD;
+        if (!seedEmail || !seedPassword) {
+            console.warn('SEED_ADMIN=true but SEED_ADMIN_EMAIL / SEED_ADMIN_PASSWORD not set. Skipping seed.');
+            return;
+        }
         const adminExists = await User.findOne({ role: 'admin' });
         if (!adminExists) {
-            console.log('No admin user found, creating one...');
-            const hashedPassword = await bcrypt.hash('password123', 12);
+            const hashedPassword = await bcrypt.hash(seedPassword, 12);
             const admin = new User({
-                name: 'Admin',
-                email: 'admin@example.com',
+                name: process.env.SEED_ADMIN_NAME || 'Admin',
+                email: seedEmail,
                 password: hashedPassword,
-                role: 'admin'
+                role: 'admin',
             });
             await admin.save();
-            console.log('Default admin user created: admin@example.com / password123');
+            console.log(`Default admin user created: ${seedEmail}`);
         }
     } catch (error) {
         console.error('Error seeding admin user:', error);

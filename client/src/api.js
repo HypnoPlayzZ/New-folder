@@ -17,7 +17,8 @@ api.interceptors.request.use((config) => {
     return config;
 });
 
-// Simple retry on cold-start failures (network timeout/5xx)
+// Response interceptor: retry on cold-starts (timeout/5xx) and surface 401s as
+// a global event so the app can clear stale tokens and redirect to sign-in.
 api.interceptors.response.use(
     (res) => res,
     async (error) => {
@@ -26,13 +27,28 @@ api.interceptors.response.use(
         const isTimeout = error.code === 'ECONNABORTED';
         const shouldRetry = isTimeout || (status && status >= 500);
 
+        // 401 handling. We only fire the "session expired" flow if the user
+        // *had* a token — otherwise this is just a logged-out user calling a
+        // protected endpoint and the calling code can show its own empty
+        // state without us redirecting them away.
+        if (status === 401 && !config.__skipAuthRedirect) {
+            const hadToken = !!localStorage.getItem('customer_token');
+            if (hadToken) {
+                try {
+                    localStorage.removeItem('customer_token');
+                    localStorage.removeItem('customer_name');
+                    localStorage.removeItem('customer_email');
+                    window.dispatchEvent(new CustomEvent('auth:expired'));
+                } catch {}
+            }
+            return Promise.reject(error);
+        }
+
         // retry only idempotent GET requests up to 2 times
         if (shouldRetry && config.method === 'get') {
             config.__retryCount = (config.__retryCount || 0) + 1;
             if (config.__retryCount <= 2) {
-                // small backoff
                 await new Promise((r) => setTimeout(r, 700 * config.__retryCount));
-                // notify UI that backend might be waking up
                 try {
                     window.dispatchEvent(new CustomEvent('server:wakeup', { detail: { stage: config.__retryCount } }));
                 } catch {}

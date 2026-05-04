@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence, useInView } from "framer-motion";
 import {
   ShoppingCart, User, Sun, Moon, Menu as MenuIcon, X,
@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import './App.css';
-import { api } from './api';
+import { api, getMenuCached } from './api';
 
 // ─────────────────────────────────────────────
 // STATIC DATA
@@ -33,9 +33,37 @@ const MENU_DATA = [
   { id: 15, name: "Cold Coffee", category: "Drinks", halfPrice: null, fullPrice: 99, description: "Creamy blended coffee with vanilla ice cream", rating: 4.6, prepTime: "5 min", tag: "Chilled", available: true },
 ];
 
-const CATEGORIES = ["All", "Momos", "Italian", "Chowmein", "Burgers", "Sides", "Drinks"];
-const COUPONS = { "GRABTHEDEAL": 0.20, "FIRST50": 0.15, "STEAM10": 0.10 };
+const FALLBACK_CATEGORIES = ["All", "Momos", "Italian", "Chowmein", "Burgers", "Sides", "Drinks"];
 const ORDER_STEPS = ["Order Received", "Preparing", "Out for Delivery", "Delivered"];
+
+// Map server menu (categorized: [{name, items:[{_id, price:{half,full}, ...}]}]) to
+// the flat client shape used by FoodCard. Returns null when there are no items so
+// callers can fall back to the static MENU_DATA.
+function normalizeServerMenu(serverData) {
+  if (!Array.isArray(serverData)) return null;
+  const flat = [];
+  serverData.forEach((cat) => {
+    (cat.items || []).forEach((it) => {
+      const half = Number(it?.price?.half);
+      const full = Number(it?.price?.full);
+      if (!Number.isFinite(full)) return;
+      flat.push({
+        id: it._id,
+        name: it.name,
+        category: it.category || cat.name || 'Uncategorized',
+        halfPrice: Number.isFinite(half) ? half : null,
+        fullPrice: full,
+        description: it.description || '',
+        imageUrl: it.imageUrl || '',
+        rating: it.rating || 4.7,
+        prepTime: it.prepTime || '20 min',
+        tag: it.tag || '',
+        available: it.available !== false,
+      });
+    });
+  });
+  return flat.length ? flat : null;
+}
 
 // Real food photos (Unsplash)
 const FOOD_IMAGES = {
@@ -489,8 +517,12 @@ function AuthPage({ setUser, setPage, isDark }) {
   const t = isDark ? themes.dark : themes.light;
 
   useEffect(() => {
-    const GOOGLE_CLIENT_ID = "414726937830-u8n7mhl0ujipnd6lr9ikku005nu72ec6.apps.googleusercontent.com";
+    const GOOGLE_CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
     const buttonDiv = document.getElementById("google-signin-button");
+    if (!GOOGLE_CLIENT_ID) {
+      setError("Sign-in is temporarily unavailable. Please try again later.");
+      return;
+    }
 
     const initGoogleButton = () => {
       if (window.google?.accounts?.id && buttonDiv) {
@@ -881,12 +913,17 @@ function FoodCard({ item, onAddToCart, isDark }) {
 // ─────────────────────────────────────────────
 // COMPONENT: MENU PAGE
 // ─────────────────────────────────────────────
-function MenuPage({ setCart, isDark }) {
+function MenuPage({ setCart, isDark, menuItems, menuLoading }) {
   const [cat, setCat] = useState("All");
   const [q, setQ] = useState("");
   const t = isDark ? themes.dark : themes.light;
 
-  const filtered = MENU_DATA.filter(i =>
+  const items = menuItems && menuItems.length ? menuItems : MENU_DATA;
+  // Build category list from whichever data we're showing, preserving order.
+  const dynamicCategories = ["All", ...Array.from(new Set(items.map(i => i.category)))];
+  const categories = dynamicCategories.length > 1 ? dynamicCategories : FALLBACK_CATEGORIES;
+
+  const filtered = items.filter(i =>
     (cat === "All" || i.category === cat) &&
     (i.name.toLowerCase().includes(q.toLowerCase()) || i.category.toLowerCase().includes(q.toLowerCase()))
   );
@@ -935,7 +972,7 @@ function MenuPage({ setCart, isDark }) {
 
             {/* Category Pills */}
             <motion.div variants={fadeUp} className="flex gap-2 overflow-x-auto pb-1 scrollbar-hide">
-              {CATEGORIES.map(c => (
+              {categories.map(c => (
                 <motion.button
                   key={c}
                   onClick={() => setCat(c)}
@@ -957,10 +994,17 @@ function MenuPage({ setCart, isDark }) {
 
       {/* Menu Grid */}
       <div className="max-w-7xl mx-auto px-4 pb-16">
-        {filtered.length === 0 ? (
+        {menuLoading && items.length === 0 ? (
+          <div className="flex justify-center py-20">
+            <svg className="w-8 h-8 animate-spin text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
+              <path d="M12 2a10 10 0 0110 10" strokeLinecap="round" />
+            </svg>
+          </div>
+        ) : filtered.length === 0 ? (
           <div className="empty-state text-center py-20" style={{ color: t.faint }}>
             <Search className="w-12 h-12 mx-auto mb-4 opacity-40" />
-            <p className="font-semibold">No items found for "{q}"</p>
+            <p className="font-semibold">{q ? `No items found for "${q}"` : 'No items in this category'}</p>
           </div>
         ) : (
           <motion.div
@@ -982,19 +1026,46 @@ function MenuPage({ setCart, isDark }) {
 // ─────────────────────────────────────────────
 // COMPONENT: CART MODAL
 // ─────────────────────────────────────────────
+// Wait for the Razorpay script tag (loaded async in index.html) to be ready.
+function waitForRazorpay(timeoutMs = 6000) {
+  return new Promise((resolve, reject) => {
+    if (window.Razorpay) return resolve(window.Razorpay);
+    const start = Date.now();
+    const i = setInterval(() => {
+      if (window.Razorpay) { clearInterval(i); resolve(window.Razorpay); }
+      else if (Date.now() - start > timeoutMs) { clearInterval(i); reject(new Error('Payment SDK failed to load.')); }
+    }, 100);
+  });
+}
+
 function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
   const [coupon, setCoupon] = useState("");
+  // appliedCoupon: { code, discountType, discountValue, discountAmount } from server
   const [appliedCoupon, setAppliedCoupon] = useState(null);
   const [couponErr, setCouponErr] = useState("");
+  const [couponLoading, setCouponLoading] = useState(false);
   const [address, setAddress] = useState("");
+  const [mobile, setMobile] = useState("");
+  const [addressErr, setAddressErr] = useState("");
+  const [mobileErr, setMobileErr] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState('COD'); // 'COD' | 'RAZORPAY'
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
   const t = isDark ? themes.dark : themes.light;
 
   const sub = cart.reduce((s, i) => s + i.selectedPrice * i.qty, 0);
   const delivery = sub >= 250 ? 0 : 40;
-  const disc = appliedCoupon ? Math.round(sub * COUPONS[appliedCoupon]) : 0;
-  const total = sub + delivery - disc;
+  // Recompute discount when subtotal changes (e.g. user adds/removes items
+  // after applying a percentage coupon).
+  const disc = appliedCoupon
+    ? Math.min(
+        sub,
+        appliedCoupon.discountType === 'percentage'
+          ? Math.round((sub * appliedCoupon.discountValue) / 100)
+          : Math.round(appliedCoupon.discountValue)
+      )
+    : 0;
+  const total = Math.max(0, sub + delivery - disc);
 
   function updQty(key, d) {
     setCart(prev =>
@@ -1003,16 +1074,108 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
     );
   }
 
-  function applyCpn() {
-    if (COUPONS[coupon.toUpperCase()]) {
-      setAppliedCoupon(coupon.toUpperCase());
-      setCouponErr("");
-      toast.success(`Coupon "${coupon.toUpperCase()}" applied!`);
-    } else {
-      setCouponErr("Invalid coupon code");
-      setAppliedCoupon(null);
-      toast.error("Invalid coupon code");
+  async function applyCpn() {
+    const code = coupon.trim().toUpperCase();
+    if (!code) {
+      setCouponErr("Enter a code");
+      return;
     }
+    setCouponLoading(true);
+    setCouponErr("");
+    try {
+      const res = await api.post('/coupons/validate', { code, cartTotal: sub });
+      const data = res.data;
+      setAppliedCoupon({
+        code: data.coupon.code,
+        discountType: data.coupon.discountType,
+        discountValue: data.coupon.discountValue,
+        discountAmount: data.discountAmount,
+      });
+      toast.success(`Coupon "${code}" applied!`);
+    } catch (err) {
+      const msg = err.response?.data?.message || 'Could not validate coupon. Please try again.';
+      setCouponErr(msg);
+      setAppliedCoupon(null);
+      toast.error(msg);
+    } finally {
+      setCouponLoading(false);
+    }
+  }
+
+  function validateForm() {
+    let ok = true;
+    if (!address.trim() || address.trim().length < 8) {
+      setAddressErr("Please enter a complete delivery address");
+      ok = false;
+    } else { setAddressErr(""); }
+    if (mobile && !/^[0-9]{10}$/.test(mobile.trim())) {
+      setMobileErr("Mobile must be 10 digits");
+      ok = false;
+    } else { setMobileErr(""); }
+    return ok;
+  }
+
+  function resetCartAndGoToOrders() {
+    setDone(true);
+    setTimeout(() => {
+      setDone(false);
+      setCart([]);
+      setOpen(false);
+      setAppliedCoupon(null);
+      setCoupon("");
+      setAddress("");
+      setMobile("");
+      setPaymentMethod('COD');
+      setPage("orders");
+    }, 1500);
+  }
+
+  async function payWithRazorpay(orderId) {
+    // 1) Ask the server for a Razorpay order id (server creates it via Razorpay API).
+    const createRes = await api.post('/payments/create-order', { orderId });
+    const { keyId, razorpayOrderId, amount, currency, order } = createRes.data;
+
+    // 2) Wait for the SDK script (added in index.html with async defer) to be ready.
+    const Razorpay = await waitForRazorpay();
+
+    // 3) Open Razorpay checkout. Returns control to handler() on success, or to
+    //    modal.ondismiss when the user closes without paying.
+    return new Promise((resolve, reject) => {
+      const rzp = new Razorpay({
+        key: keyId,
+        amount,
+        currency,
+        name: 'Steamy Bites',
+        description: `Order #${order._id.slice(-6).toUpperCase()}`,
+        order_id: razorpayOrderId,
+        prefill: {
+          name: order.customerName || user?.name || '',
+          email: user?.email || '',
+          contact: order.mobile || mobile || '',
+        },
+        theme: { color: '#FF8C00' },
+        handler: async (response) => {
+          try {
+            await api.post('/payments/verify', {
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+              orderId,
+            });
+            resolve();
+          } catch (err) {
+            reject(err);
+          }
+        },
+        modal: {
+          ondismiss: () => reject(new Error('Payment cancelled.')),
+        },
+      });
+      rzp.on('payment.failed', (resp) => {
+        reject(new Error(resp?.error?.description || 'Payment failed.'));
+      });
+      rzp.open();
+    });
   }
 
   async function placeOrder() {
@@ -1022,39 +1185,57 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
       setPage("auth");
       return;
     }
-    if (!address.trim()) {
-      toast.warning("Please enter a delivery address");
+    if (cart.length === 0) {
+      toast.warning("Your cart is empty");
       return;
     }
+    if (!validateForm()) return;
     setProcessing(true);
     try {
-      await api.post('/orders', {
+      // Server recomputes totals and revalidates the coupon, so what we send is
+      // advisory — the response is the source of truth.
+      const payload = {
         items: cart.map(i => ({
+          menuItemId: typeof i.id === 'string' ? i.id : undefined,
           itemName: i.name,
           quantity: i.qty,
           variant: i.selectedSize === 'half' ? 'half' : 'full',
           priceAtOrder: i.selectedPrice,
         })),
-        totalPrice: sub,
-        finalPrice: total,
         customerName: user?.name || 'Customer',
-        address,
-        paymentMethod: 'COD',
-      });
+        mobile: mobile.trim(),
+        address: address.trim(),
+        paymentMethod,
+        appliedCoupon: appliedCoupon ? {
+          code: appliedCoupon.code,
+          discountType: appliedCoupon.discountType,
+          discountValue: appliedCoupon.discountValue,
+        } : undefined,
+      };
+
+      const orderRes = await api.post('/orders', payload);
+      const placedOrder = orderRes.data;
+
+      if (paymentMethod === 'RAZORPAY') {
+        try {
+          await payWithRazorpay(placedOrder._id);
+          toast.success('Payment successful!');
+        } catch (err) {
+          // Order is in DB but payment didn't complete — leave it as Pending Payment
+          // so the user can retry from the Track Order page (or admin can follow up).
+          const msg = err.response?.data?.message || err.message || 'Payment was not completed.';
+          toast.error(msg);
+          setProcessing(false);
+          setOpen(false);
+          setPage('orders');
+          return;
+        }
+      }
       setProcessing(false);
-      setDone(true);
-      setTimeout(() => {
-        setDone(false);
-        setCart([]);
-        setOpen(false);
-        setAppliedCoupon(null);
-        setCoupon("");
-        setAddress("");
-        setPage("orders");
-      }, 1800);
+      resetCartAndGoToOrders();
     } catch (err) {
       setProcessing(false);
-      const msg = err.response?.data?.message || err.response?.data?.error || err.message || 'Failed to place order. Please try again.';
+      const msg = err.response?.data?.message || err.response?.data?.error || 'Failed to place order. Please try again.';
       toast.error(msg);
     }
   }
@@ -1200,31 +1381,72 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                           </div>
                           <button
                             onClick={applyCpn}
-                            className="px-4 py-2.5 bg-orange-500/15 border border-orange-500/25 text-orange-500 rounded-xl text-sm font-bold hover:bg-orange-500/25 transition-colors"
+                            disabled={couponLoading}
+                            className="px-4 py-2.5 bg-orange-500/15 border border-orange-500/25 text-orange-500 rounded-xl text-sm font-bold hover:bg-orange-500/25 transition-colors disabled:opacity-50"
                           >
-                            Apply
+                            {couponLoading ? '...' : 'Apply'}
                           </button>
                         </div>
                         {couponErr && <p className="text-red-400 text-xs mt-1.5 ml-1">{couponErr}</p>}
                         {appliedCoupon && (
                           <p className="text-green-400 text-xs mt-1.5 ml-1">
-                            ✓ {Math.round(COUPONS[appliedCoupon] * 100)}% discount applied!
+                            ✓ {appliedCoupon.discountType === 'percentage'
+                                ? `${appliedCoupon.discountValue}% off`
+                                : `₹${appliedCoupon.discountValue} off`} applied!
                           </p>
                         )}
                       </div>
 
-                      {/* Address */}
-                      <div style={{ background: t.card, border: `1px solid ${t.border}` }} className="rounded-2xl p-3">
+                      {/* Address + mobile */}
+                      <div style={{ background: t.card, border: `1px solid ${t.border}` }} className="rounded-2xl p-3 space-y-2">
                         <div className="relative">
                           <MapPin className="absolute left-3 top-3 w-4 h-4 text-orange-500/60" />
                           <textarea
                             value={address}
-                            onChange={e => setAddress(e.target.value)}
-                            placeholder="Delivery address..."
+                            onChange={e => { setAddress(e.target.value); if (addressErr) setAddressErr(""); }}
+                            placeholder="Delivery address (with landmark)..."
                             rows={2}
-                            style={{ background: t.inputBg, border: `1px solid ${t.border}`, color: t.text }}
+                            style={{ background: t.inputBg, border: `1px solid ${addressErr ? "rgba(239,68,68,0.4)" : t.border}`, color: t.text }}
                             className="input-field w-full pl-9 pr-3 py-2.5 rounded-xl text-sm outline-none resize-none"
                           />
+                          {addressErr && <p className="text-red-400 text-xs mt-1 ml-1">{addressErr}</p>}
+                        </div>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-orange-500/60" />
+                          <input
+                            value={mobile}
+                            onChange={e => { setMobile(e.target.value.replace(/[^0-9]/g, '').slice(0, 10)); if (mobileErr) setMobileErr(""); }}
+                            placeholder="Mobile number (10 digits) — optional"
+                            inputMode="numeric"
+                            style={{ background: t.inputBg, border: `1px solid ${mobileErr ? "rgba(239,68,68,0.4)" : t.border}`, color: t.text }}
+                            className="input-field w-full pl-9 pr-3 py-2.5 rounded-xl text-sm outline-none"
+                          />
+                          {mobileErr && <p className="text-red-400 text-xs mt-1 ml-1">{mobileErr}</p>}
+                        </div>
+                      </div>
+
+                      {/* Payment method */}
+                      <div style={{ background: t.card, border: `1px solid ${t.border}` }} className="rounded-2xl p-3">
+                        <p style={{ color: t.muted }} className="text-xs font-bold uppercase tracking-wider mb-2 ml-1">Payment</p>
+                        <div className="grid grid-cols-2 gap-2">
+                          {[
+                            { id: 'COD', label: 'Cash on Delivery', sub: 'Pay when you receive' },
+                            { id: 'RAZORPAY', label: 'Pay Online', sub: 'UPI · Card · Wallet' },
+                          ].map(opt => (
+                            <button
+                              key={opt.id}
+                              onClick={() => setPaymentMethod(opt.id)}
+                              style={{
+                                background: paymentMethod === opt.id ? 'rgba(255,140,0,0.12)' : t.inputBg,
+                                border: `1px solid ${paymentMethod === opt.id ? 'rgba(255,140,0,0.45)' : t.border}`,
+                                color: paymentMethod === opt.id ? '#FF8C00' : t.text,
+                              }}
+                              className="text-left px-3 py-2.5 rounded-xl transition-all"
+                            >
+                              <div className="font-bold text-sm leading-tight">{opt.label}</div>
+                              <div style={{ color: t.faint }} className="text-[11px] mt-0.5">{opt.sub}</div>
+                            </button>
+                          ))}
                         </div>
                       </div>
 
@@ -1267,7 +1489,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                       ) : (
                         <>
                           <Truck className="w-5 h-5" />
-                          Confirm Order · ₹{total}
+                          {paymentMethod === 'RAZORPAY' ? `Pay ₹${total}` : `Confirm Order · ₹${total}`}
                         </>
                       )}
                     </motion.button>
@@ -1292,16 +1514,20 @@ const STATUS_TO_STEP = {
   'Delivered': 3, 'Rejected': 3,
 };
 
-function OrdersPage({ isDark }) {
+function OrdersPage({ isDark, user, setPage }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [cancelling, setCancelling] = useState(false);
   const t = isDark ? themes.dark : themes.light;
+  const isAuthed = !!user && !!localStorage.getItem('customer_token');
   const activeOrder = orders[0] || null;
   const pastOrders = orders.slice(1);
   const step = activeOrder ? (STATUS_TO_STEP[activeOrder.status] ?? 0) : 0;
   const isRejected = activeOrder?.status === 'Rejected';
+  const canCancel = activeOrder && ['Pending Payment', 'Received'].includes(activeOrder.status);
 
   const fetchOrders = async () => {
+    if (!isAuthed) { setLoading(false); return; }
     try {
       const res = await api.get('/my-orders');
       setOrders(res.data);
@@ -1309,7 +1535,22 @@ function OrdersPage({ isDark }) {
     setLoading(false);
   };
 
-  useEffect(() => { fetchOrders(); }, []);
+  async function cancelActiveOrder() {
+    if (!activeOrder?._id || !canCancel) return;
+    if (!window.confirm('Cancel this order? This cannot be undone.')) return;
+    setCancelling(true);
+    try {
+      const res = await api.patch(`/orders/${activeOrder._id}/cancel`);
+      setOrders(prev => prev.map((o, i) => i === 0 ? res.data : o));
+      toast.success('Order cancelled.');
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to cancel order.');
+    } finally {
+      setCancelling(false);
+    }
+  }
+
+  useEffect(() => { fetchOrders(); }, [isAuthed]);
 
   useEffect(() => {
     if (!activeOrder?._id) return;
@@ -1338,7 +1579,24 @@ function OrdersPage({ isDark }) {
         <motion.p variants={fadeUp} style={{ color: t.muted }} className="text-sm mb-8">Live status of your active order</motion.p>
       </motion.div>
 
-      {loading ? (
+      {!isAuthed ? (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          style={{ background: t.card, border: `1px solid ${t.border}` }}
+          className="rounded-3xl p-12 flex flex-col items-center justify-center gap-4 mb-8 text-center"
+        >
+          <User className="w-14 h-14 opacity-30" style={{ color: t.faint }} />
+          <p style={{ color: t.text }} className="font-bold">Sign in to see your orders</p>
+          <p style={{ color: t.faint }} className="text-xs max-w-xs">Track live delivery, view past orders, and reorder favourites in one tap.</p>
+          <button
+            onClick={() => setPage && setPage('auth')}
+            className="mt-2 px-6 py-2.5 bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold rounded-xl shadow-lg shadow-orange-500/25 transition-colors"
+          >
+            Sign In
+          </button>
+        </motion.div>
+      ) : loading ? (
         <div className="flex justify-center py-16">
           <svg className="w-8 h-8 animate-spin text-orange-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
             <circle cx="12" cy="12" r="10" strokeOpacity="0.3" />
@@ -1431,6 +1689,18 @@ function OrdersPage({ isDark }) {
               </div>
               <div className="ml-auto text-orange-500 text-xs font-bold animate-pulse">On the way</div>
             </motion.div>
+          )}
+
+          {canCancel && (
+            <div className="mt-5 flex justify-end">
+              <button
+                onClick={cancelActiveOrder}
+                disabled={cancelling}
+                className="text-xs font-bold px-4 py-2 rounded-xl border border-red-500/30 text-red-400 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+              >
+                {cancelling ? 'Cancelling…' : 'Cancel Order'}
+              </button>
+            </div>
           )}
         </motion.div>
       )}
@@ -1698,12 +1968,15 @@ function Footer({ isDark, setPage }) {
             </p>
             <div className="flex gap-3">
               {[
-                { icon: Instagram, label: "Instagram" },
-                { icon: Twitter, label: "Twitter" },
-                { icon: Facebook, label: "Facebook" },
-              ].map(({ icon: Icon, label }) => (
-                <motion.button
+                { icon: Instagram, label: "Instagram", href: "https://www.instagram.com/steamybites" },
+                { icon: Twitter, label: "Twitter", href: "https://twitter.com/steamybites" },
+                { icon: Facebook, label: "Facebook", href: "https://www.facebook.com/steamybites" },
+              ].map(({ icon: Icon, label, href }) => (
+                <motion.a
                   key={label}
+                  href={href}
+                  target="_blank"
+                  rel="noreferrer noopener"
                   whileHover={{ y: -4, scale: 1.12 }}
                   whileTap={{ scale: 0.9 }}
                   style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}
@@ -1711,7 +1984,7 @@ function Footer({ isDark, setPage }) {
                   aria-label={label}
                 >
                   <Icon className="w-4 h-4" />
-                </motion.button>
+                </motion.a>
               ))}
             </div>
           </div>
@@ -1786,9 +2059,12 @@ function Footer({ isDark, setPage }) {
 // ─────────────────────────────────────────────
 // COMPONENT: HOME PAGE
 // ─────────────────────────────────────────────
-function HomePage({ setPage, setCart, isDark }) {
+function HomePage({ setPage, setCart, isDark, menuItems }) {
   const t = isDark ? themes.dark : themes.light;
-  const featured = MENU_DATA.filter(i => ["Bestseller", "Chef's Pick"].includes(i.tag)).slice(0, 4);
+  const sourceItems = menuItems && menuItems.length ? menuItems : MENU_DATA;
+  // Prefer items the kitchen flagged as featured; fall back to first 4 available items.
+  const tagged = sourceItems.filter(i => ["Bestseller", "Chef's Pick"].includes(i.tag)).slice(0, 4);
+  const featured = tagged.length >= 2 ? tagged : sourceItems.slice(0, 4);
   const cats = Object.entries(CategoryIcons);
 
   function addToCart(item) {
@@ -1996,9 +2272,30 @@ function HomePage({ setPage, setCart, isDark }) {
 }
 
 // ─────────────────────────────────────────────
+// ERROR BOUNDARY
+// ─────────────────────────────────────────────
+class AppErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { error: null }; }
+  static getDerivedStateFromError(error) { return { error }; }
+  componentDidCatch(error, info) { console.error('App error:', error, info); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div style={{ background: '#060608', color: '#f2f2f5', minHeight: '100vh' }} className="flex flex-col items-center justify-center p-6 text-center">
+          <h1 className="text-2xl font-black mb-2">Something went wrong</h1>
+          <p className="text-sm text-zinc-400 mb-6">An unexpected error occurred. Please reload the page.</p>
+          <button onClick={() => window.location.reload()} className="px-5 py-2.5 bg-orange-500 text-white rounded-xl font-bold">Reload</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
+// ─────────────────────────────────────────────
 // APP ROOT
 // ─────────────────────────────────────────────
-export default function App() {
+function AppInner() {
   const [page, setPage] = useState("home");
   const [cart, setCart] = useState([]);
   const [cartOpen, setCartOpen] = useState(false);
@@ -2010,11 +2307,43 @@ export default function App() {
     return null;
   });
   const [isDark, setIsDark] = useState(true);
+  const [menuItems, setMenuItems] = useState([]);
+  const [menuLoading, setMenuLoading] = useState(true);
   const t = isDark ? themes.dark : themes.light;
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
   // Scroll to top on page change
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [page]);
+
+  // Fetch the live menu once on mount; fall back silently to MENU_DATA on failure.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const data = await getMenuCached();
+        if (cancelled) return;
+        const flat = normalizeServerMenu(data);
+        if (flat) setMenuItems(flat);
+      } catch {
+        // network/cold-start: leave menuItems empty so MenuPage falls back to MENU_DATA
+      } finally {
+        if (!cancelled) setMenuLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Token expiry handler. Clear the local user, surface a toast, and bounce
+  // them to the auth page so they can sign back in.
+  useEffect(() => {
+    const onExpired = () => {
+      setUser(null);
+      toast.error('Session expired. Please sign in again.');
+      setPage('auth');
+    };
+    window.addEventListener('auth:expired', onExpired);
+    return () => window.removeEventListener('auth:expired', onExpired);
+  }, []);
 
   return (
     <div
@@ -2050,17 +2379,17 @@ export default function App() {
       <AnimatePresence mode="wait">
         {page === "home" && (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-            <HomePage setPage={setPage} setCart={setCart} isDark={isDark} />
+            <HomePage setPage={setPage} setCart={setCart} isDark={isDark} menuItems={menuItems} />
           </motion.div>
         )}
         {page === "menu" && (
           <motion.div key="menu" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-            <MenuPage setCart={setCart} isDark={isDark} />
+            <MenuPage setCart={setCart} isDark={isDark} menuItems={menuItems} menuLoading={menuLoading} />
           </motion.div>
         )}
         {page === "orders" && (
           <motion.div key="orders" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-            <OrdersPage isDark={isDark} />
+            <OrdersPage isDark={isDark} user={user} setPage={setPage} />
           </motion.div>
         )}
         {page === "auth" && (
@@ -2080,5 +2409,13 @@ export default function App() {
         user={user}
       />
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AppErrorBoundary>
+      <AppInner />
+    </AppErrorBoundary>
   );
 }
