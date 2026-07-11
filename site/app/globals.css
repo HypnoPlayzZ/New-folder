@@ -32,7 +32,7 @@
   --arch-shadow: none;
   --wisp-a: 0.05;
   --grain-o: 0.2;
-  --video-filter: saturate(0.55) brightness(0.72) contrast(1.02);
+  --video-filter: invert(1) hue-rotate(180deg) saturate(0.5) brightness(1.05) contrast(0.96);
 }
 
 html {

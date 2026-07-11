@@ -304,7 +304,13 @@
   filter: saturate(0.55) brightness(0.5) contrast(1.05);
 }
 [data-theme="light"] .sc-hero-video-wrap video {
-  filter: saturate(0.55) brightness(0.72) contrast(1.02);
+  /* invert the dark footage on paper: steam reads as dark ink-wisps and the
+     hero merges into the light ground instead of sitting on it as a dark slab */
+  filter: invert(1) hue-rotate(180deg) saturate(0.5) brightness(1.05) contrast(0.96);
+}
+[data-theme="light"] .sc-hero-video-wrap::after {
+  background: linear-gradient(180deg, transparent 30%, var(--sc-hero-ground, #f4f4f4) 88%);
+  opacity: 0.9;
 }
 .sc-arch {
   display: none;
