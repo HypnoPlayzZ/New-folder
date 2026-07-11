@@ -1,0 +1,328 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		003CC0A3473BB1CEEAC58792 /* OrderDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0EB2C112C70F37FACCE7E49D /* OrderDetailView.swift */; };
+		05066C9614143B1E34C8B707 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 363714F5096769F7E1124F70 /* ProfileView.swift */; };
+		119E6351300FC4B0ADDABD99 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 880714009FE4C2419706BA63 /* Theme.swift */; };
+		182B2D0E83167DAB0741BB78 /* Keychain.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9DBB1995A34EDD55FE03A18A /* Keychain.swift */; };
+		19285EFDDE2ACED5B900E6DC /* OrdersView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 082AF64BFBBC309BB62E2524 /* OrdersView.swift */; };
+		2CF8BD5C467869E4C3D9F487 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 00CE5962A3B2580749A16118 /* Assets.xcassets */; };
+		3466C3BF96F900E236ACD0D2 /* GoogleAuth.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EDEF8B0A1356B2D2D0241F0 /* GoogleAuth.swift */; };
+		3FE1E2578FF5B1A1465FE44C /* SteamyBitesApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFD087D67A487B93D13C10A9 /* SteamyBitesApp.swift */; };
+		47821C30D376F45FA694BE79 /* CartView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 626B10198993F63497A51B69 /* CartView.swift */; };
+		4802CEF43BF874A4E9C28DB5 /* APIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F23F68DBB11EBB54F2C99A3 /* APIClient.swift */; };
+		6ECC956B07C764FCB5AF2207 /* Session.swift in Sources */ = {isa = PBXBuildFile; fileRef = B7F4B06D04AE1801EB822C87 /* Session.swift */; };
+		79A8FCD82E490D897EE06D2D /* FloatingCartBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D70B15A729F2A79F0610D13 /* FloatingCartBar.swift */; };
+		81E356528D0BA74ECB1842B0 /* SignInView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28D1B611D90A4159DC1FBC98 /* SignInView.swift */; };
+		89B54E9AF12977C9CEF65046 /* MenuView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D22B6DFC6F8A453DB196291D /* MenuView.swift */; };
+		8FA1D8C86C932144579D2264 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2B4ED1BD5E7B096CCB940B4F /* Components.swift */; };
+		95C6D1AEC4CF19A7E8A65F52 /* Order.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4172ABC37A7EAAB51D781DE4 /* Order.swift */; };
+		9C3AC60ABDB5832BD237C58A /* Effects.swift in Sources */ = {isa = PBXBuildFile; fileRef = F4F516EBD900AB150C2D1DEA /* Effects.swift */; };
+		B95E572235F3EF80839206F8 /* Config.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5AEA9C0D4467D0AB1DC1B403 /* Config.swift */; };
+		C9B7E4553A003223AEEB198A /* Menu.swift in Sources */ = {isa = PBXBuildFile; fileRef = E30442BCF9C6A15B413BDA38 /* Menu.swift */; };
+		CA539A603317EF816C1C3066 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 979FB341B5912C29A3A7B355 /* RootView.swift */; };
+		D60EF80AE66920CD89F686C4 /* Auth.swift in Sources */ = {isa = PBXBuildFile; fileRef = E34F06146820379FA20D60E7 /* Auth.swift */; };
+		E766B84D0DB802E4B3064B76 /* CheckoutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20911CD9504BB31971885836 /* CheckoutView.swift */; };
+		EC4AE9CB0E2673F00F384E95 /* CartStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E0C2434A3C9DA329607B484 /* CartStore.swift */; };
+		FE1FCFEB83410F26272BCE91 /* OrderStatusStream.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4DAFB02410D514C86389752 /* OrderStatusStream.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		00CE5962A3B2580749A16118 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		082AF64BFBBC309BB62E2524 /* OrdersView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrdersView.swift; sourceTree = "<group>"; };
+		0EB2C112C70F37FACCE7E49D /* OrderDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderDetailView.swift; sourceTree = "<group>"; };
+		1D70B15A729F2A79F0610D13 /* FloatingCartBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FloatingCartBar.swift; sourceTree = "<group>"; };
+		20911CD9504BB31971885836 /* CheckoutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CheckoutView.swift; sourceTree = "<group>"; };
+		28D1B611D90A4159DC1FBC98 /* SignInView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SignInView.swift; sourceTree = "<group>"; };
+		2B4ED1BD5E7B096CCB940B4F /* Components.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		363714F5096769F7E1124F70 /* ProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
+		4172ABC37A7EAAB51D781DE4 /* Order.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Order.swift; sourceTree = "<group>"; };
+		5AEA9C0D4467D0AB1DC1B403 /* Config.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Config.swift; sourceTree = "<group>"; };
+		626B10198993F63497A51B69 /* CartView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartView.swift; sourceTree = "<group>"; };
+		6F23F68DBB11EBB54F2C99A3 /* APIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIClient.swift; sourceTree = "<group>"; };
+		7E0C2434A3C9DA329607B484 /* CartStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartStore.swift; sourceTree = "<group>"; };
+		880714009FE4C2419706BA63 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		979FB341B5912C29A3A7B355 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		9DBB1995A34EDD55FE03A18A /* Keychain.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Keychain.swift; sourceTree = "<group>"; };
+		9EDEF8B0A1356B2D2D0241F0 /* GoogleAuth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GoogleAuth.swift; sourceTree = "<group>"; };
+		AF77ACC665302B9EC88C003F /* SteamyBites.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = SteamyBites.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		B7F4B06D04AE1801EB822C87 /* Session.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Session.swift; sourceTree = "<group>"; };
+		CFD087D67A487B93D13C10A9 /* SteamyBitesApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SteamyBitesApp.swift; sourceTree = "<group>"; };
+		D22B6DFC6F8A453DB196291D /* MenuView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MenuView.swift; sourceTree = "<group>"; };
+		D4DAFB02410D514C86389752 /* OrderStatusStream.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrderStatusStream.swift; sourceTree = "<group>"; };
+		E30442BCF9C6A15B413BDA38 /* Menu.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Menu.swift; sourceTree = "<group>"; };
+		E34F06146820379FA20D60E7 /* Auth.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Auth.swift; sourceTree = "<group>"; };
+		F4F516EBD900AB150C2D1DEA /* Effects.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Effects.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		09804A92D6FEB521BDAE4719 = {
+			isa = PBXGroup;
+			children = (
+				6776AD6DDA03A04FCDF95767 /* SteamyBites */,
+				3CCE6FCB633BD967AA9D6102 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3CCE6FCB633BD967AA9D6102 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				AF77ACC665302B9EC88C003F /* SteamyBites.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		6776AD6DDA03A04FCDF95767 /* SteamyBites */ = {
+			isa = PBXGroup;
+			children = (
+				5AEA9C0D4467D0AB1DC1B403 /* Config.swift */,
+				CFD087D67A487B93D13C10A9 /* SteamyBitesApp.swift */,
+				7EE843E3F3FC5A2747CB8A6E /* Models */,
+				EB6E3CB32ECCC1E8403C9D4D /* Networking */,
+				7946349CF77FA0B8C4F8B016 /* Resources */,
+				8F00529BFB06EBC295C86374 /* State */,
+				AB255A6E146259C3BB57930B /* Views */,
+			);
+			path = SteamyBites;
+			sourceTree = "<group>";
+		};
+		7946349CF77FA0B8C4F8B016 /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				00CE5962A3B2580749A16118 /* Assets.xcassets */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		7EE843E3F3FC5A2747CB8A6E /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				E34F06146820379FA20D60E7 /* Auth.swift */,
+				E30442BCF9C6A15B413BDA38 /* Menu.swift */,
+				4172ABC37A7EAAB51D781DE4 /* Order.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		8F00529BFB06EBC295C86374 /* State */ = {
+			isa = PBXGroup;
+			children = (
+				7E0C2434A3C9DA329607B484 /* CartStore.swift */,
+				B7F4B06D04AE1801EB822C87 /* Session.swift */,
+			);
+			path = State;
+			sourceTree = "<group>";
+		};
+		AB255A6E146259C3BB57930B /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				626B10198993F63497A51B69 /* CartView.swift */,
+				20911CD9504BB31971885836 /* CheckoutView.swift */,
+				2B4ED1BD5E7B096CCB940B4F /* Components.swift */,
+				F4F516EBD900AB150C2D1DEA /* Effects.swift */,
+				1D70B15A729F2A79F0610D13 /* FloatingCartBar.swift */,
+				D22B6DFC6F8A453DB196291D /* MenuView.swift */,
+				0EB2C112C70F37FACCE7E49D /* OrderDetailView.swift */,
+				082AF64BFBBC309BB62E2524 /* OrdersView.swift */,
+				363714F5096769F7E1124F70 /* ProfileView.swift */,
+				979FB341B5912C29A3A7B355 /* RootView.swift */,
+				28D1B611D90A4159DC1FBC98 /* SignInView.swift */,
+				880714009FE4C2419706BA63 /* Theme.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+		EB6E3CB32ECCC1E8403C9D4D /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				6F23F68DBB11EBB54F2C99A3 /* APIClient.swift */,
+				9EDEF8B0A1356B2D2D0241F0 /* GoogleAuth.swift */,
+				9DBB1995A34EDD55FE03A18A /* Keychain.swift */,
+				D4DAFB02410D514C86389752 /* OrderStatusStream.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		653D8306EA2EF7C7FD9BED26 /* SteamyBites */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 55C2275D8AF2D424649669E1 /* Build configuration list for PBXNativeTarget "SteamyBites" */;
+			buildPhases = (
+				80E4E50FBB92A99F3E1946C9 /* Sources */,
+				E9B68A564AE359A9970C9FE2 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = SteamyBites;
+			packageProductDependencies = (
+			);
+			productName = SteamyBites;
+			productReference = AF77ACC665302B9EC88C003F /* SteamyBites.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		FFDFF794649B635A63215059 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+				};
+			};
+			buildConfigurationList = A6C676B957B73D5D9E043CE2 /* Build configuration list for PBXProject "SteamyBites" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 09804A92D6FEB521BDAE4719;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 3CCE6FCB633BD967AA9D6102 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				653D8306EA2EF7C7FD9BED26 /* SteamyBites */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		E9B68A564AE359A9970C9FE2 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				2CF8BD5C467869E4C3D9F487 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		80E4E50FBB92A99F3E1946C9 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				4802CEF43BF874A4E9C28DB5 /* APIClient.swift in Sources */,
+				D60EF80AE66920CD89F686C4 /* Auth.swift in Sources */,
+				EC4AE9CB0E2673F00F384E95 /* CartStore.swift in Sources */,
+				47821C30D376F45FA694BE79 /* CartView.swift in Sources */,
+				E766B84D0DB802E4B3064B76 /* CheckoutView.swift in Sources */,
+				8FA1D8C86C932144579D2264 /* Components.swift in Sources */,
+				B95E572235F3EF80839206F8 /* Config.swift in Sources */,
+				9C3AC60ABDB5832BD237C58A /* Effects.swift in Sources */,
+				79A8FCD82E490D897EE06D2D /* FloatingCartBar.swift in Sources */,
+				3466C3BF96F900E236ACD0D2 /* GoogleAuth.swift in Sources */,
+				182B2D0E83167DAB0741BB78 /* Keychain.swift in Sources */,
+				C9B7E4553A003223AEEB198A /* Menu.swift in Sources */,
+				89B54E9AF12977C9CEF65046 /* MenuView.swift in Sources */,
+				95C6D1AEC4CF19A7E8A65F52 /* Order.swift in Sources */,
+				003CC0A3473BB1CEEAC58792 /* OrderDetailView.swift in Sources */,
+				FE1FCFEB83410F26272BCE91 /* OrderStatusStream.swift in Sources */,
+				19285EFDDE2ACED5B900E6DC /* OrdersView.swift in Sources */,
+				05066C9614143B1E34C8B707 /* ProfileView.swift in Sources */,
+				CA539A603317EF816C1C3066 /* RootView.swift in Sources */,
+				6ECC956B07C764FCB5AF2207 /* Session.swift in Sources */,
+				81E356528D0BA74ECB1842B0 /* SignInView.swift in Sources */,
+				3FE1E2578FF5B1A1465FE44C /* SteamyBitesApp.swift in Sources */,
+				119E6351300FC4B0ADDABD99 /* Theme.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		18923CA9591699B83BC59EA8 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SteamyBites/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.steamybites.app;
+				PRODUCT_NAME = SteamyBites;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		24A8F703AA8BEF6F0259A19C /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		BCDB1E626739EE45477FFB1A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGNING_ALLOWED = NO;
+				CODE_SIGNING_REQUIRED = NO;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				SDKROOT = iphoneos;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		F27A63B5A14FCA3B8D495F5D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = SteamyBites/Resources/Info.plist;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.steamybites.app;
+				PRODUCT_NAME = SteamyBites;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		55C2275D8AF2D424649669E1 /* Build configuration list for PBXNativeTarget "SteamyBites" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				18923CA9591699B83BC59EA8 /* Debug */,
+				F27A63B5A14FCA3B8D495F5D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		A6C676B957B73D5D9E043CE2 /* Build configuration list for PBXProject "SteamyBites" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				24A8F703AA8BEF6F0259A19C /* Debug */,
+				BCDB1E626739EE45477FFB1A /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = FFDFF794649B635A63215059 /* Project object */;
+}
