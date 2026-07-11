@@ -1,0 +1,261 @@
+/* ───────────────────────────────────────────────────────────
+   Steamy Bites — cinematic experience styles
+   Layering inside .sb-stage-fixed:  video (0) < webgl (1) < overlays (2)
+   ─────────────────────────────────────────────────────────── */
+.sb-root {
+  position: relative;
+  background: #070809;
+  color: #f4f5f7;
+  --neon: #c9a96a;
+  --neon-deep: #a9803e;
+  --neon-glow: rgba(201, 169, 106, 0.55);
+}
+
+.sb-stage-fixed {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;           /* overlays opt back in individually */
+  z-index: 1;
+}
+.sb-scroll-spacer { position: relative; width: 100%; z-index: 0; }
+
+/* ── Video layers ───────────────────────────── */
+.sb-videos { position: absolute; inset: 0; z-index: 0; }
+.sb-video {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%;
+  object-fit: cover;
+  will-change: opacity;
+}
+.sb-video-scrim {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(120% 80% at 50% 30%, transparent 30%, rgba(7, 8, 9, 0.55) 100%),
+    linear-gradient(180deg, rgba(7, 8, 9, 0.45) 0%, rgba(7, 8, 9, 0.15) 40%, rgba(7, 8, 9, 0.75) 100%);
+}
+
+/* ── WebGL canvas ───────────────────────────── */
+.sb-canvas {
+  position: absolute !important;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;           /* tilt is driven by window pointer, no raycast */
+}
+
+/* ── Shared bits ────────────────────────────── */
+.sb-eyebrow {
+  font-size: clamp(0.62rem, 1vw, 0.78rem);
+  letter-spacing: 0.42em;
+  font-weight: 700;
+  color: var(--neon);
+  text-transform: uppercase;
+}
+.sb-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+
+/* ── Stage 1 hero text ──────────────────────── */
+.sb-hero-text {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 1.1rem;
+  padding: 0 6vw;
+  will-change: opacity, transform;
+}
+/* Soft radial scrim so the type stays legible over the steamer + video,
+   without the muddy color inversion mix-blend was producing. */
+.sb-hero-text::before {
+  content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none;
+  background: radial-gradient(60% 50% at 50% 46%, rgba(7, 8, 9, 0.72) 0%, rgba(7, 8, 9, 0.4) 45%, transparent 72%);
+}
+.sb-hero-headline {
+  display: flex; flex-direction: column; gap: 0.06em;
+  font-family: 'Fraunces', Georgia, serif;
+  font-weight: 380;
+  font-size: clamp(2.6rem, 9.5vw, 9rem);
+  line-height: 0.96;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin: 0;
+  text-shadow: 0 6px 50px rgba(0, 0, 0, 0.6), 0 2px 14px rgba(0, 0, 0, 0.5);
+}
+.sb-hero-love {
+  color: var(--neon);
+  text-shadow: 0 0 36px var(--neon-glow), 0 6px 50px rgba(0, 0, 0, 0.5);
+}
+.sb-hero-sub {
+  font-size: clamp(0.85rem, 1.6vw, 1.15rem);
+  color: #d7dade; font-weight: 500; max-width: 36ch; margin: 0 auto;
+}
+.sb-scroll-hint {
+  position: absolute; bottom: 4vh; left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: 0.7rem;
+  font-size: 0.66rem; letter-spacing: 0.34em; color: #c9ccd1; font-weight: 700;
+}
+.sb-scroll-bar {
+  width: 2px; height: 46px; border-radius: 2px;
+  background: linear-gradient(180deg, var(--neon), transparent);
+  position: relative; overflow: hidden;
+}
+.sb-scroll-bar i {
+  position: absolute; top: -50%; left: 0; width: 100%; height: 50%;
+  background: #fff; border-radius: 2px;
+  animation: sbScroll 1.8s cubic-bezier(0.7, 0, 0.3, 1) infinite;
+}
+@keyframes sbScroll { to { top: 120%; } }
+
+/* ── Stage 2 menu lane ──────────────────────── */
+.sb-menu-lane {
+  position: absolute; top: 0; right: 0; bottom: 0; z-index: 2;
+  width: min(46vw, 620px);
+  display: flex; flex-direction: column; justify-content: center; gap: 2rem;
+  padding: 0 5vw 0 2rem;
+  will-change: opacity;
+}
+.sb-lane-rail { display: flex; flex-direction: column; gap: 0.6rem; }
+.sb-rail-item {
+  display: flex; align-items: center; gap: 0.7rem;
+  font-size: 0.92rem; font-weight: 600; color: #6b7280;
+  transition: color 0.4s ease, transform 0.4s ease;
+}
+.sb-rail-item.is-active { color: #fff; transform: translateX(6px); }
+.sb-rail-dot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid; transition: background 0.4s ease; }
+
+.sb-lane-card {
+  border-left: 2px solid var(--cat, var(--neon));
+  padding-left: 1.6rem;
+  animation: sbCardIn 0.55s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes sbCardIn { from { opacity: 0; transform: translateY(18px); } to { opacity: 1; transform: none; } }
+.sb-lane-index { font-size: 0.72rem; letter-spacing: 0.3em; color: var(--cat, var(--neon)); font-weight: 700; }
+.sb-lane-title {
+  font-size: clamp(2rem, 4.5vw, 3.6rem); font-weight: 900; line-height: 1; margin: 0.4rem 0 0.7rem;
+  text-transform: uppercase; letter-spacing: -0.02em;
+}
+.sb-lane-blurb { color: #aab0b9; font-size: clamp(0.9rem, 1.4vw, 1.1rem); max-width: 34ch; line-height: 1.5; }
+.sb-lane-meta {
+  display: flex; align-items: center; gap: 1.2rem; margin-top: 1.4rem;
+  font-size: 0.85rem; color: #c9ccd1; font-weight: 600;
+}
+.sb-lane-meta span { display: inline-flex; align-items: center; gap: 0.4rem; }
+.sb-lane-meta .sb-lane-name { color: #7f8794; font-weight: 500; }
+.sb-lane-buy { display: flex; align-items: center; gap: 1.4rem; margin-top: 1.6rem; }
+.sb-lane-price { font-size: 1.9rem; font-weight: 900; color: #fff; }
+.sb-add-btn {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.8rem 1.5rem; border-radius: 999px; border: none; cursor: pointer;
+  font-weight: 800; font-size: 0.95rem; color: #06120b;
+  background: var(--cat, var(--neon));
+  box-shadow: 0 10px 30px -8px var(--cat, var(--neon-glow));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.sb-add-btn:hover { transform: translateY(-2px) scale(1.03); }
+.sb-add-btn:active { transform: scale(0.96); }
+
+/* ── Stage 3 checkout ───────────────────────── */
+.sb-checkout {
+  position: absolute; inset: 0; z-index: 2;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; gap: 1.3rem; padding: 0 6vw;
+  will-change: opacity, transform;
+}
+.sb-checkout-title {
+  font-size: clamp(2.4rem, 7vw, 6rem); font-weight: 900; line-height: 0.95; margin: 0;
+  text-transform: uppercase; letter-spacing: -0.02em; color: #fff;
+}
+.sb-checkout-summary {
+  display: flex; flex-direction: column; gap: 0.8rem;
+  background: rgba(13, 15, 18, 0.6); backdrop-filter: blur(14px);
+  border: 1px solid rgba(255, 255, 255, 0.09); border-radius: 20px;
+  padding: 1.1rem 1.6rem; min-width: min(420px, 86vw);
+}
+.sb-sum-row { display: flex; align-items: center; justify-content: space-between; font-weight: 600; color: #d7dade; }
+.sb-sum-total { font-size: 1.5rem; font-weight: 900; color: var(--neon); }
+.sb-sum-perks { display: flex; gap: 1.4rem; justify-content: center; font-size: 0.78rem; color: #9aa0aa; font-weight: 600; }
+.sb-sum-perks span { display: inline-flex; align-items: center; gap: 0.4rem; }
+
+/* magnetic field wrapper */
+.sb-magnetic-field { display: inline-block; }
+
+/* neon wave checkout button */
+.sb-checkout-btn {
+  position: relative; cursor: pointer; border: none; background: transparent;
+  padding: 0; width: min(560px, 88vw); height: 88px;
+  display: inline-flex; align-items: center; justify-content: center;
+  will-change: transform;
+}
+.sb-checkout-btn::before {
+  content: ''; position: absolute; inset: 0; border-radius: 46px;
+  background: radial-gradient(60% 120% at 50% 50%, rgba(201, 169, 106, 0.22), rgba(6, 193, 103, 0.08) 60%, transparent 75%);
+  box-shadow: 0 0 60px -6px var(--neon-glow), inset 0 0 30px -10px var(--neon-glow);
+  backdrop-filter: blur(8px);
+}
+.sb-wave-border { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; filter: drop-shadow(0 0 8px var(--neon-glow)); }
+.sb-wave-rect { stroke-dasharray: 90 1300; animation: sbWave 3.2s linear infinite; }
+@keyframes sbWave { to { stroke-dashoffset: -1390; } }
+.sb-checkout-label {
+  position: relative; z-index: 1;
+  display: inline-flex; align-items: center; gap: 0.7rem;
+  font-weight: 900; letter-spacing: 0.06em; font-size: clamp(0.85rem, 1.5vw, 1.12rem);
+  color: var(--neon); text-transform: uppercase; text-shadow: 0 0 18px var(--neon-glow);
+}
+.sb-checkout-btn:hover .sb-checkout-label { color: #fff; }
+.sb-checkout-fine { color: #7f8794; font-size: 0.8rem; max-width: 42ch; }
+
+/* ── Floating cart bubble ───────────────────── */
+.sb-cart-bubble {
+  position: fixed; right: clamp(16px, 3vw, 34px); bottom: clamp(16px, 3vw, 34px); z-index: 60;
+  width: 62px; height: 62px; border-radius: 50%; border: 1px solid rgba(201, 169, 106, 0.35);
+  background: rgba(13, 15, 18, 0.72); backdrop-filter: blur(10px);
+  color: var(--neon); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 14px 40px -10px rgba(0, 0, 0, 0.6), 0 0 26px -6px var(--neon-glow);
+  transition: transform 0.2s ease;
+}
+.sb-cart-bubble:hover { transform: scale(1.08); }
+.sb-cart-count {
+  position: absolute; top: -4px; right: -4px; min-width: 22px; height: 22px; padding: 0 5px;
+  border-radius: 11px; background: var(--neon); color: #06120b;
+  font-size: 0.72rem; font-weight: 900; display: flex; align-items: center; justify-content: center;
+}
+
+/* flying token */
+.sb-fly-token {
+  position: fixed; z-index: 70; pointer-events: none;
+  font-size: 38px; line-height: 1; transform: translate(-50%, -50%);
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.5)) drop-shadow(0 0 10px var(--sb-token-color, var(--neon)));
+}
+
+/* progress + utility */
+.sb-progress { position: fixed; top: 0; left: 0; right: 0; height: 3px; z-index: 60; background: rgba(255, 255, 255, 0.06); }
+.sb-progress span {
+  display: block; height: 100%; transform-origin: 0 50%; transform: scaleX(0);
+  background: linear-gradient(90deg, var(--neon-deep), var(--neon)); box-shadow: 0 0 12px var(--neon-glow);
+}
+.sb-fullmenu {
+  position: fixed; left: clamp(16px, 3vw, 34px); bottom: clamp(16px, 3vw, 34px); z-index: 60;
+  pointer-events: auto; cursor: pointer;
+  background: rgba(13, 15, 18, 0.6); backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.12); border-radius: 999px;
+  color: #d7dade; font-weight: 700; font-size: 0.82rem; padding: 0.6rem 1.1rem;
+  transition: color 0.25s ease, border-color 0.25s ease;
+}
+.sb-fullmenu:hover { color: var(--neon); border-color: var(--neon); }
+
+/* opt overlays back into pointer events */
+.sb-menu-lane, .sb-checkout { pointer-events: none; }
+.sb-menu-lane .sb-add-btn, .sb-checkout-btn, .sb-magnetic-field { pointer-events: auto; }
+
+/* ── Mobile tuning ──────────────────────────── */
+@media (max-width: 768px) {
+  .sb-menu-lane { width: 100%; padding: 0 6vw; justify-content: flex-end; padding-bottom: 14vh; }
+  .sb-lane-rail { flex-direction: row; flex-wrap: wrap; gap: 0.5rem 1rem; }
+  .sb-hero-headline { font-size: clamp(2.4rem, 14vw, 4rem); }
+  .sb-checkout-summary { min-width: 0; width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .sb-scroll-bar i, .sb-wave-rect { animation: none; }
+}

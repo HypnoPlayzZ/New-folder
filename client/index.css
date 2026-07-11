@@ -1,5 +1,16 @@
 @import "tailwindcss";
 
+/* Supper Club reskin: remap Tailwind's orange scale to the brand gold family
+   so every `text-orange-500` / `bg-orange-500/10` / gradient class shifts
+   without touching markup. */
+@theme {
+  --color-orange-300: #e7d6ac;
+  --color-orange-400: #d9bc82;
+  --color-orange-500: #c9a96a;
+  --color-orange-600: #a9803e;
+  --color-orange-700: #8a6730;
+}
+
 /* Add any global base styles here */
 body {
   margin: 0;

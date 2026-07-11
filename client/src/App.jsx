@@ -11,6 +11,9 @@ import {
 import { toast, Toaster } from "sonner";
 import './App.css';
 import { api, getMenuCached } from './api';
+import SteamyHome from './experience/SteamyHome'; // preserved: previous cinematic home, swap back by rendering it in the "home" branch
+import SupperHome from './SupperHome';
+import './supper.css';
 
 // ─────────────────────────────────────────────
 // STATIC DATA
@@ -77,7 +80,7 @@ const FOOD_IMAGES = {
 };
 
 const REVIEWS = [
-  { name: "Ananya S.", text: "Super quick delivery and piping hot momos! Best in town without doubt.", rating: 5, initial: "A", color: "#FF8C00" },
+  { name: "Ananya S.", text: "Super quick delivery and piping hot momos! Best in town without doubt.", rating: 5, initial: "A", color: "#C9A96A" },
   { name: "Rohit M.", text: "Loved the spicy chutney. Ordering again tonight. Highly recommend!", rating: 5, initial: "R", color: "#9333EA" },
   { name: "Priya K.", text: "Free delivery + 10% discount. Great portions and amazing quality.", rating: 5, initial: "P", color: "#0EA5E9" },
   { name: "Kabir T.", text: "Soft inside, crispy outside. Perfect momos every single time!", rating: 4, initial: "K", color: "#10B981" },
@@ -103,16 +106,18 @@ const HOW_STEPS = [
 // ─────────────────────────────────────────────
 // THEME VARS
 // ─────────────────────────────────────────────
+/* Supper Club system — same palette as the marketing site (site/app/globals.css).
+   Night: warm near-black ground, ivory ink, gold hairlines. Day: ivory ground, espresso ink. */
 const themes = {
   dark: {
-    bg: "#060608", surface: "#0e0e12", card: "rgba(255,255,255,0.035)",
-    border: "rgba(255,255,255,0.07)", text: "#f2f2f5", muted: "#7a7a88", faint: "#404050",
-    inputBg: "rgba(255,255,255,0.05)", navBg: "rgba(6,6,8,0.85)",
+    bg: "#0c0a09", surface: "#0a0908", card: "rgba(239,230,216,0.04)",
+    border: "rgba(201,169,106,0.16)", text: "#efe6d8", muted: "#9c8f78", faint: "#5d5443",
+    inputBg: "rgba(239,230,216,0.06)", navBg: "rgba(12,10,9,0.85)",
   },
   light: {
-    bg: "#faf9f7", surface: "#ffffff", card: "rgba(0,0,0,0.028)",
-    border: "rgba(0,0,0,0.08)", text: "#18181b", muted: "#5c5c6e", faint: "#b0b0bc",
-    inputBg: "rgba(0,0,0,0.04)", navBg: "rgba(250,249,247,0.92)",
+    bg: "#f2ebdd", surface: "#faf6ec", card: "rgba(36,28,18,0.03)",
+    border: "rgba(169,128,62,0.22)", text: "#241c12", muted: "#6a5e4b", faint: "#b3a68e",
+    inputBg: "rgba(36,28,18,0.04)", navBg: "rgba(242,235,221,0.92)",
   }
 };
 
@@ -193,65 +198,65 @@ const CategoryIcons = {
 const FoodIllustrations = {
   Momos: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <ellipse cx="40" cy="55" rx="28" ry="14" fill="#FF8C00" opacity="0.15"/>
-      <path d="M14 48 Q20 28 40 24 Q60 28 66 48" stroke="#FF8C00" strokeWidth="3" fill="none" strokeLinecap="round"/>
-      <path d="M14 48 Q26 62 40 62 Q54 62 66 48" stroke="#FF8C00" strokeWidth="3" fill="none"/>
-      <path d="M25 44 Q32 36 40 36 Q48 36 55 44" stroke="#FF8C00" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      <path d="M38 24 Q40 18 42 22" stroke="#FF8C00" strokeWidth="2.5" strokeLinecap="round"/>
-      <circle cx="40" cy="43" r="3" fill="#FF8C00" opacity="0.4"/>
+      <ellipse cx="40" cy="55" rx="28" ry="14" fill="#C9A96A" opacity="0.15"/>
+      <path d="M14 48 Q20 28 40 24 Q60 28 66 48" stroke="#C9A96A" strokeWidth="3" fill="none" strokeLinecap="round"/>
+      <path d="M14 48 Q26 62 40 62 Q54 62 66 48" stroke="#C9A96A" strokeWidth="3" fill="none"/>
+      <path d="M25 44 Q32 36 40 36 Q48 36 55 44" stroke="#C9A96A" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      <path d="M38 24 Q40 18 42 22" stroke="#C9A96A" strokeWidth="2.5" strokeLinecap="round"/>
+      <circle cx="40" cy="43" r="3" fill="#C9A96A" opacity="0.4"/>
     </svg>
   ),
   Italian: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <path d="M12 60 L40 16 L68 60 Z" stroke="#FF8C00" strokeWidth="2.5" fill="#FF8C00" fillOpacity="0.08" strokeLinejoin="round"/>
-      <circle cx="34" cy="44" r="5" fill="#FF8C00" opacity="0.5"/>
-      <circle cx="46" cy="50" r="4" fill="#FF8C00" opacity="0.4"/>
-      <circle cx="40" cy="36" r="3" fill="#FF8C00" opacity="0.3"/>
-      <circle cx="28" cy="54" r="3" fill="#FF8C00" opacity="0.3"/>
-      <path d="M12 60 Q40 66 68 60" stroke="#FF8C00" strokeWidth="3" fill="none" strokeLinecap="round"/>
+      <path d="M12 60 L40 16 L68 60 Z" stroke="#C9A96A" strokeWidth="2.5" fill="#C9A96A" fillOpacity="0.08" strokeLinejoin="round"/>
+      <circle cx="34" cy="44" r="5" fill="#C9A96A" opacity="0.5"/>
+      <circle cx="46" cy="50" r="4" fill="#C9A96A" opacity="0.4"/>
+      <circle cx="40" cy="36" r="3" fill="#C9A96A" opacity="0.3"/>
+      <circle cx="28" cy="54" r="3" fill="#C9A96A" opacity="0.3"/>
+      <path d="M12 60 Q40 66 68 60" stroke="#C9A96A" strokeWidth="3" fill="none" strokeLinecap="round"/>
     </svg>
   ),
   Chowmein: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <rect x="16" y="46" width="48" height="20" rx="6" fill="#FF8C00" opacity="0.12" stroke="#FF8C00" strokeWidth="2.5"/>
-      <path d="M26 46 Q30 26 34 34 Q38 42 40 30 Q42 18 46 26 Q50 34 54 46" stroke="#FF8C00" strokeWidth="3" fill="none" strokeLinecap="round"/>
-      <path d="M20 46 Q24 24 28 30 Q32 36 34 22" stroke="#FF8C00" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5"/>
-      <line x1="34" y1="18" x2="34" y2="12" stroke="#FF8C00" strokeWidth="2.5" strokeLinecap="round"/>
-      <line x1="46" y1="18" x2="46" y2="12" stroke="#FF8C00" strokeWidth="2.5" strokeLinecap="round"/>
+      <rect x="16" y="46" width="48" height="20" rx="6" fill="#C9A96A" opacity="0.12" stroke="#C9A96A" strokeWidth="2.5"/>
+      <path d="M26 46 Q30 26 34 34 Q38 42 40 30 Q42 18 46 26 Q50 34 54 46" stroke="#C9A96A" strokeWidth="3" fill="none" strokeLinecap="round"/>
+      <path d="M20 46 Q24 24 28 30 Q32 36 34 22" stroke="#C9A96A" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5"/>
+      <line x1="34" y1="18" x2="34" y2="12" stroke="#C9A96A" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="46" y1="18" x2="46" y2="12" stroke="#C9A96A" strokeWidth="2.5" strokeLinecap="round"/>
     </svg>
   ),
   Burgers: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <path d="M16 34 Q16 20 40 20 Q64 20 64 34 Z" fill="#FF8C00" opacity="0.2" stroke="#FF8C00" strokeWidth="2.5"/>
-      <rect x="12" y="34" width="56" height="9" rx="2" fill="#FF8C00" opacity="0.25"/>
-      <rect x="12" y="43" width="56" height="9" rx="2" fill="#FF8C00" opacity="0.4"/>
-      <path d="M12 52 Q12 64 40 64 Q68 64 68 52 Z" fill="#FF8C00" opacity="0.2" stroke="#FF8C00" strokeWidth="2.5"/>
-      <path d="M16 37 Q30 41 40 37 Q50 33 64 37" stroke="#FF8C00" strokeWidth="2" fill="none" opacity="0.7" strokeLinecap="round"/>
+      <path d="M16 34 Q16 20 40 20 Q64 20 64 34 Z" fill="#C9A96A" opacity="0.2" stroke="#C9A96A" strokeWidth="2.5"/>
+      <rect x="12" y="34" width="56" height="9" rx="2" fill="#C9A96A" opacity="0.25"/>
+      <rect x="12" y="43" width="56" height="9" rx="2" fill="#C9A96A" opacity="0.4"/>
+      <path d="M12 52 Q12 64 40 64 Q68 64 68 52 Z" fill="#C9A96A" opacity="0.2" stroke="#C9A96A" strokeWidth="2.5"/>
+      <path d="M16 37 Q30 41 40 37 Q50 33 64 37" stroke="#C9A96A" strokeWidth="2" fill="none" opacity="0.7" strokeLinecap="round"/>
     </svg>
   ),
   Sides: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <rect x="24" y="28" width="32" height="36" rx="5" fill="#FF8C00" opacity="0.12" stroke="#FF8C00" strokeWidth="2.5"/>
-      <rect x="26" y="20" width="28" height="10" rx="3" fill="#FF8C00" opacity="0.2" stroke="#FF8C00" strokeWidth="2.5"/>
-      <rect x="30" y="34" width="5" height="24" rx="2.5" fill="#FF8C00" opacity="0.5"/>
-      <rect x="37.5" y="34" width="5" height="24" rx="2.5" fill="#FF8C00" opacity="0.5"/>
-      <rect x="45" y="34" width="5" height="24" rx="2.5" fill="#FF8C00" opacity="0.5"/>
+      <rect x="24" y="28" width="32" height="36" rx="5" fill="#C9A96A" opacity="0.12" stroke="#C9A96A" strokeWidth="2.5"/>
+      <rect x="26" y="20" width="28" height="10" rx="3" fill="#C9A96A" opacity="0.2" stroke="#C9A96A" strokeWidth="2.5"/>
+      <rect x="30" y="34" width="5" height="24" rx="2.5" fill="#C9A96A" opacity="0.5"/>
+      <rect x="37.5" y="34" width="5" height="24" rx="2.5" fill="#C9A96A" opacity="0.5"/>
+      <rect x="45" y="34" width="5" height="24" rx="2.5" fill="#C9A96A" opacity="0.5"/>
     </svg>
   ),
   Drinks: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <path d="M28 22 L24 62 Q24 66 40 66 Q56 66 52 62 L48 22 Z" fill="#FF8C00" fillOpacity="0.1" stroke="#FF8C00" strokeWidth="2.5" strokeLinejoin="round"/>
-      <path d="M48 22 L58 32 Q62 40 56 44 L48 40" stroke="#FF8C00" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      <path d="M28 36 Q34 44 48 36" stroke="#FF8C00" strokeWidth="2.5" fill="#FF8C00" fillOpacity="0.2" strokeLinecap="round"/>
-      <line x1="37" y1="16" x2="37" y2="10" stroke="#FF8C00" strokeWidth="2.5" strokeLinecap="round"/>
-      <line x1="43" y1="14" x2="44" y2="8" stroke="#FF8C00" strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M28 22 L24 62 Q24 66 40 66 Q56 66 52 62 L48 22 Z" fill="#C9A96A" fillOpacity="0.1" stroke="#C9A96A" strokeWidth="2.5" strokeLinejoin="round"/>
+      <path d="M48 22 L58 32 Q62 40 56 44 L48 40" stroke="#C9A96A" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      <path d="M28 36 Q34 44 48 36" stroke="#C9A96A" strokeWidth="2.5" fill="#C9A96A" fillOpacity="0.2" strokeLinecap="round"/>
+      <line x1="37" y1="16" x2="37" y2="10" stroke="#C9A96A" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="43" y1="14" x2="44" y2="8" stroke="#C9A96A" strokeWidth="2.5" strokeLinecap="round"/>
     </svg>
   ),
   Default: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <circle cx="40" cy="40" r="24" fill="#FF8C00" opacity="0.1" stroke="#FF8C00" strokeWidth="2"/>
-      <path d="M28 36 Q34 28 40 30 Q46 28 52 36" stroke="#FF8C00" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      <path d="M28 44 Q34 52 40 50 Q46 52 52 44" stroke="#FF8C00" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      <circle cx="40" cy="40" r="24" fill="#C9A96A" opacity="0.1" stroke="#C9A96A" strokeWidth="2"/>
+      <path d="M28 36 Q34 28 40 30 Q46 28 52 36" stroke="#C9A96A" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      <path d="M28 44 Q34 52 40 50 Q46 52 52 44" stroke="#C9A96A" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
     </svg>
   ),
 };
@@ -263,18 +268,18 @@ function getFoodIllustration(category) {
 
 // Tag color map
 const TAG_COLORS = {
-  Bestseller:    { bg: "rgba(255,140,0,0.15)", text: "#FF8C00", border: "rgba(255,140,0,0.3)" },
+  Bestseller:    { bg: "rgba(201,169,106,0.15)", text: "#C9A96A", border: "rgba(201,169,106,0.3)" },
   "Chef's Pick": { bg: "rgba(99,102,241,0.15)", text: "#818cf8", border: "rgba(99,102,241,0.3)" },
   Spicy:         { bg: "rgba(239,68,68,0.15)", text: "#f87171", border: "rgba(239,68,68,0.3)" },
   "Extra Spicy": { bg: "rgba(220,38,38,0.15)", text: "#ef4444", border: "rgba(220,38,38,0.3)" },
   Popular:       { bg: "rgba(34,197,94,0.12)", text: "#4ade80", border: "rgba(34,197,94,0.25)" },
   Classic:       { bg: "rgba(234,179,8,0.12)", text: "#facc15", border: "rgba(234,179,8,0.25)" },
   Quick:         { bg: "rgba(34,197,94,0.12)", text: "#4ade80", border: "rgba(34,197,94,0.25)" },
-  Crispy:        { bg: "rgba(255,140,0,0.12)", text: "#fb923c", border: "rgba(255,140,0,0.25)" },
-  Loaded:        { bg: "rgba(255,140,0,0.12)", text: "#fb923c", border: "rgba(255,140,0,0.25)" },
+  Crispy:        { bg: "rgba(201,169,106,0.12)", text: "#fb923c", border: "rgba(201,169,106,0.25)" },
+  Loaded:        { bg: "rgba(201,169,106,0.12)", text: "#fb923c", border: "rgba(201,169,106,0.25)" },
   Refreshing:    { bg: "rgba(56,189,248,0.12)", text: "#38bdf8", border: "rgba(56,189,248,0.25)" },
   Chilled:       { bg: "rgba(56,189,248,0.12)", text: "#38bdf8", border: "rgba(56,189,248,0.25)" },
-  Crunchy:       { bg: "rgba(255,140,0,0.12)", text: "#fb923c", border: "rgba(255,140,0,0.25)" },
+  Crunchy:       { bg: "rgba(201,169,106,0.12)", text: "#fb923c", border: "rgba(201,169,106,0.25)" },
 };
 
 // ─────────────────────────────────────────────
@@ -283,7 +288,11 @@ const TAG_COLORS = {
 function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, toggleTheme }) {
   const [mob, setMob] = useState(false);
   const [scrolled, setScrolled] = useState(false);
-  const t = isDark ? themes.dark : themes.light;
+  // The Supper Club home supports Night AND Day (arch on ivory in Day),
+  // so the navbar follows the user's theme everywhere now.
+  const onHome = page === "home";
+  const darkMode = isDark;
+  const t = darkMode ? themes.dark : themes.light;
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 20);
@@ -294,9 +303,17 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
   // Close drawer on page change
   useEffect(() => { setMob(false); }, [page]);
 
+  // On the cinematic home page the header floats over the hero video: fully
+  // transparent at the top (only a soft top-down scrim for legibility), turning
+  // into a glass bar once scrolled. Other pages keep their solid header.
+  const transparentHeader = onHome && !scrolled;
   const navBg = scrolled
-    ? (isDark ? "rgba(6,6,8,0.95)" : "rgba(250,249,247,0.97)")
-    : t.navBg;
+    ? (darkMode ? "rgba(12,10,9,0.85)" : "rgba(242,235,221,0.95)")
+    : onHome
+      ? (darkMode
+          ? "linear-gradient(180deg, rgba(12,10,9,0.62) 0%, rgba(12,10,9,0) 100%)"
+          : "linear-gradient(180deg, rgba(242,235,221,0.62) 0%, rgba(242,235,221,0) 100%)")
+      : t.navBg;
 
   const navLinks = [["home", "Home"], ["menu", "Menu"], ["orders", "Track Order"]];
 
@@ -308,8 +325,8 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
         transition={{ duration: 0.5, ease }}
         style={{
           background: navBg,
-          backdropFilter: "blur(24px)",
-          WebkitBackdropFilter: "blur(24px)",
+          backdropFilter: transparentHeader ? "none" : "blur(24px)",
+          WebkitBackdropFilter: transparentHeader ? "none" : "blur(24px)",
           borderBottom: scrolled ? `1px solid ${t.border}` : "1px solid transparent",
           boxShadow: scrolled ? "0 4px 24px rgba(0,0,0,0.08)" : "none",
         }}
@@ -329,7 +346,10 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
               className="h-10 w-auto object-contain"
               onError={e => { e.target.style.display = 'none'; }}
             />
-            <span style={{ color: "#FF8C00" }} className="font-black text-xl tracking-tight hidden sm:block">
+            <span
+              style={{ color: t.text, letterSpacing: "0.26em", fontWeight: 500 }}
+              className="text-sm uppercase hidden sm:block"
+            >
               Steamy Bites
             </span>
           </motion.button>
@@ -343,8 +363,8 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.96 }}
                 style={{
-                  color: page === p ? "#FF8C00" : t.muted,
-                  background: page === p ? "rgba(255,140,0,0.1)" : "transparent",
+                  color: page === p ? "#C9A96A" : t.muted,
+                  background: page === p ? "rgba(201,169,106,0.1)" : "transparent",
                 }}
                 className={`nav-item-pill ${page === p ? "active" : ""} px-4 py-2 rounded-xl text-sm font-semibold transition-all`}
               >
@@ -355,20 +375,22 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
 
           {/* Right Controls */}
           <div className="flex items-center gap-2">
-            {/* Theme Toggle */}
-            <motion.button
-              onClick={toggleTheme}
-              whileHover={{ rotate: 20, scale: 1.1 }}
-              whileTap={{ scale: 0.9 }}
-              style={{ background: t.card, border: `1px solid ${t.border}`, color: t.muted }}
-              className="theme-btn p-2.5 rounded-xl hover:text-orange-500 transition-colors"
-              aria-label="Toggle theme"
-            >
-              {isDark
-                ? <Sun className="w-[18px] h-[18px]" />
-                : <Moon className="w-[18px] h-[18px]" />
-              }
-            </motion.button>
+            {/* Theme Toggle — available everywhere; the new home renders in both themes */}
+            {true && (
+              <motion.button
+                onClick={toggleTheme}
+                whileHover={{ rotate: 20, scale: 1.1 }}
+                whileTap={{ scale: 0.9 }}
+                style={{ background: t.card, border: `1px solid ${t.border}`, color: t.muted }}
+                className="theme-btn p-2.5 rounded-xl hover:text-orange-500 transition-colors"
+                aria-label="Toggle theme"
+              >
+                {isDark
+                  ? <Sun className="w-[18px] h-[18px]" />
+                  : <Moon className="w-[18px] h-[18px]" />
+                }
+              </motion.button>
+            )}
 
             {/* Auth */}
             {!user ? (
@@ -384,7 +406,7 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
             ) : (
               <div className="hidden md:flex items-center gap-2.5">
                 <div
-                  style={{ background: "rgba(255,140,0,0.15)", color: "#FF8C00" }}
+                  style={{ background: "rgba(201,169,106,0.15)", color: "#C9A96A" }}
                   className="w-8 h-8 rounded-full flex items-center justify-center font-black text-sm"
                 >
                   {user.name[0].toUpperCase()}
@@ -461,11 +483,11 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
               animate={{ x: 0 }}
               exit={{ x: "100%" }}
               transition={{ type: "spring", damping: 28, stiffness: 280 }}
-              style={{ background: isDark ? "#0e0e12" : "#ffffff", borderLeft: `1px solid ${t.border}` }}
+              style={{ background: darkMode ? "#0e0e12" : "#ffffff", borderLeft: `1px solid ${t.border}` }}
               className="mobile-drawer shadow-2xl"
             >
               <div className="px-5 py-5 flex items-center justify-between" style={{ borderBottom: `1px solid ${t.border}` }}>
-                <span style={{ color: "#FF8C00" }} className="font-black text-lg">Steamy Bites</span>
+                <span style={{ color: "#C9A96A" }} className="font-black text-lg">Steamy Bites</span>
                 <button onClick={() => setMob(false)} style={{ color: t.faint }}>
                   <X className="w-5 h-5" />
                 </button>
@@ -477,8 +499,8 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
                     onClick={() => { setPage(p); setMob(false); }}
                     whileTap={{ scale: 0.97 }}
                     style={{
-                      color: page === p ? "#FF8C00" : t.muted,
-                      background: page === p ? "rgba(255,140,0,0.08)" : "transparent",
+                      color: page === p ? "#C9A96A" : t.muted,
+                      background: page === p ? "rgba(201,169,106,0.08)" : "transparent",
                     }}
                     className="mobile-nav-item w-full text-left px-4 py-3 rounded-xl text-sm font-semibold"
                   >
@@ -673,9 +695,9 @@ function HeroSection({ setPage, isDark }) {
               <motion.span
                 key={tag}
                 animate={{
-                  background: tick % tags.length === i ? "rgba(255,140,0,0.15)" : (isDark ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.028)"),
-                  borderColor: tick % tags.length === i ? "rgba(255,140,0,0.4)" : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)"),
-                  color: tick % tags.length === i ? "#FF8C00" : t.faint,
+                  background: tick % tags.length === i ? "rgba(201,169,106,0.15)" : (isDark ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.028)"),
+                  borderColor: tick % tags.length === i ? "rgba(201,169,106,0.4)" : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)"),
+                  color: tick % tags.length === i ? "#C9A96A" : t.faint,
                   scale: tick % tags.length === i ? 1.06 : 1,
                 }}
                 transition={{ duration: 0.4 }}
@@ -727,7 +749,7 @@ function HeroSection({ setPage, isDark }) {
         >
           <div className="relative w-80 h-80">
             <div className="hero-ring absolute inset-0 rounded-full border border-orange-500/20"
-              style={{ background: "radial-gradient(circle, rgba(255,140,0,0.07) 0%, transparent 70%)" }} />
+              style={{ background: "radial-gradient(circle, rgba(201,169,106,0.07) 0%, transparent 70%)" }} />
             <div className="hero-ring-rev absolute inset-6 rounded-full border border-orange-400/10" />
 
             {/* Center hero food photo */}
@@ -812,7 +834,9 @@ function FoodCard({ item, onAddToCart, isDark }) {
     setTimeout(() => setAdded(false), 900);
   }
 
-  return (
+  /* Previous card layout, preserved for rollback (renders nothing).
+     User-approved Supper Club redesign replaced it on 2026-07-11. */
+  const legacyCard = false && (
     <motion.div
       variants={cardAnim}
       style={{ background: t.card, border: `1px solid ${t.border}` }}
@@ -824,7 +848,7 @@ function FoodCard({ item, onAddToCart, isDark }) {
           src={imgSrc}
           alt={item.name}
           className="food-card-img"
-          onError={e => { e.target.parentElement.innerHTML = `<div class="flex items-center justify-center h-full" style="background:rgba(255,140,0,0.04)">${document.createElement('div').innerHTML = ''}</div>`; }}
+          onError={e => { e.target.parentElement.innerHTML = `<div class="flex items-center justify-center h-full" style="background:rgba(201,169,106,0.04)">${document.createElement('div').innerHTML = ''}</div>`; }}
         />
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -871,7 +895,7 @@ function FoodCard({ item, onAddToCart, isDark }) {
                 onClick={() => setSize(s)}
                 whileTap={{ scale: 0.96 }}
                 style={{
-                  background: size === s ? "#FF8C00" : "transparent",
+                  background: size === s ? "#C9A96A" : "transparent",
                   color: size === s ? "white" : t.faint,
                 }}
                 className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all"
@@ -891,7 +915,7 @@ function FoodCard({ item, onAddToCart, isDark }) {
               whileHover={!added ? { scale: 1.06 } : {}}
               whileTap={!added ? { scale: 0.92 } : {}}
               style={{
-                background: added ? "rgba(34,197,94,0.15)" : "#FF8C00",
+                background: added ? "rgba(34,197,94,0.15)" : "#C9A96A",
                 color: added ? "#4ade80" : "white",
                 border: added ? "1px solid rgba(34,197,94,0.3)" : "none",
               }}
@@ -906,6 +930,74 @@ function FoodCard({ item, onAddToCart, isDark }) {
           )}
         </div>
       </div>
+    </motion.div>
+  );
+  void legacyCard;
+
+  /* Supper Club editorial row (matches the marketing site's menu):
+     arch thumbnail · Fraunces name + meta · dotted leader ·
+     half/full segmented control · italic gold price · gold ADD.
+     Behavior (size state, handleAdd, toast, availability) unchanged. */
+  return (
+    <motion.div variants={cardAnim} className="sc-row">
+      <img
+        src={imgSrc}
+        alt={item.name}
+        className="sc-thumb"
+        loading="lazy"
+        onError={e => { e.target.style.display = 'none'; }}
+      />
+
+      <div className="sc-row-main">
+        <h3 className="sc-row-name" style={{ color: t.text }}>{item.name}</h3>
+        <p className="sc-row-meta" style={{ color: t.faint }}>
+          {item.tag ? `${item.tag} · ` : ""}
+          {item.rating ? `★ ${item.rating} · ` : ""}
+          {item.prepTime ? `${item.prepTime} · ` : ""}
+          {item.description}
+        </p>
+      </div>
+
+      <span className="sc-leader" role="presentation" />
+
+      {item.halfPrice && (
+        <div className="sc-seg" role="group" aria-label="Portion size">
+          {["half", "full"].map(s => (
+            <button
+              key={s}
+              onClick={() => setSize(s)}
+              aria-pressed={size === s}
+              style={{
+                background: size === s ? "var(--sc-gold)" : "transparent",
+                color: size === s ? (isDark ? "#0c0a09" : "#f2ebdd") : t.faint,
+              }}
+            >
+              {s === "half" ? `Half ₹${item.halfPrice}` : `Full ₹${item.fullPrice}`}
+            </button>
+          ))}
+        </div>
+      )}
+
+      <span className="sc-price">₹{price}</span>
+
+      {item.available ? (
+        <motion.button
+          onClick={handleAdd}
+          disabled={added}
+          whileTap={!added ? { scale: 0.94 } : {}}
+          className="sc-add"
+          style={added ? {
+            background: "rgba(34,197,94,0.14)",
+            color: "#4ade80",
+            borderColor: "rgba(34,197,94,0.35)",
+          } : undefined}
+          aria-label={`Add ${item.name} to cart`}
+        >
+          {added ? <>Added ✓</> : <>Add +</>}
+        </motion.button>
+      ) : (
+        <span className="sc-row-meta" style={{ color: t.faint }}>Unavailable</span>
+      )}
     </motion.div>
   );
 }
@@ -946,14 +1038,22 @@ function MenuPage({ setCart, isDark, menuItems, menuLoading }) {
       >
         <div className="max-w-7xl mx-auto">
           <motion.div initial="hidden" animate="visible" variants={stagger}>
-            <motion.div variants={fadeUp} className="section-tag mb-3">
-              <UtensilsCrossed className="w-3.5 h-3.5" /> Our Full Menu
+            <motion.div variants={fadeUp} className="sc-eyebrow mb-3 text-center">
+              The Carte
             </motion.div>
-            <motion.h2 variants={fadeUp} style={{ color: t.text }} className="text-4xl font-black mb-1">
-              What's Cooking Today
+            <motion.h2
+              variants={fadeUp}
+              style={{ color: t.text }}
+              className="sc-display text-center text-4xl sm:text-5xl mb-2"
+            >
+              From the bamboo steamer
             </motion.h2>
-            <motion.p variants={fadeUp} style={{ color: t.muted }} className="mb-6 text-sm">
-              Fresh, made-to-order. Every single time.
+            <motion.p
+              variants={fadeUp}
+              style={{ color: t.muted, letterSpacing: "0.28em" }}
+              className="mb-8 text-xs text-center uppercase"
+            >
+              Fresh, made to order, every evening
             </motion.p>
 
             {/* Search */}
@@ -978,8 +1078,8 @@ function MenuPage({ setCart, isDark, menuItems, menuLoading }) {
                   onClick={() => setCat(c)}
                   whileTap={{ scale: 0.95 }}
                   style={{
-                    background: cat === c ? "#FF8C00" : t.card,
-                    border: `1px solid ${cat === c ? "#FF8C00" : t.border}`,
+                    background: cat === c ? "#C9A96A" : t.card,
+                    border: `1px solid ${cat === c ? "#C9A96A" : t.border}`,
                     color: cat === c ? "white" : t.muted,
                   }}
                   className={`cat-pill ${cat === c ? "active" : ""} px-4 py-2 rounded-xl text-sm font-bold`}
@@ -1011,10 +1111,23 @@ function MenuPage({ setCart, isDark, menuItems, menuLoading }) {
             variants={stagger}
             initial="hidden"
             animate="visible"
-            className="cards-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pt-6"
+            className="max-w-3xl mx-auto pt-2"
           >
-            {filtered.map(item => (
-              <FoodCard key={item.id} item={item} onAddToCart={addToCart} isDark={isDark} />
+            {/* Editorial layout: rows grouped under gold category headers,
+                like the marketing site's carte. Filtering/search unchanged. */}
+            {(cat === "All"
+              ? categories
+                  .filter(c => c !== "All")
+                  .map(c => ({ name: c, items: filtered.filter(i => i.category === c) }))
+                  .filter(g => g.items.length > 0)
+              : [{ name: cat, items: filtered }]
+            ).map(group => (
+              <div key={group.name}>
+                <h3 className="sc-cat-head">{group.name}</h3>
+                {group.items.map(item => (
+                  <FoodCard key={item.id} item={item} onAddToCart={addToCart} isDark={isDark} />
+                ))}
+              </div>
             ))}
           </motion.div>
         )}
@@ -1153,7 +1266,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
           email: user?.email || '',
           contact: order.mobile || mobile || '',
         },
-        theme: { color: '#FF8C00' },
+        theme: { color: '#C9A96A' },
         handler: async (response) => {
           try {
             await api.post('/payments/verify', {
@@ -1329,7 +1442,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                           style={{ background: t.card, border: `1px solid ${t.border}` }}
                           className="cart-item-row flex items-center gap-3 rounded-2xl p-3"
                         >
-                          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: "rgba(255,140,0,0.08)" }}>
+                          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: "rgba(201,169,106,0.08)" }}>
                             <img
                               src={FOOD_IMAGES[item.category] || FOOD_IMAGES.Default}
                               alt={item.name}
@@ -1437,9 +1550,9 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                               key={opt.id}
                               onClick={() => setPaymentMethod(opt.id)}
                               style={{
-                                background: paymentMethod === opt.id ? 'rgba(255,140,0,0.12)' : t.inputBg,
-                                border: `1px solid ${paymentMethod === opt.id ? 'rgba(255,140,0,0.45)' : t.border}`,
-                                color: paymentMethod === opt.id ? '#FF8C00' : t.text,
+                                background: paymentMethod === opt.id ? 'rgba(201,169,106,0.12)' : t.inputBg,
+                                border: `1px solid ${paymentMethod === opt.id ? 'rgba(201,169,106,0.45)' : t.border}`,
+                                color: paymentMethod === opt.id ? '#C9A96A' : t.text,
                               }}
                               className="text-left px-3 py-2.5 rounded-xl transition-all"
                             >
@@ -1618,7 +1731,7 @@ function OrdersPage({ isDark, user, setPage }) {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          style={{ background: t.card, border: `1px solid ${isRejected ? "rgba(239,68,68,0.3)" : "rgba(255,140,0,0.2)"}` }}
+          style={{ background: t.card, border: `1px solid ${isRejected ? "rgba(239,68,68,0.3)" : "rgba(201,169,106,0.2)"}` }}
           className="tracking-card rounded-3xl p-6 mb-6"
         >
           <div className="flex items-start justify-between mb-6">
@@ -1644,7 +1757,7 @@ function OrdersPage({ isDark, user, setPage }) {
               <div style={{ background: t.border, position: "absolute", top: "50%", left: "20px", right: "20px", height: "2px", transform: "translateY(-50%)", zIndex: 0 }} />
               <motion.div
                 className="stepper-bar"
-                style={{ background: "linear-gradient(to right, #FF8C00, #fb923c)", position: "absolute", top: "50%", left: "20px", height: "2px", transform: "translateY(-50%)", zIndex: 0, maxWidth: "calc(100% - 40px)" }}
+                style={{ background: "linear-gradient(to right, #C9A96A, #fb923c)", position: "absolute", top: "50%", left: "20px", height: "2px", transform: "translateY(-50%)", zIndex: 0, maxWidth: "calc(100% - 40px)" }}
                 initial={{ width: 0 }}
                 animate={{ width: `${(step / 3) * 100}%` }}
                 transition={{ duration: 1, ease }}
@@ -1657,10 +1770,10 @@ function OrdersPage({ isDark, user, setPage }) {
                       animate={{ scale: 1 }}
                       transition={{ delay: i * 0.1 }}
                       style={{
-                        background: i <= step ? "#FF8C00" : (isDark ? "#1a1a22" : "#e5e7eb"),
-                        border: `2px solid ${i <= step ? "#FF8C00" : t.border}`,
+                        background: i <= step ? "#C9A96A" : (isDark ? "#1a1a22" : "#e5e7eb"),
+                        border: `2px solid ${i <= step ? "#C9A96A" : t.border}`,
                         color: i <= step ? "white" : t.faint,
-                        boxShadow: i <= step ? "0 0 20px rgba(255,140,0,0.45)" : "none",
+                        boxShadow: i <= step ? "0 0 20px rgba(201,169,106,0.45)" : "none",
                       }}
                       className={`step-dot ${i < step ? "done" : ""} ${i === step ? "current" : ""} w-9 h-9 rounded-full flex items-center justify-center text-xs font-black`}
                     >
@@ -1720,7 +1833,7 @@ function OrdersPage({ isDark, user, setPage }) {
                 style={{ background: t.card, border: `1px solid ${t.border}` }}
                 className="past-order-card rounded-2xl p-4 flex items-center gap-4 mb-3"
               >
-                <div style={{ background: "rgba(255,140,0,0.08)", border: "1px solid rgba(255,140,0,0.15)" }} className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div style={{ background: "rgba(201,169,106,0.08)", border: "1px solid rgba(201,169,106,0.15)" }} className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden">
                   <img src={FOOD_IMAGES.Momos} alt="" className="w-full h-full object-cover opacity-80" />
                 </div>
                 <div className="flex-1">
@@ -1757,7 +1870,7 @@ function TestimonialsSection({ isDark }) {
           <Star
             key={i}
             className="w-3.5 h-3.5"
-            style={{ color: i <= count ? "#FF8C00" : t.faint, fill: i <= count ? "#FF8C00" : "none" }}
+            style={{ color: i <= count ? "#C9A96A" : t.faint, fill: i <= count ? "#C9A96A" : "none" }}
           />
         ))}
       </div>
@@ -1916,7 +2029,7 @@ function HowItWorks({ isDark, setPage }) {
                 <Icon className="w-7 h-7 text-white" />
               </motion.div>
               <div
-                style={{ background: "rgba(255,140,0,0.08)", color: "#FF8C00" }}
+                style={{ background: "rgba(201,169,106,0.08)", color: "#C9A96A" }}
                 className="text-xs font-black tracking-wider mb-2 px-3 py-1 rounded-full"
               >
                 STEP {step}
@@ -2121,7 +2234,7 @@ function HomePage({ setPage, setCart, isDark, menuItems }) {
                 onClick={() => setPage("menu")}
                 whileHover={{ y: -8, scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
-                style={{ background: t.card, border: `1px solid ${t.border}`, color: "#FF8C00" }}
+                style={{ background: t.card, border: `1px solid ${t.border}`, color: "#C9A96A" }}
                 className="cat-card rounded-2xl p-5 flex flex-col items-center gap-2.5"
               >
                 <div className="cat-card-icon"><IconComp /></div>
@@ -2206,7 +2319,7 @@ function HomePage({ setPage, setCart, isDark, menuItems }) {
             className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"
           >
             {[
-              { label: "30-Min Delivery", desc: "Hot food, always on time. We guarantee it.", icon: Clock, color: "#FF8C00" },
+              { label: "30-Min Delivery", desc: "Hot food, always on time. We guarantee it.", icon: Clock, color: "#C9A96A" },
               { label: "Farm Fresh", desc: "Quality-checked every morning, no compromises.", icon: Leaf, color: "#22c55e" },
               { label: "Best Prices", desc: "Great food at honest, fair prices.", icon: BadgePercent, color: "#F59E0B" },
               { label: "Live Tracking", desc: "Know exactly where your order is.", icon: MapPin, color: "#0EA5E9" },
@@ -2348,7 +2461,7 @@ function AppInner() {
   return (
     <div
       data-theme={isDark ? "dark" : "light"}
-      style={{ background: t.bg, minHeight: "100vh", fontFamily: "'Poppins', 'Inter', system-ui, sans-serif" }}
+      style={{ background: t.bg, minHeight: "100vh", fontFamily: "'Instrument Sans', system-ui, sans-serif" }}
     >
       {/* Sonner Toast System */}
       <Toaster
@@ -2357,10 +2470,10 @@ function AppInner() {
         richColors
         toastOptions={{
           style: {
-            background: isDark ? "#1a1a22" : "#ffffff",
+            background: isDark ? "#141110" : "#faf6ec",
             border: `1px solid ${t.border}`,
             color: t.text,
-            fontFamily: "'Poppins', system-ui, sans-serif",
+            fontFamily: "'Instrument Sans', system-ui, sans-serif",
           },
         }}
       />
@@ -2379,7 +2492,19 @@ function AppInner() {
       <AnimatePresence mode="wait">
         {page === "home" && (
           <motion.div key="home" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.25 }}>
-            <HomePage setPage={setPage} setCart={setCart} isDark={isDark} menuItems={menuItems} />
+            {/* Supper Club home (matches the marketing site). The previous
+                cinematic home is preserved — to restore it, render:
+                <SteamyHome
+                  menu={menuItems && menuItems.length ? menuItems : MENU_DATA}
+                  cart={cart}
+                  setCart={setCart}
+                  setCartOpen={setCartOpen}
+                  setPage={setPage}
+                /> */}
+            <SupperHome
+              setPage={setPage}
+              isDark={isDark}
+            />
           </motion.div>
         )}
         {page === "menu" && (
