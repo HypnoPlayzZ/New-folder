@@ -5,7 +5,9 @@ export default function Footer() {
       <div className="wisp" />
       <div className="arch-mini">
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-mascot.svg" alt="Steamy Bites mascot" className="footer-mascot" />
+        <img src="/logo-badge-dark.svg" alt="Steamy Bites badge" className="footer-mascot logo-dark" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-badge-light.svg" alt="Steamy Bites badge" className="footer-mascot logo-light" />
       </div>
       <p className="big">
         See you

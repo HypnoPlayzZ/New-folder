@@ -341,7 +341,7 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
             className="flex items-center gap-2.5"
           >
             <img
-              src="/logo-mascot.svg"
+              src={isDark ? "/logo-badge-dark.svg" : "/logo-badge-light.svg"}
               alt="SteamyBites"
               className="h-10 w-auto object-contain"
               onError={e => { e.target.style.display = 'none'; }}
@@ -614,7 +614,7 @@ function AuthPage({ setUser, setPage, isDark }) {
               <FoodIllustrations.Italian />
             </div>
             <div className="relative z-10 flex flex-col items-center">
-              <img src="/logo-mascot.svg" alt="SteamyBites" className="h-14 w-auto object-contain drop-shadow-xl" onError={e => { e.target.style.display = 'none'; }} />
+              <img src={isDark ? "/logo-badge-dark.svg" : "/logo-badge-light.svg"} alt="SteamyBites" className="h-14 w-auto object-contain drop-shadow-xl" onError={e => { e.target.style.display = 'none'; }} />
               <p className="text-white/80 text-xs font-bold tracking-widest uppercase mt-1">SteamyBites</p>
             </div>
           </div>
@@ -2073,7 +2073,7 @@ function Footer({ isDark, setPage }) {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <img src="/logo-mascot.svg" alt="SteamyBites" className="h-10 w-auto object-contain" onError={e => { e.target.style.display = 'none'; }} />
+              <img src={isDark ? "/logo-badge-dark.svg" : "/logo-badge-light.svg"} alt="SteamyBites" className="h-10 w-auto object-contain" onError={e => { e.target.style.display = 'none'; }} />
               <span className="text-white font-black text-lg">Steamy Bites</span>
             </div>
             <p className="text-white/50 text-sm leading-relaxed mb-5">

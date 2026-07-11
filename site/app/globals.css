@@ -229,6 +229,17 @@ body {
   height: 58px;
   border-radius: 50%;
 }
+/* Delhi badge theme swap: Night (default) shows the white badge with black
+   text; Day shows the green badge with white text. */
+.logo-light {
+  display: none;
+}
+:root[data-theme="light"] .logo-light {
+  display: inline-block;
+}
+:root[data-theme="light"] .logo-dark {
+  display: none;
+}
 .nav .links {
   grid-column: 3;
   justify-self: end;

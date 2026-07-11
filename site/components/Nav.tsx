@@ -7,8 +7,11 @@ export default function Nav() {
     <nav className="nav" aria-label="Main">
       <span className="est">Laxmi Nagar</span>
       <span className="wordmark">
+        {/* Delhi badge, theme-swapped in CSS: green badge on Day, white badge on Night */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/logo-mascot.svg" alt="" className="nav-mascot" />
+        <img src="/logo-badge-dark.svg" alt="" className="nav-mascot logo-dark" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-badge-light.svg" alt="" className="nav-mascot logo-light" />
         Steamy Bites
       </span>
       <div className="links">
