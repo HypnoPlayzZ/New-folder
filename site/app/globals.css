@@ -230,7 +230,8 @@ body {
 .nav-mascot {
   width: auto;
   height: 38px;
-  border-radius: 50%;
+  /* no border-radius: the old circular badge needed it; on the tight-cropped
+     mascot an ellipse clip shears the dome's bottom corners */
 }
 .nav-wordmark {
   display: block;
@@ -241,7 +242,6 @@ body {
 .footer-mascot {
   width: auto;
   height: 72px;
-  border-radius: 50%;
 }
 /* Delhi badge theme swap: Night (default) shows the white badge with black
    text; Day shows the green badge with white text. */
@@ -817,7 +817,6 @@ body {
 .hero-badge {
   width: clamp(210px, 26vw, 310px);
   height: auto;
-  border-radius: 50%;
   position: relative;
   margin-bottom: 1.4rem;
 }

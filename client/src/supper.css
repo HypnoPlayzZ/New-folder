@@ -378,7 +378,6 @@
 .sc-hero-badge {
   width: clamp(210px, 26vw, 310px);
   height: auto;
-  border-radius: 50%;
   position: relative;
   margin-bottom: 1.4rem;
 }
