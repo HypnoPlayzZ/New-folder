@@ -6,7 +6,11 @@ export default function Nav() {
   return (
     <nav className="nav" aria-label="Main">
       <span className="est">Laxmi Nagar</span>
-      <span className="wordmark">Steamy Bites</span>
+      <span className="wordmark">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-mascot.svg" alt="" className="nav-mascot" />
+        Steamy Bites
+      </span>
       <div className="links">
         <a href="#menu">Menu</a>
         <a href="#showcase">The Food</a>

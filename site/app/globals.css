@@ -215,6 +215,19 @@ body {
 .nav .wordmark {
   grid-column: 2;
   font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+.nav-mascot {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+}
+.footer-mascot {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
 }
 .nav .links {
   grid-column: 3;

@@ -3,7 +3,10 @@ export default function Footer() {
     <footer className="footer" aria-label="Footer">
       <div className="wisp" />
       <div className="wisp" />
-      <div className="arch-mini">est.</div>
+      <div className="arch-mini">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/logo-mascot.svg" alt="Steamy Bites mascot" className="footer-mascot" />
+      </div>
       <p className="big">
         See you
         <br />
