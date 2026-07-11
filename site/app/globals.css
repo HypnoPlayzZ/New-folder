@@ -806,9 +806,9 @@ body {
 }
 
 .hero-badge {
-  width: 96px;
-  height: 96px;
+  width: clamp(160px, 20vw, 240px);
+  height: clamp(160px, 20vw, 240px);
   border-radius: 50%;
   position: relative;
-  margin-bottom: 1.6rem;
+  margin-bottom: 2rem;
 }
