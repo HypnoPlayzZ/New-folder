@@ -35,3 +35,14 @@ edits can masquerade as broken navigation — test after edits settle.
 The repo's Sentinel guardrail blocked net-shrinking edits twice; user explicitly approved an
 override for this redesign. Replaced blocks were preserved in-file (comments/inert code)
 rather than deleted.
+
+---
+
+## 2026-07-12 — THEME REPLACED: Quiet Heat (Take 4)
+
+Both sites re-themed from Supper Club to **Quiet Heat**: Geist single-voice type,
+near-black #050505 ground, hairlines, electric-blue accent (#4D9FFF night / #1F6FD6 day),
+full-bleed dimmed hero (arch retired, rules preserved for rollback), boxed CTAs,
+tabular menu prices. Light theme inverts the hero footage (ink-on-paper) so it merges
+into the ground. Tailwind orange-* remap now = blue family. Badge logo swap unchanged.
+Commits ef2aefc + 8144b92; verified home/menu both themes + live prices; deployed.
