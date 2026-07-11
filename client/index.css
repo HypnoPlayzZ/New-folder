@@ -4,11 +4,11 @@
    so every `text-orange-500` / `bg-orange-500/10` / gradient class shifts
    without touching markup. */
 @theme {
-  --color-orange-300: #a8ccff;
-  --color-orange-400: #7fb8ff;
-  --color-orange-500: #4d9fff;
-  --color-orange-600: #1f6fd6;
-  --color-orange-700: #1857a8;
+  --color-orange-300: #b5dec9;
+  --color-orange-400: #8fcfaf;
+  --color-orange-500: #6fc7a1;
+  --color-orange-600: #1e4636;
+  --color-orange-700: #143528;
 }
 
 /* Add any global base styles here */

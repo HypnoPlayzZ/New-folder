@@ -47,9 +47,9 @@ export default function CheckoutFinale({ cart, onCheckout }) {
         <svg className="sb-wave-border" viewBox="0 0 600 96" preserveAspectRatio="none" aria-hidden="true">
           <defs>
             <linearGradient id="sbNeon" x1="0" y1="0" x2="1" y2="0">
-              <stop offset="0%" stopColor="#1f6fd6" />
-              <stop offset="50%" stopColor="#4d9fff" />
-              <stop offset="100%" stopColor="#1f6fd6" />
+              <stop offset="0%" stopColor="#1e4636" />
+              <stop offset="50%" stopColor="#6fc7a1" />
+              <stop offset="100%" stopColor="#1e4636" />
             </linearGradient>
           </defs>
           <rect className="sb-wave-rect" x="3" y="3" width="594" height="90" rx="46" ry="46"

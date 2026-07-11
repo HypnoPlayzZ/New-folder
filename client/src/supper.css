@@ -6,13 +6,13 @@
    ============================================================ */
 
 :root {
-  --sc-acc: #4d9fff;
+  --sc-acc: #6fc7a1;
   --sc-hair: rgba(237, 237, 237, 0.28);
   --sc-hair2: rgba(237, 237, 237, 0.1);
   --sc-ink: #ededed;
 }
 [data-theme="light"] {
-  --sc-acc: #1f6fd6;
+  --sc-acc: #1e4636;
   --sc-hair: rgba(17, 18, 20, 0.3);
   --sc-hair2: rgba(17, 18, 20, 0.12);
   --sc-ink: #111214;

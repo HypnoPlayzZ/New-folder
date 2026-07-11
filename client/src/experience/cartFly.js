@@ -4,7 +4,7 @@
 import { gsap } from 'gsap';
 import { useExperience } from './store';
 
-export function flyToCart(originEl, { glyph = '🥟', color = '#4d9fff' } = {}) {
+export function flyToCart(originEl, { glyph = '🥟', color = '#6fc7a1' } = {}) {
   const cart = document.getElementById('sb-cart-bubble');
   if (!originEl || !cart) return;
 
