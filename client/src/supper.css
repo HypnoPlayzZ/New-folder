@@ -370,3 +370,11 @@
   background: var(--sc-acc);
   border-color: var(--sc-acc);
 }
+
+.sc-hero-badge {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  position: relative;
+  margin-bottom: 1.6rem;
+}

@@ -30,6 +30,11 @@ export default function SupperHome({ setPage, isDark }) {
         <div className="sc-wisp" />
         <div className="sc-wisp" />
 
+        <img
+          src={isDark ? '/logo-badge-dark.svg' : '/logo-badge-light.svg'}
+          alt="Steamy Bites"
+          className="sc-hero-badge"
+        />
         <span className="sc-eyebrow">Laxmi Nagar · Delhi</span>
         <h1>
           Momos. Cold coffee.

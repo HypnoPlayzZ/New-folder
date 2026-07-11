@@ -344,7 +344,7 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
             <img
               src={isDark ? "/logo-badge-dark.svg" : "/logo-badge-light.svg"}
               alt="SteamyBites"
-              className="h-10 w-auto object-contain"
+              className="h-12 w-auto object-contain"
               onError={e => { e.target.style.display = 'none'; }}
             />
             <span
@@ -2074,7 +2074,7 @@ function Footer({ isDark, setPage }) {
           {/* Brand */}
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
-              <img src={isDark ? "/logo-badge-dark.svg" : "/logo-badge-light.svg"} alt="SteamyBites" className="h-10 w-auto object-contain" onError={e => { e.target.style.display = 'none'; }} />
+              <img src={isDark ? "/logo-badge-dark.svg" : "/logo-badge-light.svg"} alt="SteamyBites" className="h-12 w-auto object-contain" onError={e => { e.target.style.display = 'none'; }} />
               <span className="text-white font-black text-lg">Steamy Bites</span>
             </div>
             <p className="text-white/50 text-sm leading-relaxed mb-5">

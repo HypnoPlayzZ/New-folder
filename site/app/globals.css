@@ -225,13 +225,13 @@ body {
   gap: 0.65rem;
 }
 .nav-mascot {
-  width: 28px;
-  height: 28px;
+  width: 40px;
+  height: 40px;
   border-radius: 50%;
 }
 .footer-mascot {
-  width: 58px;
-  height: 58px;
+  width: 76px;
+  height: 76px;
   border-radius: 50%;
 }
 /* Delhi badge theme swap: Night (default) shows the white badge with black
@@ -803,4 +803,12 @@ body {
   .ctas {
     gap: 2rem;
   }
+}
+
+.hero-badge {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  position: relative;
+  margin-bottom: 1.6rem;
 }

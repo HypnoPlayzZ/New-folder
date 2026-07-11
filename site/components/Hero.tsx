@@ -84,6 +84,10 @@ export default function Hero() {
       <div className="arch" role="presentation" />
       <div className="hero-vignette" />
 
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo-badge-dark.svg" alt="" className="hero-badge logo-dark" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/logo-badge-light.svg" alt="" className="hero-badge logo-light" />
       <p className="sub" style={{ marginBottom: "1.2rem" }}>Laxmi Nagar · Delhi</p>
       <h1>
         <span className="reveal-line">
