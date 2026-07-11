@@ -110,7 +110,8 @@ const allowedOrigins = [
     'http://localhost:5173',
     'http://localhost:5174',
     'http://localhost:5175',
-    'http://localhost:5176'
+    'http://localhost:5176',
+    'http://localhost:5180'  // pinned client dev port (5173 is taken by another project)
 ];
 
 const corsOptions = {
