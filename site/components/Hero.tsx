@@ -84,23 +84,23 @@ export default function Hero() {
       <div className="arch" role="presentation" />
       <div className="hero-vignette" />
 
+      <p className="sub" style={{ marginBottom: "1.2rem" }}>Laxmi Nagar · Delhi</p>
       <h1>
         <span className="reveal-line">
-          <span>Steam, gold light, and the</span>
+          <span>Momos. Cold coffee.</span>
         </span>
         <span className="reveal-line">
           <span>
-            <em>best momos</em> in Laxmi Nagar.
+            Nothing else matters <em>after 8pm.</em>
           </span>
         </span>
       </h1>
-      <p className="sub">Momos · Cold Coffee · Open Late</p>
       <div className="ctas">
-        <a className="cta" href={ORDER_URL ?? "#menu"} {...(ORDER_URL ? { target: "_blank", rel: "noopener" } : {})}>
+        <a className="cta fill" href={ORDER_URL ?? "#menu"} {...(ORDER_URL ? { target: "_blank", rel: "noopener" } : {})}>
           Order Now
         </a>
         <a className="cta" href="#visit">
-          Visit the Cafe
+          Visit Cafe
         </a>
       </div>
       <div className="scroll-cue">Scroll</div>

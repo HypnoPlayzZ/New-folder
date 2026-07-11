@@ -1,15 +1,15 @@
 import './supper.css';
 
 /**
- * Supper Club home — the ordering app's landing page, matching the marketing
- * site's design (arch hero over the steam footage, editorial type, gold
- * hairlines). Presentation only: every action routes into the existing app
- * (setPage / setCartOpen), no new data flows.
+ * Quiet Heat home — the ordering app's landing page, matching the marketing
+ * site's design (full-bleed dimmed steam footage, one sans voice, hairline
+ * boxed CTAs, electric-blue accent). Presentation only: every action routes
+ * into the existing app (setPage), no new data flows.
  */
 export default function SupperHome({ setPage, isDark }) {
-  const ground = isDark ? '#0c0a09' : '#f2ebdd';
-  const ink = isDark ? '#efe6d8' : '#241c12';
-  const dim = isDark ? '#9c8f78' : '#6a5e4b';
+  const ground = isDark ? '#050505' : '#f4f4f4';
+  const ink = isDark ? '#ededed' : '#111214';
+  const dim = isDark ? '#9aa0a6' : '#5f6368';
 
   return (
     <div style={{ background: ground, color: ink }}>
@@ -30,15 +30,18 @@ export default function SupperHome({ setPage, isDark }) {
         <div className="sc-wisp" />
         <div className="sc-wisp" />
 
-        <span className="sc-eyebrow">Steamy Bites · Laxmi Nagar</span>
+        <span className="sc-eyebrow">Laxmi Nagar · Delhi</span>
         <h1>
-          Steam, gold light, and the <em>best momos</em> in Laxmi Nagar.
+          Momos. Cold coffee.
+          <br />
+          Nothing else matters <em>after 8pm.</em>
         </h1>
-        <p className="sc-sub" style={{ color: dim }}>
-          Momos · Cold Coffee · Open Late
-        </p>
         <div className="sc-ctas">
-          <button className="sc-cta" style={{ color: ink }} onClick={() => setPage('menu')}>
+          <button
+            className="sc-cta sc-cta-fill"
+            style={{ color: ground }}
+            onClick={() => setPage('menu')}
+          >
             Order Now
           </button>
           <button className="sc-cta" style={{ color: ink }} onClick={() => setPage('orders')}>
@@ -46,7 +49,7 @@ export default function SupperHome({ setPage, isDark }) {
           </button>
         </div>
         <div className="sc-scroll-cue" style={{ color: dim }}>
-          From the bamboo steamer
+          From the steamer
         </div>
       </section>
 

@@ -6,20 +6,20 @@
    ============================================================ */
 
 :root {
-  --sc-gold: #c9a96a;
-  --sc-hair: rgba(201, 169, 106, 0.5);
-  --sc-hair2: rgba(201, 169, 106, 0.16);
-  --sc-ink: #efe6d8;
+  --sc-acc: #4d9fff;
+  --sc-hair: rgba(237, 237, 237, 0.28);
+  --sc-hair2: rgba(237, 237, 237, 0.1);
+  --sc-ink: #ededed;
 }
 [data-theme="light"] {
-  --sc-gold: #a9803e;
-  --sc-hair: rgba(169, 128, 62, 0.55);
-  --sc-hair2: rgba(169, 128, 62, 0.22);
-  --sc-ink: #241c12;
+  --sc-acc: #1f6fd6;
+  --sc-hair: rgba(17, 18, 20, 0.3);
+  --sc-hair2: rgba(17, 18, 20, 0.12);
+  --sc-ink: #111214;
 }
 
 .sc-display {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Geist', system-ui, sans-serif;
   font-weight: 340;
 }
 
@@ -103,11 +103,11 @@
   font-size: 0.72rem;
   letter-spacing: 0.42em;
   text-transform: uppercase;
-  color: var(--sc-gold);
+  color: var(--sc-acc);
   position: relative;
 }
 .sc-hero h1 {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Geist', system-ui, sans-serif;
   font-weight: 340;
   font-size: clamp(2.3rem, 5vw, 4.4rem);
   line-height: 1.12;
@@ -118,7 +118,7 @@
 }
 .sc-hero h1 em {
   font-style: italic;
-  color: var(--sc-gold);
+  color: var(--sc-acc);
 }
 .sc-hero .sc-sub {
   margin-top: 1.3rem;
@@ -146,8 +146,8 @@
   cursor: pointer;
 }
 .sc-cta:hover {
-  color: var(--sc-gold);
-  border-color: var(--sc-gold);
+  color: var(--sc-acc);
+  border-color: var(--sc-acc);
 }
 .sc-scroll-cue {
   margin-top: 4.5vh;
@@ -167,7 +167,7 @@
   font-size: 0.72rem;
   letter-spacing: 0.42em;
   text-transform: uppercase;
-  color: var(--sc-gold);
+  color: var(--sc-acc);
   margin: 3.2rem 0 0.6rem;
   display: flex;
   align-items: baseline;
@@ -201,7 +201,7 @@
   min-width: 0;
 }
 .sc-row-name {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Geist', system-ui, sans-serif;
   font-weight: 380;
   font-size: 1.18rem;
   line-height: 1.2;
@@ -221,10 +221,10 @@
   min-width: 1.5rem;
 }
 .sc-price {
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Geist', system-ui, sans-serif;
   font-style: italic;
   font-size: 1.08rem;
-  color: var(--sc-gold);
+  color: var(--sc-acc);
   white-space: nowrap;
 }
 .sc-seg {
@@ -250,15 +250,15 @@
   padding: 0.6rem 1.15rem 0.55rem;
   border: 1px solid var(--sc-hair);
   border-radius: 999px;
-  color: var(--sc-gold);
+  color: var(--sc-acc);
   transition: background 0.25s, color 0.25s, border-color 0.25s;
   flex-shrink: 0;
   cursor: pointer;
 }
 .sc-add:hover:not(:disabled) {
-  background: var(--sc-gold);
+  background: var(--sc-acc);
   color: #0c0a09;
-  border-color: var(--sc-gold);
+  border-color: var(--sc-acc);
 }
 
 /* ---------- footer strip on home ---------- */
@@ -275,7 +275,7 @@
   position: relative;
 }
 .sc-strip b {
-  color: var(--sc-gold);
+  color: var(--sc-acc);
   font-weight: 500;
 }
 
@@ -290,4 +290,77 @@
   .sc-row { flex-wrap: wrap; gap: 0.5rem 0.9rem; }
   .sc-leader { display: none; }
   .sc-row-main { flex: 1 1 100%; }
+}
+
+/* ============================================================
+   QUIET HEAT overrides (Take 4) — appended so the Supper Club
+   rules above stay intact for rollback. Full-bleed dimmed hero,
+   no arch, boxed CTAs, tabular prices, one sans voice.
+   ============================================================ */
+.sc-hero-video-wrap {
+  clip-path: none;
+}
+.sc-hero-video-wrap video {
+  filter: saturate(0.55) brightness(0.5) contrast(1.05);
+}
+[data-theme="light"] .sc-hero-video-wrap video {
+  filter: saturate(0.55) brightness(0.72) contrast(1.02);
+}
+.sc-arch {
+  display: none;
+}
+.sc-wisp {
+  background: radial-gradient(circle, rgba(237, 237, 237, 0.08) 0%, transparent 62%);
+}
+.sc-hero h1 {
+  font-weight: 300;
+  letter-spacing: -0.01em;
+  line-height: 1.18;
+  font-size: clamp(2.1rem, 4.2vw, 3.8rem);
+  max-width: 24ch;
+}
+.sc-hero h1 em {
+  font-style: normal;
+}
+.sc-cta {
+  border: 1px solid var(--sc-hair);
+  border-radius: 2px;
+  padding: 0.95rem 2.4rem 0.9rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.28em;
+  backdrop-filter: blur(6px);
+}
+.sc-cta-fill {
+  background: var(--sc-ink);
+  border-color: var(--sc-ink);
+}
+.sc-cta-fill:hover {
+  background: var(--sc-acc);
+  border-color: var(--sc-acc);
+}
+.sc-thumb {
+  border-radius: 3px;
+}
+.sc-row-name {
+  font-weight: 400;
+  font-size: 1.05rem;
+}
+.sc-leader {
+  border-bottom-style: solid;
+  border-bottom-color: var(--sc-hair2);
+}
+.sc-price {
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+}
+.sc-seg,
+.sc-seg button,
+.sc-add {
+  border-radius: 2px;
+}
+.sc-add:hover:not(:disabled) {
+  color: #ffffff;
+  background: var(--sc-acc);
+  border-color: var(--sc-acc);
 }

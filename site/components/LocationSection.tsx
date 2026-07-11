@@ -64,7 +64,7 @@ export default function LocationSection() {
             {/* metro line */}
             <path d="M0 305 C 120 300, 200 316, 330 308 S 560 290, 640 296" stroke="var(--dim)" strokeWidth="2.5" fill="none" opacity="0.55" />
             {/* the walk */}
-            <path className="route" d="M96 302 C 140 250, 170 240, 230 226 S 330 180, 380 150 S 440 118, 468 106" stroke="var(--gold)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeDasharray="1" />
+            <path className="route" d="M96 302 C 140 250, 170 240, 230 226 S 330 180, 380 150 S 440 118, 468 106" stroke="var(--acc)" strokeWidth="2.5" fill="none" strokeLinecap="round" strokeDasharray="1" />
             {/* metro station */}
             <g>
               <circle cx="96" cy="302" r="10" fill="none" stroke="var(--dim)" strokeWidth="2.5" />
@@ -75,9 +75,9 @@ export default function LocationSection() {
             </g>
             {/* the cafe: an arch pin */}
             <g className="loc-pin">
-              <path d="M452 106 a16 16 0 0 1 32 0 v20 h-32 z" fill="none" stroke="var(--gold)" strokeWidth="2" />
-              <circle cx="468" cy="108" r="2.6" fill="var(--gold)" />
-              <text x="468" y="76" textAnchor="middle" fill="var(--gold)" fontSize="12" letterSpacing="3">
+              <path d="M452 106 a16 16 0 0 1 32 0 v20 h-32 z" fill="none" stroke="var(--acc)" strokeWidth="2" />
+              <circle cx="468" cy="108" r="2.6" fill="var(--acc)" />
+              <text x="468" y="76" textAnchor="middle" fill="var(--acc)" fontSize="12" letterSpacing="3">
                 STEAMY BITES
               </text>
             </g>

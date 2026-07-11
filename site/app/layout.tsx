@@ -1,20 +1,20 @@
 import type { Metadata, Viewport } from "next";
-import { Fraunces, Instrument_Sans } from "next/font/google";
+import { Geist } from "next/font/google";
 import "./globals.css";
 import Cursor from "@/components/Cursor";
 import SmoothScroll from "@/components/SmoothScroll";
 
-const fraunces = Fraunces({
+/* Quiet Heat: one voice — Geist carries display, body, and labels.
+   Supper Club rollback: restore from git —
+   import { Fraunces, Instrument_Sans } from "next/font/google";
+   const fraunces = Fraunces({ subsets: ["latin"], style: ["normal", "italic"],
+     axes: ["opsz"], variable: "--font-fraunces", display: "swap" });
+   const instrument = Instrument_Sans({ subsets: ["latin"],
+     variable: "--font-instrument", display: "swap" });
+   and put both .variable classNames back on <html>. */
+const geist = Geist({
   subsets: ["latin"],
-  style: ["normal", "italic"],
-  axes: ["opsz"],
-  variable: "--font-fraunces",
-  display: "swap",
-});
-
-const instrument = Instrument_Sans({
-  subsets: ["latin"],
-  variable: "--font-instrument",
+  variable: "--font-geist",
   display: "swap",
 });
 
@@ -43,7 +43,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#0c0a09",
+  themeColor: "#050505",
 };
 
 const jsonLd = {
@@ -71,7 +71,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${fraunces.variable} ${instrument.variable}`}>
+    <html lang="en" className={geist.variable}>
       <head>
         <script dangerouslySetInnerHTML={{ __html: themeInit }} />
         <script

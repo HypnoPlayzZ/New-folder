@@ -6,9 +6,9 @@
   position: relative;
   background: #070809;
   color: #f4f5f7;
-  --neon: #c9a96a;
-  --neon-deep: #a9803e;
-  --neon-glow: rgba(201, 169, 106, 0.55);
+  --neon: #4d9fff;
+  --neon-deep: #1f6fd6;
+  --neon-glow: rgba(77, 159, 255, 0.55);
 }
 
 .sb-stage-fixed {
@@ -72,7 +72,7 @@
 }
 .sb-hero-headline {
   display: flex; flex-direction: column; gap: 0.06em;
-  font-family: 'Fraunces', Georgia, serif;
+  font-family: 'Geist', system-ui, sans-serif;
   font-weight: 380;
   font-size: clamp(2.6rem, 9.5vw, 9rem);
   line-height: 0.96;
@@ -189,7 +189,7 @@
 }
 .sb-checkout-btn::before {
   content: ''; position: absolute; inset: 0; border-radius: 46px;
-  background: radial-gradient(60% 120% at 50% 50%, rgba(201, 169, 106, 0.22), rgba(6, 193, 103, 0.08) 60%, transparent 75%);
+  background: radial-gradient(60% 120% at 50% 50%, rgba(77, 159, 255, 0.22), rgba(6, 193, 103, 0.08) 60%, transparent 75%);
   box-shadow: 0 0 60px -6px var(--neon-glow), inset 0 0 30px -10px var(--neon-glow);
   backdrop-filter: blur(8px);
 }
@@ -208,7 +208,7 @@
 /* ── Floating cart bubble ───────────────────── */
 .sb-cart-bubble {
   position: fixed; right: clamp(16px, 3vw, 34px); bottom: clamp(16px, 3vw, 34px); z-index: 60;
-  width: 62px; height: 62px; border-radius: 50%; border: 1px solid rgba(201, 169, 106, 0.35);
+  width: 62px; height: 62px; border-radius: 50%; border: 1px solid rgba(77, 159, 255, 0.35);
   background: rgba(13, 15, 18, 0.72); backdrop-filter: blur(10px);
   color: var(--neon); cursor: pointer;
   display: flex; align-items: center; justify-content: center;

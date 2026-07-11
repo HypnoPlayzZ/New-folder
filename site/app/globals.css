@@ -1,37 +1,38 @@
 @import "tailwindcss";
 
 /* ============================================================
-   STEAMY BITES — Supper Club design system
-   Night is the brand default; Day is an explicit choice.
+   STEAMY BITES — Quiet Heat design system (Take 4)
+   Near-black, one sans voice (Geist), hairlines, electric-blue
+   accent. Night is the brand default; Day is an explicit choice.
    Both themes are token-driven; components never hardcode color.
    ============================================================ */
 :root {
-  --bg: #0c0a09;
-  --bg2: #0a0908;
-  --ink: #efe6d8;
-  --dim: #7a6f5f;
-  --dim2: #968a72; /* small-text variant of --dim; keeps 4.5:1 on --bg2 */
-  --gold: #c9a96a;
-  --hair: rgba(201, 169, 106, 0.5);
-  --hair2: rgba(201, 169, 106, 0.16);
+  --bg: #050505;
+  --bg2: #0a0a0a;
+  --ink: #ededed;
+  --dim: #9aa0a6;
+  --dim2: #aab0b6; /* small-text variant of --dim; keeps 4.5:1 on --bg2 */
+  --acc: #4d9fff;
+  --hair: rgba(237, 237, 237, 0.28);
+  --hair2: rgba(237, 237, 237, 0.1);
   --arch-shadow: none;
-  --wisp-a: 0.14;
-  --grain-o: 0.5;
-  --video-filter: saturate(0.9) sepia(0.14) contrast(1.02);
+  --wisp-a: 0.07;
+  --grain-o: 0.35;
+  --video-filter: saturate(0.55) brightness(0.5) contrast(1.05);
 }
 :root[data-theme="light"] {
-  --bg: #f2ebdd;
-  --bg2: #ede4d3;
-  --ink: #241c12;
-  --dim: #8b7d66;
-  --dim2: #6a5e4b;
-  --gold: #a9803e;
-  --hair: rgba(169, 128, 62, 0.55);
-  --hair2: rgba(169, 128, 62, 0.22);
-  --arch-shadow: 0 42px 110px rgba(36, 28, 18, 0.28);
+  --bg: #f4f4f4;
+  --bg2: #ececec;
+  --ink: #111214;
+  --dim: #5f6368;
+  --dim2: #4a4e52;
+  --acc: #1f6fd6;
+  --hair: rgba(17, 18, 20, 0.3);
+  --hair2: rgba(17, 18, 20, 0.12);
+  --arch-shadow: none;
   --wisp-a: 0.05;
-  --grain-o: 0.28;
-  --video-filter: saturate(0.9) sepia(0.1) contrast(1.02) brightness(1.02);
+  --grain-o: 0.2;
+  --video-filter: saturate(0.55) brightness(0.72) contrast(1.02);
 }
 
 html {
@@ -40,22 +41,22 @@ html {
 body {
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--font-instrument), system-ui, sans-serif;
+  font-family: var(--font-geist), system-ui, sans-serif;
   overflow-x: hidden;
   transition: background 0.7s ease, color 0.7s ease;
   -webkit-font-smoothing: antialiased;
 }
 ::selection {
-  background: var(--gold);
+  background: var(--acc);
   color: var(--bg);
 }
 :focus-visible {
-  outline: 2px solid var(--gold);
+  outline: 2px solid var(--acc);
   outline-offset: 3px;
 }
 
 .font-display {
-  font-family: var(--font-fraunces), Georgia, serif;
+  font-family: var(--font-geist), system-ui, sans-serif;
 }
 
 /* small-caps letterspaced label — the system's utility voice */
@@ -94,9 +95,7 @@ body {
   position: absolute;
   inset: 0;
   pointer-events: none;
-  /* clip lives on the wrapper so the arch shape ignores the video's overscan
-     transform and stays aligned with the .arch hairline */
-  clip-path: inset(9% 31% 14% 31% round 42vw 42vw 0 0);
+  /* Quiet Heat: full-bleed dimmed footage, no arch clip */
 }
 .hero-video-wrap video {
   position: absolute;
@@ -108,13 +107,13 @@ body {
   transform: scale(1.12) translate(-2.5%, -2.5%);
   filter: var(--video-filter);
 }
-/* seats the headline into the footage: the arch fades to ground where text sits */
+/* grounds the headline: footage fades to the page ground at the fold */
 .hero-video-wrap::after {
   content: "";
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, transparent 42%, var(--bg) 96%);
-  opacity: 0.88;
+  background: linear-gradient(180deg, transparent 48%, var(--bg) 100%);
+  opacity: 0.8;
   transition: background 0.7s ease;
 }
 .arch-seat {
@@ -149,6 +148,12 @@ body {
   border-radius: 40vw 40vw 0 0;
   transition: border-color 0.7s ease;
 }
+/* Quiet Heat: the Supper Club arch is retired but its rules above are kept
+   for rollback — these overrides simply stop it from drawing. */
+.arch,
+.arch-seat {
+  display: none;
+}
 .hero-vignette {
   position: absolute;
   inset: 0;
@@ -166,7 +171,7 @@ body {
   height: 40vw;
   border-radius: 50%;
   filter: blur(60px);
-  background: radial-gradient(circle, rgba(239, 230, 216, var(--wisp-a)) 0%, transparent 62%);
+  background: radial-gradient(circle, rgba(237, 237, 237, var(--wisp-a)) 0%, transparent 62%);
   animation: rise 14s linear infinite;
   will-change: transform, opacity;
   pointer-events: none;
@@ -253,23 +258,23 @@ body {
   transition: color 0.3s;
 }
 .nav .links a:hover {
-  color: var(--gold);
+  color: var(--acc);
 }
 
 /* ---------- type ---------- */
 .hero h1 {
-  font-family: var(--font-fraunces), Georgia, serif;
+  font-family: var(--font-geist), system-ui, sans-serif;
   font-weight: 300;
-  font-size: clamp(2.4rem, 5vw, 4.6rem);
-  line-height: 1.12;
-  letter-spacing: 0.01em;
-  max-width: 22ch;
+  font-size: clamp(2.1rem, 4.2vw, 3.8rem);
+  line-height: 1.18;
+  letter-spacing: -0.01em;
+  max-width: 24ch;
   text-wrap: balance;
   position: relative;
 }
 .hero h1 em {
-  font-style: italic;
-  color: var(--gold);
+  font-style: normal;
+  color: var(--acc);
   transition: color 0.7s ease;
 }
 .hero .sub {
@@ -299,16 +304,29 @@ body {
   position: relative;
 }
 .cta {
-  font-size: 0.8rem;
-  letter-spacing: 0.3em;
+  font-size: 0.75rem;
+  letter-spacing: 0.28em;
   text-transform: uppercase;
-  padding-bottom: 0.55rem;
-  border-bottom: 1px solid var(--hair);
-  transition: color 0.3s, border-color 0.3s;
+  padding: 0.95rem 2.4rem 0.9rem;
+  border: 1px solid var(--hair);
+  border-radius: 2px;
+  backdrop-filter: blur(6px);
+  transition: color 0.3s, border-color 0.3s, background 0.3s;
 }
 .cta:hover {
-  color: var(--gold);
-  border-color: var(--gold);
+  color: var(--acc);
+  border-color: var(--acc);
+}
+/* primary action: filled with ink, like the take-4 ORDER NOW */
+.cta.fill {
+  background: var(--ink);
+  color: var(--bg);
+  border-color: var(--ink);
+}
+.cta.fill:hover {
+  background: var(--acc);
+  border-color: var(--acc);
+  color: #ffffff;
 }
 .scroll-cue {
   margin-top: 4.5vh;
@@ -366,7 +384,7 @@ body {
   opacity: 0;
 }
 .story-beat h2 {
-  font-family: var(--font-fraunces), Georgia, serif;
+  font-family: var(--font-geist), system-ui, sans-serif;
   font-weight: 300;
   font-size: clamp(2rem, 4.6vw, 4.2rem);
   line-height: 1.14;
@@ -374,12 +392,12 @@ body {
   text-wrap: balance;
 }
 .story-beat h2 em {
-  font-style: italic;
-  color: var(--gold);
+  font-style: normal;
+  color: var(--acc);
 }
 .story-beat .label {
   margin-bottom: 1.4rem;
-  color: var(--gold);
+  color: var(--acc);
 }
 
 /* ---------- shared section chrome ---------- */
@@ -393,11 +411,11 @@ body {
   font-size: 0.7rem;
   letter-spacing: 0.42em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--acc);
   text-align: center;
 }
 .section h2.title {
-  font-family: var(--font-fraunces), Georgia, serif;
+  font-family: var(--font-geist), system-ui, sans-serif;
   font-weight: 300;
   font-size: clamp(2.2rem, 4.4vw, 3.8rem);
   margin: 1.2rem 0 4rem;
@@ -414,7 +432,7 @@ body {
   font-size: 0.72rem;
   letter-spacing: 0.42em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--acc);
   margin-bottom: 1rem;
   display: flex;
   align-items: baseline;
@@ -437,27 +455,47 @@ body {
   padding-left: 0.8rem;
 }
 .menu-row h4 {
-  font-family: var(--font-fraunces), Georgia, serif;
-  font-weight: 300;
-  font-size: 1.3rem;
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-weight: 400;
+  font-size: 1.05rem;
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+}
+.menu-row h4::before {
+  content: "";
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--acc);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+.menu-row:hover h4::before {
+  opacity: 1;
 }
 .menu-row .leader {
   flex: 1;
-  border-bottom: 1px dotted var(--hair);
+  border-bottom: 1px solid var(--hair2);
   transform: translateY(-4px);
 }
 .menu-row .price {
-  font-family: var(--font-fraunces), Georgia, serif;
-  font-style: italic;
-  font-size: 1.15rem;
-  color: var(--gold);
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-style: normal;
+  font-variant-numeric: tabular-nums;
+  font-size: 1rem;
+  color: var(--ink);
   white-space: nowrap;
+  transition: color 0.3s;
+}
+.menu-row:hover .price {
+  color: var(--acc);
 }
 .menu-row .go {
   font-size: 0.62rem;
   letter-spacing: 0.26em;
   text-transform: uppercase;
-  color: var(--gold);
+  color: var(--acc);
   opacity: 0;
   transform: translateX(-6px);
   transition: opacity 0.25s ease, transform 0.25s ease;
@@ -472,7 +510,7 @@ body {
   color: var(--dim2);
   font-size: 0.82rem;
   font-style: normal;
-  font-family: var(--font-instrument), system-ui, sans-serif;
+  font-family: var(--font-geist), system-ui, sans-serif;
   letter-spacing: 0.05em;
 }
 /* floating dish photo that follows the hovered row */
@@ -481,7 +519,7 @@ body {
   z-index: 40;
   width: 190px;
   height: 190px;
-  border-radius: 95px 95px 4px 4px; /* arch-shaped peek */
+  border-radius: 3px;
   overflow: hidden;
   pointer-events: none;
   border: 1px solid var(--hair);
@@ -570,7 +608,7 @@ body {
   height: auto;
 }
 .loc-info h3 {
-  font-family: var(--font-fraunces), Georgia, serif;
+  font-family: var(--font-geist), system-ui, sans-serif;
   font-weight: 300;
   font-size: clamp(1.8rem, 3vw, 2.6rem);
   margin: 1rem 0 1.6rem;
@@ -599,20 +637,18 @@ body {
   width: 120px;
   height: 150px;
   margin: 0 auto 2.6rem;
-  border: 1px solid var(--hair);
-  border-bottom: none;
-  border-radius: 60px 60px 0 0;
+  border: none;
   display: flex;
   align-items: flex-end;
   justify-content: center;
   padding-bottom: 0.9rem;
-  color: var(--gold);
-  font-family: var(--font-fraunces), Georgia, serif;
-  font-style: italic;
+  color: var(--acc);
+  font-family: var(--font-geist), system-ui, sans-serif;
+  font-style: normal;
   font-size: 1.05rem;
 }
 .footer .big {
-  font-family: var(--font-fraunces), Georgia, serif;
+  font-family: var(--font-geist), system-ui, sans-serif;
   font-weight: 300;
   font-size: clamp(2.6rem, 7vw, 6rem);
   line-height: 1.05;
@@ -630,7 +666,7 @@ body {
   color: var(--dim2);
 }
 .footer .meta a:hover {
-  color: var(--gold);
+  color: var(--acc);
 }
 .footer .fine {
   margin-top: 4rem;
@@ -663,7 +699,7 @@ body {
   color: var(--ink);
 }
 .theme-toggle button[aria-pressed="true"] {
-  background: var(--gold);
+  background: var(--acc);
   color: var(--bg);
 }
 
@@ -676,13 +712,14 @@ body {
     display: block;
     position: fixed;
     z-index: 99;
-    width: 26px;
-    height: 26px;
+    width: 6px;
+    height: 6px;
     border-radius: 50%;
     pointer-events: none;
     transform: translate(-50%, -50%);
-    border: 1px solid var(--gold);
-    transition: width 0.2s, height 0.2s, border-color 0.7s;
+    background: var(--ink);
+    border: 1px solid transparent;
+    transition: width 0.2s, height 0.2s, background 0.2s, border-color 0.2s;
   }
   body.cursor-on,
   body.cursor-on a,
@@ -690,8 +727,10 @@ body {
     cursor: none;
   }
   body.cursor-hover .sb-cursor {
-    width: 44px;
-    height: 44px;
+    width: 30px;
+    height: 30px;
+    background: transparent;
+    border-color: var(--acc);
   }
 }
 .ripple {
@@ -700,7 +739,7 @@ body {
   width: 8px;
   height: 8px;
   border-radius: 50%;
-  border: 1.5px solid var(--gold);
+  border: 1.5px solid var(--acc);
   pointer-events: none;
   transform: translate(-50%, -50%);
   animation: rip 0.6s ease-out forwards;
