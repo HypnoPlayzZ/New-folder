@@ -448,9 +448,12 @@ app.post('/api/coupons/validate', async (req, res) => {
 app.post('/api/auth/google', limiter({ limit: 30, windowMs: 60_000 }), async (req, res) => {
     const { token } = req.body;
     try {
+        // Accept the website's web client ID AND the iOS app's client ID, so the
+        // same route serves both surfaces. (Native iOS ID tokens are audienced
+        // to the iOS OAuth client.)
         const ticket = await googleClient.verifyIdToken({
             idToken: token,
-            audience: process.env.GOOGLE_CLIENT_ID,
+            audience: [process.env.GOOGLE_CLIENT_ID, process.env.GOOGLE_IOS_CLIENT_ID].filter(Boolean),
         });
         const payload = ticket.getPayload();
         const { name, email } = payload;
@@ -557,6 +560,48 @@ app.post('/api/verify-otp', limiter({ limit: 20, windowMs: 60_000 }), async (req
     } catch (error) {
         console.error('Error verifying OTP:', error);
         res.status(500).json({ message: 'Failed to verify OTP' });
+    }
+});
+
+// --- Phone login: verify OTP AND issue a customer JWT (mobile-app sign-in) ---
+// Additive to /api/verify-otp (which only marks the OTP used). Find-or-create a
+// customer keyed by mobile so app users land in the same users_v2 collection as
+// the website. Returns the same shape as the Google/admin auth routes.
+app.post('/api/auth/phone', limiter({ limit: 20, windowMs: 60_000 }), async (req, res) => {
+    try {
+        const { mobile, code } = req.body;
+        if (!mobile || typeof mobile !== 'string' || !/^[0-9]{10}$/.test(mobile)) {
+            return res.status(400).json({ message: 'Invalid mobile number. Expected 10 digits.' });
+        }
+        if (!code) return res.status(400).json({ message: 'Code is required.' });
+
+        // Dev/testing convenience: when ALLOW_DEV_OTP=true, a master code (default
+        // 424242, override with DEV_OTP) signs in without SMS. NEVER enable in prod.
+        const devCode = process.env.DEV_OTP || '424242';
+        const devOk = process.env.ALLOW_DEV_OTP === 'true' && code === devCode;
+
+        if (!devOk) {
+            const otpDoc = await Otp.findOne({ mobile, code, used: false });
+            if (!otpDoc) return res.status(404).json({ message: 'OTP not found or already used.' });
+            if (new Date() > otpDoc.expiresAt) return res.status(400).json({ message: 'OTP expired.' });
+            otpDoc.used = true;
+            await otpDoc.save();
+        }
+
+        // Phone-only users get a synthesized, stable email so they slot into the
+        // existing (email-unique) User model without schema changes.
+        const syntheticEmail = `91${mobile}@phone.steamybites.app`;
+        let user = await User.findOne({ email: syntheticEmail });
+        if (!user) {
+            user = new User({ name: `Guest ${mobile.slice(-4)}`, email: syntheticEmail, role: 'customer' });
+            await user.save();
+        }
+
+        const token = jwt.sign({ userId: user._id, role: user.role }, jwtSecret, { expiresIn: '7d' });
+        res.json({ token, userName: user.name, userRole: user.role });
+    } catch (error) {
+        console.error('Phone login error:', error);
+        res.status(500).json({ message: 'Phone login failed' });
     }
 });
 
