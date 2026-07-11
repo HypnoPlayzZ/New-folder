@@ -344,15 +344,16 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
             <img
               src={isDark ? "/logo-badge-dark.svg" : "/logo-badge-light.svg"}
               alt="SteamyBites"
-              className="h-12 w-auto object-contain"
+              className="h-10 w-auto object-contain"
               onError={e => { e.target.style.display = 'none'; }}
             />
-            <span
-              style={{ color: t.text, letterSpacing: "0.26em", fontWeight: 500 }}
-              className="text-sm uppercase hidden sm:block"
-            >
-              Steamy Bites
-            </span>
+            {/* wordmark = the logo's own outlined type (Fraunces), identical everywhere */}
+            <img
+              src={isDark ? "/steamy-wordmark-dark.svg" : "/steamy-wordmark-light.svg"}
+              alt="Steamy Bites"
+              className="h-3.5 w-auto hidden sm:block mt-0.5"
+              onError={e => { e.target.style.display = 'none'; }}
+            />
           </motion.button>
 
           {/* Desktop Nav Links */}
@@ -488,7 +489,7 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
               className="mobile-drawer shadow-2xl"
             >
               <div className="px-5 py-5 flex items-center justify-between" style={{ borderBottom: `1px solid ${t.border}` }}>
-                <span style={{ color: "#4D9FFF" }} className="font-black text-lg">Steamy Bites</span>
+                <img src={darkMode ? "/steamy-wordmark-dark.svg" : "/steamy-wordmark-light.svg"} alt="Steamy Bites" className="h-4 w-auto" onError={e => { e.target.style.display = 'none'; }} />
                 <button onClick={() => setMob(false)} style={{ color: t.faint }}>
                   <X className="w-5 h-5" />
                 </button>
@@ -616,7 +617,7 @@ function AuthPage({ setUser, setPage, isDark }) {
             </div>
             <div className="relative z-10 flex flex-col items-center">
               <img src={isDark ? "/logo-badge-dark.svg" : "/logo-badge-light.svg"} alt="SteamyBites" className="h-14 w-auto object-contain drop-shadow-xl" onError={e => { e.target.style.display = 'none'; }} />
-              <p className="text-white/80 text-xs font-bold tracking-widest uppercase mt-1">SteamyBites</p>
+              <img src="/steamy-wordmark-dark.svg" alt="Steamy Bites" className="h-3 w-auto mt-1.5 drop-shadow" onError={e => { e.target.style.display = 'none'; }} />
             </div>
           </div>
 
@@ -2075,7 +2076,7 @@ function Footer({ isDark, setPage }) {
           <div className="col-span-2 md:col-span-1">
             <div className="flex items-center gap-2 mb-4">
               <img src={isDark ? "/logo-badge-dark.svg" : "/logo-badge-light.svg"} alt="SteamyBites" className="h-12 w-auto object-contain" onError={e => { e.target.style.display = 'none'; }} />
-              <span className="text-white font-black text-lg">Steamy Bites</span>
+              <img src="/steamy-wordmark-dark.svg" alt="Steamy Bites" className="h-4 w-auto" onError={e => { e.target.style.display = 'none'; }} />
             </div>
             <p className="text-white/50 text-sm leading-relaxed mb-5">
               100% vegetarian cloud kitchen crafting momos, Asian fusion, and more. Delivered fresh to your door.

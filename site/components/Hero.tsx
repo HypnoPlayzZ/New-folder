@@ -88,6 +88,10 @@ export default function Hero() {
       <img src="/logo-badge-dark.svg" alt="" className="hero-badge logo-dark" />
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/logo-badge-light.svg" alt="" className="hero-badge logo-light" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/steamy-wordmark-dark.svg" alt="Steamy Bites" className="hero-wordmark logo-dark" />
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src="/steamy-wordmark-light.svg" alt="Steamy Bites" className="hero-wordmark logo-light" />
       <p className="sub" style={{ marginBottom: "1.2rem" }}>Laxmi Nagar · Delhi</p>
       <h1>
         <span className="reveal-line">

@@ -32,6 +32,10 @@
   align-items: center;
   justify-content: flex-end;
   text-align: center;
+  /* top clearance: when the hero grows taller than the viewport it is
+     bottom-anchored, so its top slides under the fixed glass nav — keep the
+     mascot's hat out of the navbar */
+  padding-top: 6.5rem;
   padding-bottom: 7vh;
   overflow: hidden;
 }
@@ -372,9 +376,15 @@
 }
 
 .sc-hero-badge {
-  width: clamp(160px, 20vw, 240px);
-  height: clamp(160px, 20vw, 240px);
+  width: clamp(210px, 26vw, 310px);
+  height: auto;
   border-radius: 50%;
   position: relative;
-  margin-bottom: 2rem;
+  margin-bottom: 1.4rem;
+}
+.sc-hero-wordmark {
+  width: clamp(250px, 32vw, 400px);
+  height: auto;
+  position: relative;
+  margin-bottom: 1.8rem;
 }

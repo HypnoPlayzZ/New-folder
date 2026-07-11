@@ -32,8 +32,14 @@ export default function SupperHome({ setPage, isDark }) {
 
         <img
           src={isDark ? '/logo-badge-dark.svg' : '/logo-badge-light.svg'}
-          alt="Steamy Bites"
+          alt=""
           className="sc-hero-badge"
+        />
+        {/* wordmark = the logo's own outlined type (Fraunces), identical everywhere */}
+        <img
+          src={isDark ? '/steamy-wordmark-dark.svg' : '/steamy-wordmark-light.svg'}
+          alt="Steamy Bites"
+          className="sc-hero-wordmark"
         />
         <span className="sc-eyebrow">Laxmi Nagar · Delhi</span>
         <h1>

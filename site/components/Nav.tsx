@@ -12,7 +12,11 @@ export default function Nav() {
         <img src="/logo-badge-dark.svg" alt="" className="nav-mascot logo-dark" />
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/logo-badge-light.svg" alt="" className="nav-mascot logo-light" />
-        Steamy Bites
+        {/* wordmark = the logo's own outlined Fraunces type, so nav/hero/logo always match */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/steamy-wordmark-dark.svg" alt="Steamy Bites" className="nav-wordmark logo-dark" />
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/steamy-wordmark-light.svg" alt="Steamy Bites" className="nav-wordmark logo-light" />
       </span>
       <div className="links">
         <a href="#menu">Menu</a>
