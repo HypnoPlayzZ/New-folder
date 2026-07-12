@@ -98,6 +98,10 @@ const imageUpload = multer({ storage: imageStorage });
 const csvUpload = multer({ storage: multer.memoryStorage() });
 
 const app = express();
+// Render (and most PaaS) put the app behind a proxy that appends the real client
+// IP to X-Forwarded-For. Trust exactly one hop so req.ip is the true client IP and
+// can't be spoofed by a client-supplied XFF header (which would defeat rate limiting).
+app.set('trust proxy', 1);
 const port = process.env.PORT || 8001;
 const mongoURI = process.env.MONGODB_URI;
 const jwtSecret = process.env.JWT_SECRET;
@@ -119,7 +123,7 @@ const corsOptions = {
         if (
             !origin || 
             allowedOrigins.includes(origin) || 
-            (origin && /\.vercel\.app$/.test(new URL(origin).hostname))  // any Vercel subdomain
+            (origin && /^(new-folder-[\w-]+|steamybites-marketing)\.vercel\.app$/.test(new URL(origin).hostname))  // our Vercel projects only
         ) {
             callback(null, true);
         } else {
@@ -168,9 +172,9 @@ const rateLimit = ({ key, limit, windowMs }) => {
     rateBuckets.set(key, bucket);
     return { allowed: bucket.count <= limit, retryAfterMs: Math.max(0, bucket.resetAt - now) };
 };
-const clientIp = (req) =>
-    (req.headers['x-forwarded-for']?.toString().split(',')[0].trim()) ||
-    req.ip || req.socket?.remoteAddress || 'unknown';
+// With `trust proxy` set, Express resolves req.ip to the real client IP from the
+// proxy chain; do NOT hand-parse the client-controllable X-Forwarded-For header.
+const clientIp = (req) => req.ip || req.socket?.remoteAddress || 'unknown';
 
 const limiter = ({ limit, windowMs, scope = 'ip' }) => (req, res, next) => {
     const ipKey = clientIp(req);
@@ -195,7 +199,7 @@ const ORDER_STATUS_TRANSITIONS = {
     'Received':        ['Preparing', 'Rejected'],
     'Preparing':       ['Ready', 'Out for Delivery', 'Rejected'],
     'Ready':           ['Out for Delivery', 'Rejected'],
-    'Out for Delivery': ['Delivered'],
+    'Out for Delivery': ['Delivered', 'Rejected'],
     'Delivered':       [],
     'Rejected':        [],
 };
@@ -303,6 +307,10 @@ const OrderSchema = new mongoose.Schema({
         enum: ['Pending', 'Paid', 'Failed']
     },
     utr: { type: String, trim: true }, // manual UPI reference (legacy flow)
+    // When a PAID order is cancelled/rejected we must NOT relabel it "Failed"
+    // (that hides a real captured payment). We keep paymentStatus 'Paid' and flag
+    // that a refund is owed, so it stays visible to admin for reconciliation.
+    refundStatus: { type: String, enum: ['None', 'Refund Due', 'Refunded'], default: 'None' },
     razorpayOrderId: { type: String, index: true },
     razorpayPaymentId: { type: String },
     locationCoords: { type: String, required: false },
@@ -328,7 +336,7 @@ const CouponSchema = new mongoose.Schema({
     code: { type: String, required: true, unique: true, uppercase: true },
     description: { type: String, required: true },
     discountType: { type: String, required: true, enum: ['percentage', 'fixed'] },
-    discountValue: { type: Number, required: true },
+    discountValue: { type: Number, required: true, min: 0 },
     isActive: { type: Boolean, default: true }
 });
 
@@ -349,6 +357,20 @@ const OtpSchema = new mongoose.Schema({
 OtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const Otp = mongoose.model('Otp', OtpSchema);
+
+// Abandoned-order sweep: online orders created but never paid (customer closed the
+// Razorpay sheet, lost signal, etc.) would otherwise pile up forever showing a fake
+// "Live" tracker. Every 10 min, expire ones older than 30 min. Guarded on
+// paymentStatus:'Pending' so a real captured payment is NEVER touched.
+setInterval(async () => {
+    try {
+        const cutoff = new Date(Date.now() - 30 * 60 * 1000);
+        await Order.updateMany(
+            { status: 'Pending Payment', paymentStatus: 'Pending', createdAt: { $lt: cutoff } },
+            { $set: { status: 'Rejected', paymentStatus: 'Failed' } }
+        );
+    } catch (e) { console.warn('[sweep] abandoned-order cleanup failed:', e.message); }
+}, 10 * 60 * 1000).unref?.();
 
 // --- Middleware ---
 const authMiddleware = (req, res, next) => {
@@ -458,6 +480,10 @@ app.post('/api/auth/google', limiter({ limit: 30, windowMs: 60_000 }), async (re
         });
         const payload = ticket.getPayload();
         const { name, email } = payload;
+        // Only trust Google-verified emails (Google recommends this explicitly).
+        if (!payload.email_verified) {
+            return res.status(401).json({ message: 'Google Sign-In failed.' });
+        }
 
         let user = await User.findOne({ email });
 
@@ -481,15 +507,17 @@ app.post('/api/auth/google', limiter({ limit: 30, windowMs: 60_000 }), async (re
 app.post('/api/auth/admin/login', limiter({ limit: 10, windowMs: 5 * 60_000 }), async (req, res) => {
     try {
         const { email, password } = req.body;
+        // Identical generic 401 on every failure path (no such admin / no password set /
+        // wrong password) so admin emails cannot be enumerated by response differences.
         const user = await User.findOne({ email, role: 'admin' });
-        if (!user) return res.status(404).json({ message: 'Admin not found' });
-        
+        if (!user) return res.status(401).json({ message: 'Invalid credentials' });
+
         if (!user.password) {
-             return res.status(400).json({ message: 'Admin account not set up for password login.' });
+             return res.status(401).json({ message: 'Invalid credentials' });
         }
 
         const isPasswordCorrect = await bcrypt.compare(password, user.password);
-        if (!isPasswordCorrect) return res.status(400).json({ message: 'Invalid credentials' });
+        if (!isPasswordCorrect) return res.status(401).json({ message: 'Invalid credentials' });
         
         const token = jwt.sign({ userId: user._id, role: user.role }, jwtSecret, { expiresIn: '1d' });
         res.json({ token, userName: user.name, userRole: user.role });
@@ -540,7 +568,13 @@ app.post('/api/send-otp', limiter({ limit: 10, windowMs: 60_000 }), async (req, 
 app.post('/api/verify-otp', limiter({ limit: 20, windowMs: 60_000 }), async (req, res) => {
     try {
         const { mobile, code } = req.body;
-        if (!mobile || !code) return res.status(400).json({ message: 'Mobile and code are required.' });
+        // Both MUST be strings before reaching Mongo — otherwise an object like
+        // {"$ne":null} would be interpreted as a query operator (NoSQL injection)
+        // and match an arbitrary unused OTP, bypassing verification entirely.
+        if (typeof mobile !== 'string' || typeof code !== 'string' ||
+            !/^[0-9]{10}$/.test(mobile) || !/^[0-9]{4,8}$/.test(code)) {
+            return res.status(400).json({ message: 'Valid mobile and code are required.' });
+        }
 
         // If user is authenticated, prefer matching by user + mobile; otherwise match by mobile only
         let otpDoc = null;
@@ -574,12 +608,16 @@ app.post('/api/auth/phone', limiter({ limit: 20, windowMs: 60_000 }), async (req
         if (!mobile || typeof mobile !== 'string' || !/^[0-9]{10}$/.test(mobile)) {
             return res.status(400).json({ message: 'Invalid mobile number. Expected 10 digits.' });
         }
-        if (!code) return res.status(400).json({ message: 'Code is required.' });
+        // code MUST be a string — a {"$ne":null} object would otherwise be treated as
+        // a Mongo query operator (NoSQL injection) and match any pending OTP → account takeover.
+        if (typeof code !== 'string' || !/^[0-9]{4,8}$/.test(code)) {
+            return res.status(400).json({ message: 'Valid code is required.' });
+        }
 
         // Dev/testing convenience: when ALLOW_DEV_OTP=true, a master code (default
-        // 424242, override with DEV_OTP) signs in without SMS. NEVER enable in prod.
+        // 424242, override with DEV_OTP) signs in without SMS. Hard-gated off in prod.
         const devCode = process.env.DEV_OTP || '424242';
-        const devOk = process.env.ALLOW_DEV_OTP === 'true' && code === devCode;
+        const devOk = process.env.NODE_ENV !== 'production' && process.env.ALLOW_DEV_OTP === 'true' && code === devCode;
 
         if (!devOk) {
             const otpDoc = await Otp.findOne({ mobile, code, used: false });
@@ -616,23 +654,36 @@ app.post('/api/orders', authMiddleware, limiter({ limit: 30, windowMs: 60_000 })
             return res.status(400).json({ message: 'Order must contain at least one item.' });
         }
 
-        // Recompute totals server-side; never trust client prices/discounts.
+        // Prices come from the DATABASE, never the client. Look up every referenced
+        // menu item and derive priceAtOrder from its stored price for the chosen
+        // variant. A forged/absent menuItemId or a tampered priceAtOrder is therefore
+        // impossible to honor — this is what actually stops "pay ₹1 for a ₹250 dish".
+        const reqIds = items
+            .map((it) => it.menuItemId)
+            .filter((id) => mongoose.Types.ObjectId.isValid(id));
+        const menuDocs = reqIds.length ? await MenuItem.find({ _id: { $in: reqIds } }) : [];
+        const menuById = new Map(menuDocs.map((m) => [m._id.toString(), m]));
+
         const cleanItems = items.map((it) => {
             const variant = it.variant === 'half' ? 'half' : 'full';
-            const price = Number(it.priceAtOrder);
             const qty = parseInt(it.quantity, 10);
-            if (!Number.isFinite(price) || price < 0 || price > 100000) {
-                throw Object.assign(new Error('Invalid item price'), { status: 400 });
-            }
             if (!Number.isInteger(qty) || qty < 1 || qty > 50) {
                 throw Object.assign(new Error('Invalid item quantity'), { status: 400 });
             }
+            const menuItem = it.menuItemId && menuById.get(String(it.menuItemId));
+            if (!menuItem) {
+                throw Object.assign(new Error('One or more items are no longer available. Please refresh the menu and try again.'), { status: 400 });
+            }
+            const dbPrice = variant === 'half' ? menuItem.price?.half : menuItem.price?.full;
+            if (!Number.isFinite(dbPrice) || dbPrice < 0) {
+                throw Object.assign(new Error(`"${menuItem.name}" is not available in the selected size.`), { status: 400 });
+            }
             return {
-                menuItemId: it.menuItemId || undefined,
-                itemName: sanitize(it.itemName, 120),
+                menuItemId: menuItem._id,
+                itemName: menuItem.name,
                 quantity: qty,
                 variant,
-                priceAtOrder: price,
+                priceAtOrder: dbPrice,
                 instructions: sanitize(it.instructions, 200),
             };
         });
@@ -651,8 +702,9 @@ app.post('/api/orders', authMiddleware, limiter({ limit: 30, windowMs: 60_000 })
             discountAmount = coupon.discountType === 'percentage'
                 ? (subtotal * coupon.discountValue) / 100
                 : coupon.discountValue;
-            // Discount cannot exceed subtotal.
-            discountAmount = Math.min(discountAmount, subtotal);
+            // Discount is clamped to [0, subtotal] — a negative discountValue (admin
+            // typo) must never INCREASE the total, and it can't exceed the subtotal.
+            discountAmount = Math.max(0, Math.min(discountAmount, subtotal));
             appliedCoupon = {
                 code: coupon.code,
                 discountType: coupon.discountType,
@@ -661,6 +713,9 @@ app.post('/api/orders', authMiddleware, limiter({ limit: 30, windowMs: 60_000 })
         }
 
         const finalPrice = Math.max(0, Math.round(subtotal + delivery - discountAmount));
+        // A fully-discounted (₹0) order has nothing to collect, and Razorpay rejects
+        // amounts below ₹1 — so confirm it immediately instead of leaving it unpayable.
+        const isFree = finalPrice < 1;
         // COD temporarily disabled — re-add 'COD' to re-enable. A stray/unknown
         // method falls back to RAZORPAY so no order can be created that skips payment.
         const allowedMethods = ['UPI', 'RAZORPAY'];
@@ -676,9 +731,9 @@ app.post('/api/orders', authMiddleware, limiter({ limit: 30, windowMs: 60_000 })
             mobile: /^[0-9]{10}$/.test(body.mobile || '') ? body.mobile : '',
             address: sanitize(body.address, 400),
             paymentMethod,
-            paymentStatus: 'Pending',
-            // COD: kitchen starts immediately. UPI / Razorpay: wait for payment.
-            status: paymentMethod === 'COD' ? 'Received' : 'Pending Payment',
+            paymentStatus: isFree ? 'Paid' : 'Pending',
+            // COD or a ₹0 order: kitchen starts immediately. Otherwise wait for payment.
+            status: (paymentMethod === 'COD' || isFree) ? 'Received' : 'Pending Payment',
             locationCoords: sanitize(body.locationCoords, 60),
             locationLink: sanitize(body.locationLink, 300),
         };
@@ -720,8 +775,11 @@ app.patch('/api/orders/:id/cancel', authMiddleware, async (req, res) => {
         if (!['Pending Payment', 'Received'].includes(order.status)) {
             return res.status(400).json({ message: `Cannot cancel an order that is already ${order.status}.` });
         }
+        // Never relabel a real captured payment as "Failed" (that hides money already
+        // taken). Flag a refund and keep paymentStatus 'Paid' so it stays visible to admin.
         order.status = 'Rejected';
-        order.paymentStatus = 'Failed';
+        if (order.paymentStatus === 'Paid') order.refundStatus = 'Refund Due';
+        else order.paymentStatus = 'Failed';
         await order.save();
         res.json(order);
         try { sendAdminNotification({ type: 'order_cancelled_by_customer', order }); } catch (e) { console.warn('notify admin failed', e); }
@@ -735,6 +793,11 @@ app.patch('/api/orders/:id/cancel', authMiddleware, async (req, res) => {
 // --- NEW ROUTE: To confirm UPI payment with UTR ---
 app.patch('/api/orders/:id/confirm-payment', authMiddleware, async (req, res) => {
     try {
+        // DISABLED: this flipped an order to Paid/Received from a client-supplied UTR
+        // string with zero verification — a free-food exploit. Online payment now goes
+        // through Razorpay (/payments/verify) exclusively. Do NOT re-enable without
+        // real UPI verification or an admin reconciliation step.
+        return res.status(403).json({ message: 'Manual UPI confirmation is disabled. Please pay online.' });
         const { utr } = req.body;
         if (!utr) {
             return res.status(400).json({ message: 'UTR is required.' });
@@ -819,16 +882,27 @@ app.post('/api/payments/create-order', authMiddleware, limiter({ limit: 30, wind
 });
 
 const markRazorpayPaymentSuccessful = async (order, paymentId) => {
-    if (order.paymentStatus === 'Paid') return order;
-    order.paymentStatus = 'Paid';
-    order.razorpayPaymentId = paymentId;
-    // Move from 'Pending Payment' to 'Received' (kitchen can start cooking).
-    if (order.status === 'Pending Payment') order.status = 'Received';
-    await order.save();
-    try { sendAdminNotification({ type: 'order_confirmed', order }); } catch (e) { console.warn('notify admin failed', e); }
-    try { notifyCustomerOrderStatus(order._id, order.status); } catch (e) { console.warn('notify customer failed', e); }
-    try { await onOrderPlacedNotify(order); } catch (e) { console.warn('email failed', e); }
-    return order;
+    // Atomic + idempotent: the guard on paymentStatus:'Pending' means a concurrent
+    // /verify and webhook can't BOTH mark Paid and double-notify (only one update
+    // matches), and a cancelled ('Failed') order isn't resurrected to 'Received'.
+    const updated = await Order.findOneAndUpdate(
+        { _id: order._id, paymentStatus: 'Pending' },
+        { $set: { paymentStatus: 'Paid', razorpayPaymentId: paymentId, status: 'Received' } },
+        { new: true }
+    ).populate('items.menuItemId');
+    if (!updated) {
+        // Already Paid (idempotent no-op) OR no longer Pending (e.g. cancelled before
+        // capture) — surface the latter so a real captured payment gets reconciled/refunded.
+        const current = await Order.findById(order._id);
+        if (current && current.paymentStatus !== 'Paid') {
+            console.warn(`[razorpay] captured payment ${paymentId} for order ${order._id} now in ${current.status}/${current.paymentStatus} — manual refund reconciliation may be needed.`);
+        }
+        return current || order;
+    }
+    try { sendAdminNotification({ type: 'order_confirmed', order: updated }); } catch (e) { console.warn('notify admin failed', e); }
+    try { notifyCustomerOrderStatus(updated._id, updated.status); } catch (e) { console.warn('notify customer failed', e); }
+    try { await onOrderPlacedNotify(updated); } catch (e) { console.warn('email failed', e); }
+    return updated;
 };
 
 app.post('/api/payments/verify', authMiddleware, limiter({ limit: 30, windowMs: 60_000 }), async (req, res) => {
@@ -871,26 +945,29 @@ async function handleRazorpayWebhook(req, res) {
             return res.status(400).json({ message: 'Invalid webhook signature.' });
         }
         const event = JSON.parse(rawBody.toString('utf8'));
-        // Acknowledge fast; do work after responding so Razorpay doesn't retry.
-        res.json({ ok: true });
-
+        // Do the DB work BEFORE acknowledging: if it throws, the catch returns 500 and
+        // Razorpay retries. (The webhook is the safety net when the client never reaches
+        // /verify — ACKing first would silently drop a captured payment on any hiccup.)
         if (event.event === 'payment.captured' || event.event === 'order.paid') {
             const payment = event.payload?.payment?.entity;
             const rOrderId = payment?.order_id;
-            if (!rOrderId) return;
-            const order = await Order.findOne({ razorpayOrderId: rOrderId });
-            if (order) await markRazorpayPaymentSuccessful(order, payment.id);
+            if (rOrderId) {
+                const order = await Order.findOne({ razorpayOrderId: rOrderId });
+                if (order) await markRazorpayPaymentSuccessful(order, payment.id);
+            }
         } else if (event.event === 'payment.failed') {
             const payment = event.payload?.payment?.entity;
             const rOrderId = payment?.order_id;
-            if (!rOrderId) return;
-            const order = await Order.findOne({ razorpayOrderId: rOrderId });
-            if (order && order.paymentStatus !== 'Paid') {
-                order.paymentStatus = 'Failed';
-                await order.save();
-                try { sendAdminNotification({ type: 'order_payment_failed', order }); } catch (e) { console.warn('notify admin failed', e); }
+            if (rOrderId) {
+                const order = await Order.findOne({ razorpayOrderId: rOrderId, paymentStatus: 'Pending' });
+                if (order) {
+                    order.paymentStatus = 'Failed';
+                    await order.save();
+                    try { sendAdminNotification({ type: 'order_payment_failed', order }); } catch (e) { console.warn('notify admin failed', e); }
+                }
             }
         }
+        res.json({ ok: true });
     } catch (error) {
         console.error('[razorpay] webhook error:', error);
         // Don't echo error details to caller; they'd already get a 200 if we got past signature check.
@@ -1067,16 +1144,23 @@ adminRouter.patch('/orders/:id/status', async (req, res) => {
             });
         }
 
+        // An unpaid online order must never be pushed into the kitchen queue.
+        if (existing.status === 'Pending Payment' && status === 'Received'
+            && existing.paymentStatus !== 'Paid' && existing.paymentMethod !== 'COD') {
+            return res.status(400).json({ message: 'Cannot mark an unpaid order as Received.' });
+        }
+
         const updatePayload = { status };
 
         // Payment status follows real-world events:
-        //  - UPI orders are paid via the customer confirm-payment route.
         //  - COD orders become Paid only when actually Delivered.
-        //  - Any rejection marks payment Failed.
+        //  - Rejecting an UNPAID order marks payment Failed; rejecting a PAID order
+        //    must NOT hide the captured payment — flag a refund instead.
         if (status === 'Delivered') {
             updatePayload.paymentStatus = 'Paid';
         } else if (status === 'Rejected') {
-            updatePayload.paymentStatus = 'Failed';
+            if (existing.paymentStatus === 'Paid') updatePayload.refundStatus = 'Refund Due';
+            else updatePayload.paymentStatus = 'Failed';
         }
 
         const updatedOrder = await Order.findByIdAndUpdate(
@@ -1384,6 +1468,18 @@ adminRouter.patch('/coupons/:id', async (req, res) => {
 });
 
 // --- Server Start ---
+// Global error handler — last line of defense. Express 5 auto-forwards rejected
+// async handlers here (e.g. a malformed :id → Mongoose CastError). Never leak the
+// stack/internal message to the client; CORS rejections surface as a clean 403.
+app.use((err, req, res, next) => {
+    if (res.headersSent) return next(err);
+    if (err && err.message === 'Not allowed by CORS') {
+        return res.status(403).json({ message: 'Origin not allowed.' });
+    }
+    console.error('[unhandled]', err);
+    res.status(500).json({ message: 'Something went wrong. Please try again.' });
+});
+
 app.listen(port, () => console.log(`Server running on port ${port}`));
 
 // Seed initial admin user. Only runs when SEED_ADMIN=true. Credentials must come
