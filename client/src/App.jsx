@@ -579,10 +579,16 @@ function AuthPage({ setUser, setPage, isDark }) {
     if (window.google?.accounts?.id) {
       initGoogleButton();
     } else {
+      // Poll for the GSI script, but give up after ~10s so a blocked/failed script
+      // (ad-blocker, flaky network) surfaces an error instead of an empty card forever.
+      const started = Date.now();
       const interval = setInterval(() => {
         if (window.google?.accounts?.id) {
           clearInterval(interval);
           initGoogleButton();
+        } else if (Date.now() - started > 10000) {
+          clearInterval(interval);
+          setError("Sign-in couldn't load. Please refresh, or disable any ad-blocker and try again.");
         }
       }, 100);
       return () => clearInterval(interval);
@@ -1635,6 +1641,7 @@ function OrdersPage({ isDark, user, setPage }) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
+  const [fetchError, setFetchError] = useState(false);
   const t = isDark ? themes.dark : themes.light;
   const isAuthed = !!user && !!localStorage.getItem('customer_token');
   const activeOrder = orders[0] || null;
@@ -1648,7 +1655,11 @@ function OrdersPage({ isDark, user, setPage }) {
     try {
       const res = await api.get('/my-orders');
       setOrders(res.data);
-    } catch { }
+      setFetchError(false);
+    } catch {
+      // Distinct from "no orders" so we can show a retry instead of a misleading empty state.
+      setFetchError(true);
+    }
     setLoading(false);
   };
 
@@ -1681,7 +1692,11 @@ function OrdersPage({ isDark, user, setPage }) {
         setOrders(prev => prev.map((o, i) => i === 0 ? { ...o, status } : o));
       } catch { }
     };
-    return () => es.close();
+    // If the stream drops (Render restart, mobile network), re-fetch; and poll as a
+    // safety net so the tracker never silently freezes while still showing "Live".
+    es.onerror = () => { fetchOrders(); };
+    const poll = setInterval(fetchOrders, 25000);
+    return () => { es.close(); clearInterval(poll); };
   }, [activeOrder?._id]);
 
   const activeItemNames = activeOrder?.items?.map(i => i.itemName || i.menuItemId?.name || 'Item').join(' · ') || '';
@@ -1728,8 +1743,18 @@ function OrdersPage({ isDark, user, setPage }) {
           className="rounded-3xl p-12 flex flex-col items-center justify-center gap-4 mb-8"
         >
           <ShoppingCart className="w-14 h-14 opacity-20" style={{ color: t.faint }} />
-          <p style={{ color: t.faint }} className="text-sm font-semibold">No active orders yet</p>
-          <p style={{ color: t.faint }} className="text-xs">Place an order to track it here</p>
+          {fetchError ? (
+            <>
+              <p style={{ color: t.text }} className="text-sm font-semibold">Couldn't load your orders</p>
+              <p style={{ color: t.faint }} className="text-xs mb-1">Check your connection and try again.</p>
+              <button onClick={() => { setLoading(true); fetchOrders(); }} style={{ background: t.card, border: `1px solid ${t.border}`, color: t.text }} className="px-4 py-2 rounded-xl text-xs font-bold hover:opacity-80 transition-opacity">Retry</button>
+            </>
+          ) : (
+            <>
+              <p style={{ color: t.faint }} className="text-sm font-semibold">No active orders yet</p>
+              <p style={{ color: t.faint }} className="text-xs">Place an order to track it here</p>
+            </>
+          )}
         </motion.div>
       ) : (
         <motion.div
@@ -1843,7 +1868,7 @@ function OrdersPage({ isDark, user, setPage }) {
                 <div className="flex-1">
                   <div className="flex items-center gap-2 mb-0.5">
                     <span style={{ color: t.text }} className="font-bold text-sm">#{o._id?.slice(-6).toUpperCase()}</span>
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${o.status === 'Rejected' ? 'bg-red-500/12 text-red-400 border-red-500/20' : 'bg-green-500/12 text-green-500 border-green-500/20'}`}>
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-bold border ${o.status === 'Rejected' ? 'bg-red-500/12 text-red-400 border-red-500/20' : o.status === 'Pending Payment' ? 'bg-amber-500/12 text-amber-400 border-amber-500/20' : 'bg-green-500/12 text-green-500 border-green-500/20'}`}>
                       {o.status}
                     </span>
                   </div>
@@ -2414,7 +2439,14 @@ class AppErrorBoundary extends React.Component {
 // ─────────────────────────────────────────────
 function AppInner() {
   const [page, setPage] = useState("home");
-  const [cart, setCart] = useState([]);
+  // Cart persists across reloads (accidental refresh, phone rotation, the
+  // ErrorBoundary's reload button) — a food cart is easy to lose otherwise.
+  const [cart, setCart] = useState(() => {
+    try {
+      const saved = JSON.parse(localStorage.getItem('sb_cart') || '[]');
+      return Array.isArray(saved) ? saved : [];
+    } catch { return []; }
+  });
   const [cartOpen, setCartOpen] = useState(false);
   // Restore user from localStorage so state survives page refresh
   const [user, setUser] = useState(() => {
@@ -2431,6 +2463,11 @@ function AppInner() {
 
   // Scroll to top on page change
   useEffect(() => { window.scrollTo({ top: 0, behavior: 'smooth' }); }, [page]);
+
+  // Persist the cart on every change so a reload never silently wipes it.
+  useEffect(() => {
+    try { localStorage.setItem('sb_cart', JSON.stringify(cart)); } catch { /* private mode */ }
+  }, [cart]);
 
   // Fetch the live menu once on mount; fall back silently to MENU_DATA on failure.
   useEffect(() => {
@@ -2455,6 +2492,7 @@ function AppInner() {
   useEffect(() => {
     const onExpired = () => {
       setUser(null);
+      setCartOpen(false); // don't leave the cart drawer floating over the sign-in page
       toast.error('Session expired. Please sign in again.');
       setPage('auth');
     };

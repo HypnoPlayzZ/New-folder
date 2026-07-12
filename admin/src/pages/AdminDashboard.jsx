@@ -147,7 +147,9 @@ const OrderManager = ({ onNewOrder } = {}) => {
         try {
             const token = localStorage.getItem('admin_token');
             if (token) {
-                es = new EventSource(`/api/admin/notifications?token=${encodeURIComponent(token)}`);
+                // Must hit the API host, not the admin SPA's own origin (which 404s).
+                const apiBase = import.meta.env.VITE_API_BASE_URL || 'https://steamybitesbackend.onrender.com/api';
+                es = new EventSource(`${apiBase}/admin/notifications?token=${encodeURIComponent(token)}`);
                 es.onmessage = (e) => {
                     try {
                         const payload = JSON.parse(e.data);
