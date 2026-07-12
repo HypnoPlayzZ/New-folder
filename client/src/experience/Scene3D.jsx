@@ -60,12 +60,12 @@ export default function Scene3D({ lod }) {
       <AdaptiveDpr pixelated />
       <ambientLight intensity={0.55} />
       <directionalLight position={[4, 6, 4]} intensity={1.2} color="#fff0dd" />
-      <directionalLight position={[-5, 2, -3]} intensity={0.5} color="#6fc7a1" />
+      <directionalLight position={[-5, 2, -3]} intensity={0.5} color="#d9a441" />
 
       {/* Procedural reflections (no network HDR fetch) for the metallic wok. */}
       <Environment resolution={lod.tier === 'low' ? 64 : 128}>
         <Lightformer intensity={2} position={[0, 4, 4]} scale={[8, 4, 1]} color="#fff4e0" />
-        <Lightformer intensity={1.2} position={[-4, 1, 2]} scale={[4, 6, 1]} color="#6fc7a1" />
+        <Lightformer intensity={1.2} position={[-4, 1, 2]} scale={[4, 6, 1]} color="#d9a441" />
         <Lightformer intensity={1} position={[4, -1, -2]} scale={[6, 6, 1]} color="#ff7a18" />
       </Environment>
 

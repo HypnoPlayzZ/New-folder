@@ -1,14 +1,14 @@
 @import "tailwindcss";
 
-/* Supper Club reskin: remap Tailwind's orange scale to the brand gold family
-   so every `text-orange-500` / `bg-orange-500/10` / gradient class shifts
-   without touching markup. */
+/* Brand reskin: remap Tailwind's orange scale to the logo's steam-gold family
+   so every `text-orange-500` / `bg-orange-500/10` / gradient class shifts to
+   gold without touching markup. Red pops are applied explicitly, not here. */
 @theme {
-  --color-orange-300: #b5dec9;
-  --color-orange-400: #8fcfaf;
-  --color-orange-500: #6fc7a1;
-  --color-orange-600: #1e4636;
-  --color-orange-700: #143528;
+  --color-orange-300: #ebcb85;
+  --color-orange-400: #e3b85e;
+  --color-orange-500: #d9a441;
+  --color-orange-600: #c6902e;
+  --color-orange-700: #a6741f;
 }
 
 /* Add any global base styles here */

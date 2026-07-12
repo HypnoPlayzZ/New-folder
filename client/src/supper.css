@@ -6,16 +6,18 @@
    ============================================================ */
 
 :root {
-  --sc-acc: #6fc7a1;
-  --sc-hair: rgba(237, 237, 237, 0.28);
-  --sc-hair2: rgba(237, 237, 237, 0.1);
-  --sc-ink: #ededed;
+  --sc-acc: #d9a441;
+  --sc-pop: #e2513a;
+  --sc-hair: rgba(247, 238, 221, 0.18);
+  --sc-hair2: rgba(247, 238, 221, 0.09);
+  --sc-ink: #f7eedd;
 }
 [data-theme="light"] {
-  --sc-acc: #1e4636;
-  --sc-hair: rgba(17, 18, 20, 0.3);
-  --sc-hair2: rgba(17, 18, 20, 0.12);
-  --sc-ink: #111214;
+  --sc-acc: #a6741f;
+  --sc-pop: #c62828;
+  --sc-hair: rgba(43, 38, 32, 0.2);
+  --sc-hair2: rgba(43, 38, 32, 0.1);
+  --sc-ink: #2b2620;
 }
 
 .sc-display {
@@ -138,7 +140,7 @@
 }
 .sc-hero h1 em {
   font-style: italic;
-  color: var(--sc-acc);
+  color: var(--sc-pop);
 }
 .sc-hero .sc-sub {
   margin-top: 1.3rem;
@@ -244,7 +246,7 @@
   font-family: 'Geist', system-ui, sans-serif;
   font-style: italic;
   font-size: 1.08rem;
-  color: var(--sc-acc);
+  color: var(--sc-pop);
   white-space: nowrap;
 }
 .sc-seg {

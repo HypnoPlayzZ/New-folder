@@ -17,35 +17,37 @@
 }
 
 /* ============================================================
-   STEAMY BITES — Quiet Heat design system (Take 4)
-   Near-black, one sans voice (Geist), hairlines, and the Chef Momo
-   brand green as accent (jade #6FC7A1 on Night, the mascot's outline
-   green #1E4636 on Day). Night is the brand default.
-   Both themes are token-driven; components never hardcode color.
+   STEAMY BITES — warm "Chef Momo" palette (dark-only)
+   Warm ink-black ground, cream text, the logo's steam-gold as the
+   primary accent (#D9A441) with the red band (#C62828) as a pop.
+   One sans voice (Geist), hairlines. Token-driven; components never
+   hardcode color.
    ============================================================ */
 :root {
-  --bg: #050505;
-  --bg2: #0a0a0a;
-  --ink: #ededed;
-  --dim: #9aa0a6;
-  --dim2: #aab0b6; /* small-text variant of --dim; keeps 4.5:1 on --bg2 */
-  --acc: #6fc7a1;
-  --hair: rgba(237, 237, 237, 0.28);
-  --hair2: rgba(237, 237, 237, 0.1);
+  --bg: #12100b;
+  --bg2: #1a160f;
+  --ink: #f7eedd;
+  --dim: #a99e88;
+  --dim2: #c4baa6; /* small-text variant of --dim; keeps 4.5:1 on --bg2 */
+  --acc: #d9a441;   /* logo steam gold — primary accent */
+  --pop: #e2513a;   /* logo red band, brightened for dark legibility — sparing pops */
+  --hair: rgba(247, 238, 221, 0.18);
+  --hair2: rgba(247, 238, 221, 0.09);
   --arch-shadow: none;
   --wisp-a: 0.07;
   --grain-o: 0.35;
-  --video-filter: saturate(0.55) brightness(0.5) contrast(1.05);
+  --video-filter: saturate(0.62) brightness(0.5) contrast(1.05);
 }
 :root[data-theme="light"] {
-  --bg: #f4f4f4;
-  --bg2: #ececec;
-  --ink: #111214;
-  --dim: #5f6368;
-  --dim2: #4a4e52;
-  --acc: #1e4636;
-  --hair: rgba(17, 18, 20, 0.3);
-  --hair2: rgba(17, 18, 20, 0.12);
+  --bg: #f7eedd;
+  --bg2: #efe4d1;
+  --ink: #2b2620;
+  --dim: #7a7266;
+  --dim2: #5f584c;
+  --acc: #a6741f;
+  --pop: #c62828;
+  --hair: rgba(43, 38, 32, 0.2);
+  --hair2: rgba(43, 38, 32, 0.1);
   --arch-shadow: none;
   --wisp-a: 0.05;
   --grain-o: 0.2;
@@ -300,7 +302,7 @@ body {
 }
 .hero h1 em {
   font-style: normal;
-  color: var(--acc);
+  color: var(--pop);
   transition: color 0.7s ease;
 }
 .hero .sub {
@@ -510,12 +512,12 @@ body {
   font-style: normal;
   font-variant-numeric: tabular-nums;
   font-size: 1rem;
-  color: var(--ink);
+  color: var(--pop);
   white-space: nowrap;
   transition: color 0.3s;
 }
 .menu-row:hover .price {
-  color: var(--acc);
+  color: var(--pop);
 }
 .menu-row .go {
   font-size: 0.62rem;

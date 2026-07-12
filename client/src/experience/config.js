@@ -12,9 +12,9 @@ export const PALETTE = {
   text: '#f4f5f7',
   muted: '#9aa0aa',
   faint: '#565d68',
-  neon: '#6fc7a1',       // primary neon green
-  neonDeep: '#1e4636',   // saturated green for gradients
-  neonGlow: 'rgba(111,199,161,0.55)',
+  neon: '#d9a441',       // primary neon green
+  neonDeep: '#a6741f',   // saturated green for gradients
+  neonGlow: 'rgba(217,164,65,0.55)',
   ember: '#ff7a18',      // warm steam/flame highlight (hero)
   emberGlow: 'rgba(255,138,0,0.5)',
 };
@@ -40,11 +40,11 @@ export const VIDEOS = [
 // The four hero categories bound to 3D models on the carousel.
 // `pick` is the menu item id (from MENU_DATA) used for the real add-to-cart.
 export const CATEGORIES = [
-  { key: 'Momos',    label: 'Steamed Momos',  pick: 1,  accent: '#6fc7a1', model: 'momo',
+  { key: 'Momos',    label: 'Steamed Momos',  pick: 1,  accent: '#d9a441', model: 'momo',
     blurb: 'Hand-folded, bamboo-steamed, drop-dead delicate.' },
-  { key: 'Italian',  label: 'Wood-Fire Italian', pick: 5, accent: '#8fcfaf', model: 'pizza',
+  { key: 'Italian',  label: 'Wood-Fire Italian', pick: 5, accent: '#e3b85e', model: 'pizza',
     blurb: 'Blistered crust, molten mozzarella, fresh basil.' },
-  { key: 'Chowmein', label: 'Wok Chowmein',   pick: 9,  accent: '#b5dec9', model: 'wok',
+  { key: 'Chowmein', label: 'Wok Chowmein',   pick: 9,  accent: '#ebcb85', model: 'wok',
     blurb: 'Smoke off the wok, tossed at full flame.' },
   { key: 'Burgers',  label: 'Loaded Burgers', pick: 11, accent: '#3d8be6', model: 'burger',
     blurb: 'Stacked, saucy, two-hands-required.' },

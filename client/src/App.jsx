@@ -80,7 +80,7 @@ const FOOD_IMAGES = {
 };
 
 const REVIEWS = [
-  { name: "Ananya S.", text: "Super quick delivery and piping hot momos! Best in town without doubt.", rating: 5, initial: "A", color: "#6FC7A1" },
+  { name: "Ananya S.", text: "Super quick delivery and piping hot momos! Best in town without doubt.", rating: 5, initial: "A", color: "#D9A441" },
   { name: "Rohit M.", text: "Loved the spicy chutney. Ordering again tonight. Highly recommend!", rating: 5, initial: "R", color: "#9333EA" },
   { name: "Priya K.", text: "Free delivery + 10% discount. Great portions and amazing quality.", rating: 5, initial: "P", color: "#0EA5E9" },
   { name: "Kabir T.", text: "Soft inside, crispy outside. Perfect momos every single time!", rating: 4, initial: "K", color: "#10B981" },
@@ -111,14 +111,14 @@ const HOW_STEPS = [
    Day: paper-grey ground, near-black ink. */
 const themes = {
   dark: {
-    bg: "#050505", surface: "#0a0a0a", card: "rgba(237,237,237,0.04)",
-    border: "rgba(237,237,237,0.1)", text: "#ededed", muted: "#9aa0a6", faint: "#5d6166",
-    inputBg: "rgba(237,237,237,0.06)", navBg: "rgba(5,5,5,0.85)",
+    bg: "#12100b", surface: "#1a160f", card: "rgba(247,238,221,0.04)",
+    border: "rgba(247,238,221,0.1)", text: "#f7eedd", muted: "#a99e88", faint: "#6e6656",
+    inputBg: "rgba(247,238,221,0.06)", navBg: "rgba(18,16,11,0.85)",
   },
   light: {
-    bg: "#f4f4f4", surface: "#fcfcfc", card: "rgba(17,18,20,0.03)",
-    border: "rgba(17,18,20,0.12)", text: "#111214", muted: "#5f6368", faint: "#a2a6aa",
-    inputBg: "rgba(17,18,20,0.04)", navBg: "rgba(244,244,244,0.92)",
+    bg: "#f7eedd", surface: "#fffdf8", card: "rgba(43,38,32,0.03)",
+    border: "rgba(43,38,32,0.12)", text: "#2b2620", muted: "#7a7266", faint: "#a89e8c",
+    inputBg: "rgba(43,38,32,0.04)", navBg: "rgba(247,238,221,0.92)",
   }
 };
 
@@ -199,65 +199,65 @@ const CategoryIcons = {
 const FoodIllustrations = {
   Momos: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <ellipse cx="40" cy="55" rx="28" ry="14" fill="#6FC7A1" opacity="0.15"/>
-      <path d="M14 48 Q20 28 40 24 Q60 28 66 48" stroke="#6FC7A1" strokeWidth="3" fill="none" strokeLinecap="round"/>
-      <path d="M14 48 Q26 62 40 62 Q54 62 66 48" stroke="#6FC7A1" strokeWidth="3" fill="none"/>
-      <path d="M25 44 Q32 36 40 36 Q48 36 55 44" stroke="#6FC7A1" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      <path d="M38 24 Q40 18 42 22" stroke="#6FC7A1" strokeWidth="2.5" strokeLinecap="round"/>
-      <circle cx="40" cy="43" r="3" fill="#6FC7A1" opacity="0.4"/>
+      <ellipse cx="40" cy="55" rx="28" ry="14" fill="#D9A441" opacity="0.15"/>
+      <path d="M14 48 Q20 28 40 24 Q60 28 66 48" stroke="#D9A441" strokeWidth="3" fill="none" strokeLinecap="round"/>
+      <path d="M14 48 Q26 62 40 62 Q54 62 66 48" stroke="#D9A441" strokeWidth="3" fill="none"/>
+      <path d="M25 44 Q32 36 40 36 Q48 36 55 44" stroke="#D9A441" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      <path d="M38 24 Q40 18 42 22" stroke="#D9A441" strokeWidth="2.5" strokeLinecap="round"/>
+      <circle cx="40" cy="43" r="3" fill="#D9A441" opacity="0.4"/>
     </svg>
   ),
   Italian: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <path d="M12 60 L40 16 L68 60 Z" stroke="#6FC7A1" strokeWidth="2.5" fill="#6FC7A1" fillOpacity="0.08" strokeLinejoin="round"/>
-      <circle cx="34" cy="44" r="5" fill="#6FC7A1" opacity="0.5"/>
-      <circle cx="46" cy="50" r="4" fill="#6FC7A1" opacity="0.4"/>
-      <circle cx="40" cy="36" r="3" fill="#6FC7A1" opacity="0.3"/>
-      <circle cx="28" cy="54" r="3" fill="#6FC7A1" opacity="0.3"/>
-      <path d="M12 60 Q40 66 68 60" stroke="#6FC7A1" strokeWidth="3" fill="none" strokeLinecap="round"/>
+      <path d="M12 60 L40 16 L68 60 Z" stroke="#D9A441" strokeWidth="2.5" fill="#D9A441" fillOpacity="0.08" strokeLinejoin="round"/>
+      <circle cx="34" cy="44" r="5" fill="#D9A441" opacity="0.5"/>
+      <circle cx="46" cy="50" r="4" fill="#D9A441" opacity="0.4"/>
+      <circle cx="40" cy="36" r="3" fill="#D9A441" opacity="0.3"/>
+      <circle cx="28" cy="54" r="3" fill="#D9A441" opacity="0.3"/>
+      <path d="M12 60 Q40 66 68 60" stroke="#D9A441" strokeWidth="3" fill="none" strokeLinecap="round"/>
     </svg>
   ),
   Chowmein: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <rect x="16" y="46" width="48" height="20" rx="6" fill="#6FC7A1" opacity="0.12" stroke="#6FC7A1" strokeWidth="2.5"/>
-      <path d="M26 46 Q30 26 34 34 Q38 42 40 30 Q42 18 46 26 Q50 34 54 46" stroke="#6FC7A1" strokeWidth="3" fill="none" strokeLinecap="round"/>
-      <path d="M20 46 Q24 24 28 30 Q32 36 34 22" stroke="#6FC7A1" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5"/>
-      <line x1="34" y1="18" x2="34" y2="12" stroke="#6FC7A1" strokeWidth="2.5" strokeLinecap="round"/>
-      <line x1="46" y1="18" x2="46" y2="12" stroke="#6FC7A1" strokeWidth="2.5" strokeLinecap="round"/>
+      <rect x="16" y="46" width="48" height="20" rx="6" fill="#D9A441" opacity="0.12" stroke="#D9A441" strokeWidth="2.5"/>
+      <path d="M26 46 Q30 26 34 34 Q38 42 40 30 Q42 18 46 26 Q50 34 54 46" stroke="#D9A441" strokeWidth="3" fill="none" strokeLinecap="round"/>
+      <path d="M20 46 Q24 24 28 30 Q32 36 34 22" stroke="#D9A441" strokeWidth="2" fill="none" strokeLinecap="round" opacity="0.5"/>
+      <line x1="34" y1="18" x2="34" y2="12" stroke="#D9A441" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="46" y1="18" x2="46" y2="12" stroke="#D9A441" strokeWidth="2.5" strokeLinecap="round"/>
     </svg>
   ),
   Burgers: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <path d="M16 34 Q16 20 40 20 Q64 20 64 34 Z" fill="#6FC7A1" opacity="0.2" stroke="#6FC7A1" strokeWidth="2.5"/>
-      <rect x="12" y="34" width="56" height="9" rx="2" fill="#6FC7A1" opacity="0.25"/>
-      <rect x="12" y="43" width="56" height="9" rx="2" fill="#6FC7A1" opacity="0.4"/>
-      <path d="M12 52 Q12 64 40 64 Q68 64 68 52 Z" fill="#6FC7A1" opacity="0.2" stroke="#6FC7A1" strokeWidth="2.5"/>
-      <path d="M16 37 Q30 41 40 37 Q50 33 64 37" stroke="#6FC7A1" strokeWidth="2" fill="none" opacity="0.7" strokeLinecap="round"/>
+      <path d="M16 34 Q16 20 40 20 Q64 20 64 34 Z" fill="#D9A441" opacity="0.2" stroke="#D9A441" strokeWidth="2.5"/>
+      <rect x="12" y="34" width="56" height="9" rx="2" fill="#D9A441" opacity="0.25"/>
+      <rect x="12" y="43" width="56" height="9" rx="2" fill="#D9A441" opacity="0.4"/>
+      <path d="M12 52 Q12 64 40 64 Q68 64 68 52 Z" fill="#D9A441" opacity="0.2" stroke="#D9A441" strokeWidth="2.5"/>
+      <path d="M16 37 Q30 41 40 37 Q50 33 64 37" stroke="#D9A441" strokeWidth="2" fill="none" opacity="0.7" strokeLinecap="round"/>
     </svg>
   ),
   Sides: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <rect x="24" y="28" width="32" height="36" rx="5" fill="#6FC7A1" opacity="0.12" stroke="#6FC7A1" strokeWidth="2.5"/>
-      <rect x="26" y="20" width="28" height="10" rx="3" fill="#6FC7A1" opacity="0.2" stroke="#6FC7A1" strokeWidth="2.5"/>
-      <rect x="30" y="34" width="5" height="24" rx="2.5" fill="#6FC7A1" opacity="0.5"/>
-      <rect x="37.5" y="34" width="5" height="24" rx="2.5" fill="#6FC7A1" opacity="0.5"/>
-      <rect x="45" y="34" width="5" height="24" rx="2.5" fill="#6FC7A1" opacity="0.5"/>
+      <rect x="24" y="28" width="32" height="36" rx="5" fill="#D9A441" opacity="0.12" stroke="#D9A441" strokeWidth="2.5"/>
+      <rect x="26" y="20" width="28" height="10" rx="3" fill="#D9A441" opacity="0.2" stroke="#D9A441" strokeWidth="2.5"/>
+      <rect x="30" y="34" width="5" height="24" rx="2.5" fill="#D9A441" opacity="0.5"/>
+      <rect x="37.5" y="34" width="5" height="24" rx="2.5" fill="#D9A441" opacity="0.5"/>
+      <rect x="45" y="34" width="5" height="24" rx="2.5" fill="#D9A441" opacity="0.5"/>
     </svg>
   ),
   Drinks: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <path d="M28 22 L24 62 Q24 66 40 66 Q56 66 52 62 L48 22 Z" fill="#6FC7A1" fillOpacity="0.1" stroke="#6FC7A1" strokeWidth="2.5" strokeLinejoin="round"/>
-      <path d="M48 22 L58 32 Q62 40 56 44 L48 40" stroke="#6FC7A1" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      <path d="M28 36 Q34 44 48 36" stroke="#6FC7A1" strokeWidth="2.5" fill="#6FC7A1" fillOpacity="0.2" strokeLinecap="round"/>
-      <line x1="37" y1="16" x2="37" y2="10" stroke="#6FC7A1" strokeWidth="2.5" strokeLinecap="round"/>
-      <line x1="43" y1="14" x2="44" y2="8" stroke="#6FC7A1" strokeWidth="2.5" strokeLinecap="round"/>
+      <path d="M28 22 L24 62 Q24 66 40 66 Q56 66 52 62 L48 22 Z" fill="#D9A441" fillOpacity="0.1" stroke="#D9A441" strokeWidth="2.5" strokeLinejoin="round"/>
+      <path d="M48 22 L58 32 Q62 40 56 44 L48 40" stroke="#D9A441" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      <path d="M28 36 Q34 44 48 36" stroke="#D9A441" strokeWidth="2.5" fill="#D9A441" fillOpacity="0.2" strokeLinecap="round"/>
+      <line x1="37" y1="16" x2="37" y2="10" stroke="#D9A441" strokeWidth="2.5" strokeLinecap="round"/>
+      <line x1="43" y1="14" x2="44" y2="8" stroke="#D9A441" strokeWidth="2.5" strokeLinecap="round"/>
     </svg>
   ),
   Default: () => (
     <svg viewBox="0 0 80 80" fill="none" className="w-20 h-20">
-      <circle cx="40" cy="40" r="24" fill="#6FC7A1" opacity="0.1" stroke="#6FC7A1" strokeWidth="2"/>
-      <path d="M28 36 Q34 28 40 30 Q46 28 52 36" stroke="#6FC7A1" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
-      <path d="M28 44 Q34 52 40 50 Q46 52 52 44" stroke="#6FC7A1" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      <circle cx="40" cy="40" r="24" fill="#D9A441" opacity="0.1" stroke="#D9A441" strokeWidth="2"/>
+      <path d="M28 36 Q34 28 40 30 Q46 28 52 36" stroke="#D9A441" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
+      <path d="M28 44 Q34 52 40 50 Q46 52 52 44" stroke="#D9A441" strokeWidth="2.5" fill="none" strokeLinecap="round"/>
     </svg>
   ),
 };
@@ -269,18 +269,18 @@ function getFoodIllustration(category) {
 
 // Tag color map
 const TAG_COLORS = {
-  Bestseller:    { bg: "rgba(111,199,161,0.15)", text: "#6FC7A1", border: "rgba(111,199,161,0.3)" },
+  Bestseller:    { bg: "rgba(217,164,65,0.15)", text: "#D9A441", border: "rgba(217,164,65,0.3)" },
   "Chef's Pick": { bg: "rgba(99,102,241,0.15)", text: "#818cf8", border: "rgba(99,102,241,0.3)" },
   Spicy:         { bg: "rgba(239,68,68,0.15)", text: "#f87171", border: "rgba(239,68,68,0.3)" },
   "Extra Spicy": { bg: "rgba(220,38,38,0.15)", text: "#ef4444", border: "rgba(220,38,38,0.3)" },
   Popular:       { bg: "rgba(34,197,94,0.12)", text: "#4ade80", border: "rgba(34,197,94,0.25)" },
   Classic:       { bg: "rgba(234,179,8,0.12)", text: "#facc15", border: "rgba(234,179,8,0.25)" },
   Quick:         { bg: "rgba(34,197,94,0.12)", text: "#4ade80", border: "rgba(34,197,94,0.25)" },
-  Crispy:        { bg: "rgba(111,199,161,0.12)", text: "#fb923c", border: "rgba(111,199,161,0.25)" },
-  Loaded:        { bg: "rgba(111,199,161,0.12)", text: "#fb923c", border: "rgba(111,199,161,0.25)" },
+  Crispy:        { bg: "rgba(217,164,65,0.12)", text: "#fb923c", border: "rgba(217,164,65,0.25)" },
+  Loaded:        { bg: "rgba(217,164,65,0.12)", text: "#fb923c", border: "rgba(217,164,65,0.25)" },
   Refreshing:    { bg: "rgba(56,189,248,0.12)", text: "#38bdf8", border: "rgba(56,189,248,0.25)" },
   Chilled:       { bg: "rgba(56,189,248,0.12)", text: "#38bdf8", border: "rgba(56,189,248,0.25)" },
-  Crunchy:       { bg: "rgba(111,199,161,0.12)", text: "#fb923c", border: "rgba(111,199,161,0.25)" },
+  Crunchy:       { bg: "rgba(217,164,65,0.12)", text: "#fb923c", border: "rgba(217,164,65,0.25)" },
 };
 
 // ─────────────────────────────────────────────
@@ -365,8 +365,8 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
                 whileHover={{ y: -1 }}
                 whileTap={{ scale: 0.96 }}
                 style={{
-                  color: page === p ? "#6FC7A1" : t.muted,
-                  background: page === p ? "rgba(111,199,161,0.1)" : "transparent",
+                  color: page === p ? "#D9A441" : t.muted,
+                  background: page === p ? "rgba(217,164,65,0.1)" : "transparent",
                 }}
                 className={`nav-item-pill ${page === p ? "active" : ""} px-4 py-2 rounded-xl text-sm font-semibold transition-all`}
               >
@@ -408,7 +408,7 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
             ) : (
               <div className="hidden md:flex items-center gap-2.5">
                 <div
-                  style={{ background: "rgba(111,199,161,0.15)", color: "#6FC7A1" }}
+                  style={{ background: "rgba(217,164,65,0.15)", color: "#D9A441" }}
                   className="w-8 h-8 rounded-full flex items-center justify-center font-black text-sm"
                 >
                   {user.name[0].toUpperCase()}
@@ -501,8 +501,8 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
                     onClick={() => { setPage(p); setMob(false); }}
                     whileTap={{ scale: 0.97 }}
                     style={{
-                      color: page === p ? "#6FC7A1" : t.muted,
-                      background: page === p ? "rgba(111,199,161,0.08)" : "transparent",
+                      color: page === p ? "#D9A441" : t.muted,
+                      background: page === p ? "rgba(217,164,65,0.08)" : "transparent",
                     }}
                     className="mobile-nav-item w-full text-left px-4 py-3 rounded-xl text-sm font-semibold"
                   >
@@ -697,9 +697,9 @@ function HeroSection({ setPage, isDark }) {
               <motion.span
                 key={tag}
                 animate={{
-                  background: tick % tags.length === i ? "rgba(111,199,161,0.15)" : (isDark ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.028)"),
-                  borderColor: tick % tags.length === i ? "rgba(111,199,161,0.4)" : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)"),
-                  color: tick % tags.length === i ? "#6FC7A1" : t.faint,
+                  background: tick % tags.length === i ? "rgba(217,164,65,0.15)" : (isDark ? "rgba(255,255,255,0.035)" : "rgba(0,0,0,0.028)"),
+                  borderColor: tick % tags.length === i ? "rgba(217,164,65,0.4)" : (isDark ? "rgba(255,255,255,0.07)" : "rgba(0,0,0,0.08)"),
+                  color: tick % tags.length === i ? "#D9A441" : t.faint,
                   scale: tick % tags.length === i ? 1.06 : 1,
                 }}
                 transition={{ duration: 0.4 }}
@@ -751,7 +751,7 @@ function HeroSection({ setPage, isDark }) {
         >
           <div className="relative w-80 h-80">
             <div className="hero-ring absolute inset-0 rounded-full border border-orange-500/20"
-              style={{ background: "radial-gradient(circle, rgba(111,199,161,0.07) 0%, transparent 70%)" }} />
+              style={{ background: "radial-gradient(circle, rgba(217,164,65,0.07) 0%, transparent 70%)" }} />
             <div className="hero-ring-rev absolute inset-6 rounded-full border border-orange-400/10" />
 
             {/* Center hero food photo */}
@@ -850,7 +850,7 @@ function FoodCard({ item, onAddToCart, isDark }) {
           src={imgSrc}
           alt={item.name}
           className="food-card-img"
-          onError={e => { e.target.parentElement.innerHTML = `<div class="flex items-center justify-center h-full" style="background:rgba(111,199,161,0.04)">${document.createElement('div').innerHTML = ''}</div>`; }}
+          onError={e => { e.target.parentElement.innerHTML = `<div class="flex items-center justify-center h-full" style="background:rgba(217,164,65,0.04)">${document.createElement('div').innerHTML = ''}</div>`; }}
         />
         {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
@@ -897,7 +897,7 @@ function FoodCard({ item, onAddToCart, isDark }) {
                 onClick={() => setSize(s)}
                 whileTap={{ scale: 0.96 }}
                 style={{
-                  background: size === s ? "#6FC7A1" : "transparent",
+                  background: size === s ? "#D9A441" : "transparent",
                   color: size === s ? "white" : t.faint,
                 }}
                 className="flex-1 py-1.5 rounded-lg text-xs font-bold transition-all"
@@ -917,7 +917,7 @@ function FoodCard({ item, onAddToCart, isDark }) {
               whileHover={!added ? { scale: 1.06 } : {}}
               whileTap={!added ? { scale: 0.92 } : {}}
               style={{
-                background: added ? "rgba(34,197,94,0.15)" : "#6FC7A1",
+                background: added ? "rgba(34,197,94,0.15)" : "#D9A441",
                 color: added ? "#4ade80" : "white",
                 border: added ? "1px solid rgba(34,197,94,0.3)" : "none",
               }}
@@ -1080,8 +1080,8 @@ function MenuPage({ setCart, isDark, menuItems, menuLoading }) {
                   onClick={() => setCat(c)}
                   whileTap={{ scale: 0.95 }}
                   style={{
-                    background: cat === c ? "#6FC7A1" : t.card,
-                    border: `1px solid ${cat === c ? "#6FC7A1" : t.border}`,
+                    background: cat === c ? "#D9A441" : t.card,
+                    border: `1px solid ${cat === c ? "#D9A441" : t.border}`,
                     color: cat === c ? "white" : t.muted,
                   }}
                   className={`cat-pill ${cat === c ? "active" : ""} px-4 py-2 rounded-xl text-sm font-bold`}
@@ -1268,7 +1268,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
           email: user?.email || '',
           contact: order.mobile || mobile || '',
         },
-        theme: { color: '#6FC7A1' },
+        theme: { color: '#D9A441' },
         handler: async (response) => {
           try {
             await api.post('/payments/verify', {
@@ -1444,7 +1444,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                           style={{ background: t.card, border: `1px solid ${t.border}` }}
                           className="cart-item-row flex items-center gap-3 rounded-2xl p-3"
                         >
-                          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: "rgba(111,199,161,0.08)" }}>
+                          <div className="w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 overflow-hidden" style={{ background: "rgba(217,164,65,0.08)" }}>
                             <img
                               src={FOOD_IMAGES[item.category] || FOOD_IMAGES.Default}
                               alt={item.name}
@@ -1554,9 +1554,9 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                               key={opt.id}
                               onClick={() => setPaymentMethod(opt.id)}
                               style={{
-                                background: paymentMethod === opt.id ? 'rgba(111,199,161,0.12)' : t.inputBg,
-                                border: `1px solid ${paymentMethod === opt.id ? 'rgba(111,199,161,0.45)' : t.border}`,
-                                color: paymentMethod === opt.id ? '#6FC7A1' : t.text,
+                                background: paymentMethod === opt.id ? 'rgba(217,164,65,0.12)' : t.inputBg,
+                                border: `1px solid ${paymentMethod === opt.id ? 'rgba(217,164,65,0.45)' : t.border}`,
+                                color: paymentMethod === opt.id ? '#D9A441' : t.text,
                               }}
                               className="text-left px-3 py-2.5 rounded-xl transition-all"
                             >
@@ -1735,7 +1735,7 @@ function OrdersPage({ isDark, user, setPage }) {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          style={{ background: t.card, border: `1px solid ${isRejected ? "rgba(239,68,68,0.3)" : "rgba(111,199,161,0.2)"}` }}
+          style={{ background: t.card, border: `1px solid ${isRejected ? "rgba(239,68,68,0.3)" : "rgba(217,164,65,0.2)"}` }}
           className="tracking-card rounded-3xl p-6 mb-6"
         >
           <div className="flex items-start justify-between mb-6">
@@ -1761,7 +1761,7 @@ function OrdersPage({ isDark, user, setPage }) {
               <div style={{ background: t.border, position: "absolute", top: "50%", left: "20px", right: "20px", height: "2px", transform: "translateY(-50%)", zIndex: 0 }} />
               <motion.div
                 className="stepper-bar"
-                style={{ background: "linear-gradient(to right, #6FC7A1, #fb923c)", position: "absolute", top: "50%", left: "20px", height: "2px", transform: "translateY(-50%)", zIndex: 0, maxWidth: "calc(100% - 40px)" }}
+                style={{ background: "linear-gradient(to right, #D9A441, #fb923c)", position: "absolute", top: "50%", left: "20px", height: "2px", transform: "translateY(-50%)", zIndex: 0, maxWidth: "calc(100% - 40px)" }}
                 initial={{ width: 0 }}
                 animate={{ width: `${(step / 3) * 100}%` }}
                 transition={{ duration: 1, ease }}
@@ -1774,10 +1774,10 @@ function OrdersPage({ isDark, user, setPage }) {
                       animate={{ scale: 1 }}
                       transition={{ delay: i * 0.1 }}
                       style={{
-                        background: i <= step ? "#6FC7A1" : (isDark ? "#1a1a22" : "#e5e7eb"),
-                        border: `2px solid ${i <= step ? "#6FC7A1" : t.border}`,
+                        background: i <= step ? "#D9A441" : (isDark ? "#1a1a22" : "#e5e7eb"),
+                        border: `2px solid ${i <= step ? "#D9A441" : t.border}`,
                         color: i <= step ? "white" : t.faint,
-                        boxShadow: i <= step ? "0 0 20px rgba(111,199,161,0.45)" : "none",
+                        boxShadow: i <= step ? "0 0 20px rgba(217,164,65,0.45)" : "none",
                       }}
                       className={`step-dot ${i < step ? "done" : ""} ${i === step ? "current" : ""} w-9 h-9 rounded-full flex items-center justify-center text-xs font-black`}
                     >
@@ -1837,7 +1837,7 @@ function OrdersPage({ isDark, user, setPage }) {
                 style={{ background: t.card, border: `1px solid ${t.border}` }}
                 className="past-order-card rounded-2xl p-4 flex items-center gap-4 mb-3"
               >
-                <div style={{ background: "rgba(111,199,161,0.08)", border: "1px solid rgba(111,199,161,0.15)" }} className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div style={{ background: "rgba(217,164,65,0.08)", border: "1px solid rgba(217,164,65,0.15)" }} className="w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0 overflow-hidden">
                   <img src={FOOD_IMAGES.Momos} alt="" className="w-full h-full object-cover opacity-80" />
                 </div>
                 <div className="flex-1">
@@ -1874,7 +1874,7 @@ function TestimonialsSection({ isDark }) {
           <Star
             key={i}
             className="w-3.5 h-3.5"
-            style={{ color: i <= count ? "#6FC7A1" : t.faint, fill: i <= count ? "#6FC7A1" : "none" }}
+            style={{ color: i <= count ? "#D9A441" : t.faint, fill: i <= count ? "#D9A441" : "none" }}
           />
         ))}
       </div>
@@ -2033,7 +2033,7 @@ function HowItWorks({ isDark, setPage }) {
                 <Icon className="w-7 h-7 text-white" />
               </motion.div>
               <div
-                style={{ background: "rgba(111,199,161,0.08)", color: "#6FC7A1" }}
+                style={{ background: "rgba(217,164,65,0.08)", color: "#D9A441" }}
                 className="text-xs font-black tracking-wider mb-2 px-3 py-1 rounded-full"
               >
                 STEP {step}
@@ -2238,7 +2238,7 @@ function HomePage({ setPage, setCart, isDark, menuItems }) {
                 onClick={() => setPage("menu")}
                 whileHover={{ y: -8, scale: 1.04 }}
                 whileTap={{ scale: 0.96 }}
-                style={{ background: t.card, border: `1px solid ${t.border}`, color: "#6FC7A1" }}
+                style={{ background: t.card, border: `1px solid ${t.border}`, color: "#D9A441" }}
                 className="cat-card rounded-2xl p-5 flex flex-col items-center gap-2.5"
               >
                 <div className="cat-card-icon"><IconComp /></div>
@@ -2323,7 +2323,7 @@ function HomePage({ setPage, setCart, isDark, menuItems }) {
             className="grid sm:grid-cols-2 lg:grid-cols-4 gap-4"
           >
             {[
-              { label: "30-Min Delivery", desc: "Hot food, always on time. We guarantee it.", icon: Clock, color: "#6FC7A1" },
+              { label: "30-Min Delivery", desc: "Hot food, always on time. We guarantee it.", icon: Clock, color: "#D9A441" },
               { label: "Farm Fresh", desc: "Quality-checked every morning, no compromises.", icon: Leaf, color: "#22c55e" },
               { label: "Best Prices", desc: "Great food at honest, fair prices.", icon: BadgePercent, color: "#F59E0B" },
               { label: "Live Tracking", desc: "Know exactly where your order is.", icon: MapPin, color: "#0EA5E9" },
