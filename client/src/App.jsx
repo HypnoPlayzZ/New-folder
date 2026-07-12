@@ -14,6 +14,9 @@ import { api, getMenuCached } from './api';
 import SteamyHome from './experience/SteamyHome'; // preserved: previous cinematic home, swap back by rendering it in the "home" branch
 import SupperHome from './SupperHome';
 import './supper.css';
+import { MapContainer, TileLayer, Marker, useMapEvents, useMap } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 
 // ─────────────────────────────────────────────
 // STATIC DATA
@@ -1159,6 +1162,120 @@ function waitForRazorpay(timeoutMs = 6000) {
   });
 }
 
+// Complete/resume payment for an existing order id. Used by the cart AND the Track Order
+// "Pay Now" button (Pending Payment orders). create-order is idempotent server-side, so
+// calling this again for the same order reuses the existing Razorpay order (no orphaned charge).
+async function startRazorpayPayment(orderId, user) {
+  const createRes = await api.post('/payments/create-order', { orderId });
+  const { keyId, razorpayOrderId, amount, currency, order } = createRes.data;
+  const Razorpay = await waitForRazorpay();
+  return new Promise((resolve, reject) => {
+    const rzp = new Razorpay({
+      key: keyId,
+      amount,
+      currency,
+      name: 'Steamy Bites',
+      description: `Order #${String(order._id).slice(-6).toUpperCase()}`,
+      order_id: razorpayOrderId,
+      prefill: {
+        name: order.customerName || user?.name || '',
+        email: user?.email || '',
+        contact: order.mobile || '',
+      },
+      theme: { color: '#D9A441' },
+      handler: async (response) => {
+        try {
+          await api.post('/payments/verify', {
+            razorpay_order_id: response.razorpay_order_id,
+            razorpay_payment_id: response.razorpay_payment_id,
+            razorpay_signature: response.razorpay_signature,
+            orderId,
+          });
+          resolve();
+        } catch (err) { reject(err); }
+      },
+      modal: { ondismiss: () => reject(new Error('Payment cancelled.')) },
+    });
+    rzp.on('payment.failed', (resp) => reject(new Error(resp?.error?.description || 'Payment failed.')));
+    rzp.open();
+  });
+}
+
+// Leaflet marker via emoji divIcon — sidesteps the classic bundler broken-marker-image issue.
+const SB_PIN_ICON = L.divIcon({
+  className: 'sb-map-pin',
+  html: '<div style="font-size:26px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,0.5))">📍</div>',
+  iconSize: [26, 26],
+  iconAnchor: [13, 26],
+});
+
+function LocationMapController({ pos }) {
+  const map = useMap();
+  // Leaflet renders gray tiles inside an animated/transformed drawer until it's told to
+  // re-measure; invalidateSize after mount fixes that. Recenter when a new pin is set.
+  useEffect(() => { const t = setTimeout(() => map.invalidateSize(), 120); return () => clearTimeout(t); }, [map]);
+  useEffect(() => { if (pos) map.setView([pos.lat, pos.lng], 16); }, [pos, map]);
+  return null;
+}
+
+// Optional delivery-location pin. Captures "lat,lng" on top of the typed address so the
+// rider + admin get an exact point. Free OpenStreetMap tiles — no API key, no billing.
+function LocationPicker({ value, onChange, isDark }) {
+  const parse = (v) => {
+    const p = String(v || '').split(',').map(Number);
+    return p.length === 2 && p.every(Number.isFinite) ? { lat: p[0], lng: p[1] } : null;
+  };
+  const [pos, setPos] = useState(() => parse(value));
+  const [locating, setLocating] = useState(false);
+  const DELHI = { lat: 28.6139, lng: 77.2090 };
+  const center = pos || DELHI;
+
+  function set(p) {
+    const next = { lat: p.lat, lng: p.lng };
+    setPos(next);
+    onChange(`${next.lat.toFixed(6)},${next.lng.toFixed(6)}`);
+  }
+  function ClickCapture() {
+    useMapEvents({ click(e) { set({ lat: e.latlng.lat, lng: e.latlng.lng }); } });
+    return null;
+  }
+  function useMyLocation() {
+    if (!navigator.geolocation) { toast.error('Location not supported on this device.'); return; }
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (p) => { set({ lat: p.coords.latitude, lng: p.coords.longitude }); setLocating(false); },
+      () => { toast.error('Could not get your location. Tap the map to drop a pin.'); setLocating(false); },
+      { enableHighAccuracy: true, timeout: 10000 }
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2">
+        <span style={{ color: isDark ? '#9a948a' : '#6b6b6b' }} className="text-xs font-bold uppercase tracking-wider">📍 Pin location (optional)</span>
+        <button type="button" onClick={useMyLocation} disabled={locating}
+          className="text-[11px] font-bold px-2.5 py-1 rounded-lg bg-orange-500/15 border border-orange-500/25 text-orange-500 hover:bg-orange-500/25 transition-colors disabled:opacity-50">
+          {locating ? 'Locating…' : 'Use my location'}
+        </button>
+      </div>
+      <div style={{ height: 170, borderRadius: 12, overflow: 'hidden', border: '1px solid rgba(217,164,65,0.25)' }}>
+        <MapContainer center={[center.lat, center.lng]} zoom={pos ? 16 : 11} style={{ height: '100%', width: '100%' }} scrollWheelZoom={false}>
+          <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" attribution="&copy; OpenStreetMap" />
+          <LocationMapController pos={pos} />
+          <ClickCapture />
+          {pos && (
+            <Marker position={[pos.lat, pos.lng]} draggable icon={SB_PIN_ICON}
+              eventHandlers={{ dragend: (e) => { const ll = e.target.getLatLng(); set({ lat: ll.lat, lng: ll.lng }); } }} />
+          )}
+        </MapContainer>
+      </div>
+      <p style={{ color: isDark ? '#6f6a61' : '#8a8a8a' }} className="text-[11px] mt-1.5 ml-0.5">
+        {pos ? `Pinned: ${pos.lat.toFixed(4)}, ${pos.lng.toFixed(4)} — drag the pin to adjust` : 'Tap the map or use your location to help the rider find you.'}
+      </p>
+    </div>
+  );
+}
+
 function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
   const [coupon, setCoupon] = useState("");
   // appliedCoupon: { code, discountType, discountValue, discountAmount } from server
@@ -1167,6 +1284,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
   const [couponLoading, setCouponLoading] = useState(false);
   const [address, setAddress] = useState("");
   const [mobile, setMobile] = useState("");
+  const [locationCoords, setLocationCoords] = useState(""); // "lat,lng" from the map pin (optional)
   const [addressErr, setAddressErr] = useState("");
   const [mobileErr, setMobileErr] = useState("");
   const [paymentMethod, setPaymentMethod] = useState('RAZORPAY'); // COD disabled for now
@@ -1229,8 +1347,8 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
       setAddressErr("Please enter a complete delivery address");
       ok = false;
     } else { setAddressErr(""); }
-    if (mobile && !/^[0-9]{10}$/.test(mobile.trim())) {
-      setMobileErr("Mobile must be 10 digits");
+    if (!/^[0-9]{10}$/.test(mobile.trim())) {
+      setMobileErr("A 10-digit mobile number is required for delivery");
       ok = false;
     } else { setMobileErr(""); }
     return ok;
@@ -1246,6 +1364,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
       setCoupon("");
       setAddress("");
       setMobile("");
+      setLocationCoords("");
       setPaymentMethod('RAZORPAY');
       setPage("orders");
     }, 1500);
@@ -1311,6 +1430,13 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
       return;
     }
     if (!validateForm()) return;
+    // The static fallback menu (shown briefly during a backend cold start) uses numeric ids,
+    // not real DB ids — the server would reject the whole order with a confusing "no longer
+    // available". Catch it here with a clear message instead of a cryptic failure.
+    if (cart.some(i => typeof i.id !== 'string')) {
+      toast.error('Our live menu is still loading. Please refresh and add your items again.');
+      return;
+    }
     setProcessing(true);
     try {
       // Server recomputes totals and revalidates the coupon, so what we send is
@@ -1326,6 +1452,8 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
         customerName: user?.name || 'Customer',
         mobile: mobile.trim(),
         address: address.trim(),
+        locationCoords: locationCoords || undefined,
+        locationLink: locationCoords ? `https://www.google.com/maps?q=${encodeURIComponent(locationCoords)}` : undefined,
         paymentMethod,
         appliedCoupon: appliedCoupon ? {
           code: appliedCoupon.code,
@@ -1537,13 +1665,18 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                           <input
                             value={mobile}
                             onChange={e => { setMobile(e.target.value.replace(/[^0-9]/g, '').slice(0, 10)); if (mobileErr) setMobileErr(""); }}
-                            placeholder="Mobile number (10 digits) — optional"
+                            placeholder="Mobile number (10 digits)"
                             inputMode="numeric"
                             style={{ background: t.inputBg, border: `1px solid ${mobileErr ? "rgba(239,68,68,0.4)" : t.border}`, color: t.text }}
                             className="input-field w-full pl-9 pr-3 py-2.5 rounded-xl text-sm outline-none"
                           />
                           {mobileErr && <p className="text-red-400 text-xs mt-1 ml-1">{mobileErr}</p>}
                         </div>
+                      </div>
+
+                      {/* Delivery location — optional map pin, shared to the kitchen/admin */}
+                      <div style={{ background: t.card, border: `1px solid ${t.border}` }} className="rounded-2xl p-3">
+                        <LocationPicker value={locationCoords} onChange={setLocationCoords} isDark={isDark} />
                       </div>
 
                       {/* Payment method */}
@@ -1642,6 +1775,8 @@ function OrdersPage({ isDark, user, setPage }) {
   const [loading, setLoading] = useState(true);
   const [cancelling, setCancelling] = useState(false);
   const [fetchError, setFetchError] = useState(false);
+  const [sseConnected, setSseConnected] = useState(false);
+  const [paying, setPaying] = useState(false);
   const t = isDark ? themes.dark : themes.light;
   const isAuthed = !!user && !!localStorage.getItem('customer_token');
   const activeOrder = orders[0] || null;
@@ -1649,6 +1784,7 @@ function OrdersPage({ isDark, user, setPage }) {
   const step = activeOrder ? (STATUS_TO_STEP[activeOrder.status] ?? 0) : 0;
   const isRejected = activeOrder?.status === 'Rejected';
   const canCancel = activeOrder && ['Pending Payment', 'Received'].includes(activeOrder.status);
+  const canPay = activeOrder && activeOrder.status === 'Pending Payment' && activeOrder.paymentStatus !== 'Paid';
 
   const fetchOrders = async () => {
     if (!isAuthed) { setLoading(false); return; }
@@ -1678,6 +1814,23 @@ function OrdersPage({ isDark, user, setPage }) {
     }
   }
 
+  async function payNow() {
+    if (!activeOrder?._id) return;
+    setPaying(true);
+    try {
+      await startRazorpayPayment(activeOrder._id, user);
+      toast.success('Payment successful!');
+      await fetchOrders();
+    } catch (err) {
+      // Server returns a distinct 409 (with a clear message) if the order expired before
+      // payment landed — surface that verbatim instead of a misleading "success".
+      toast.error(err.response?.data?.message || err.message || 'Payment was not completed.');
+      await fetchOrders();
+    } finally {
+      setPaying(false);
+    }
+  }
+
   useEffect(() => { fetchOrders(); }, [isAuthed]);
 
   useEffect(() => {
@@ -1686,17 +1839,29 @@ function OrdersPage({ isDark, user, setPage }) {
     if (!token) return;
     const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://steamybitesbackend.onrender.com/api';
     const es = new EventSource(`${baseURL}/orders/${activeOrder._id}/status-stream?token=${token}`);
+    let failures = 0;
+    es.onopen = () => { failures = 0; setSseConnected(true); };
     es.onmessage = (e) => {
       try {
-        const { status } = JSON.parse(e.data);
-        setOrders(prev => prev.map((o, i) => i === 0 ? { ...o, status } : o));
+        const data = JSON.parse(e.data);
+        setSseConnected(true);
+        setOrders(prev => prev.map((o, i) => i === 0
+          ? { ...o, status: data.status ?? o.status, ...(data.paymentStatus ? { paymentStatus: data.paymentStatus } : {}) }
+          : o));
       } catch { }
     };
-    // If the stream drops (Render restart, mobile network), re-fetch; and poll as a
-    // safety net so the tracker never silently freezes while still showing "Live".
-    es.onerror = () => { fetchOrders(); };
+    // The browser natively retries EventSource (~3s) on drop. Reconcile via REST each time,
+    // but after a few consecutive failures (expired token, deleted order) stop the endless
+    // retry+refetch storm and lean on the poll below. The badge reflects real connection
+    // state, so the customer never sees a fake "Live" on a dead stream.
+    es.onerror = () => {
+      setSseConnected(false);
+      failures += 1;
+      fetchOrders();
+      if (failures >= 4) { try { es.close(); } catch (_) {} }
+    };
     const poll = setInterval(fetchOrders, 25000);
-    return () => { es.close(); clearInterval(poll); };
+    return () => { try { es.close(); } catch (_) {} clearInterval(poll); setSseConnected(false); };
   }, [activeOrder?._id]);
 
   const activeItemNames = activeOrder?.items?.map(i => i.itemName || i.menuItemId?.name || 'Item').join(' · ') || '';
@@ -1768,7 +1933,9 @@ function OrdersPage({ isDark, user, setPage }) {
               <div className="flex items-center gap-2 mb-1">
                 {isRejected
                   ? <span className="text-red-400 text-xs font-black uppercase tracking-widest">Rejected</span>
-                  : <><span className="live-dot w-2 h-2 rounded-full bg-orange-500" /><span className="text-orange-500 text-xs font-black uppercase tracking-widest">Live</span></>
+                  : sseConnected
+                    ? <><span className="live-dot w-2 h-2 rounded-full bg-orange-500" /><span className="text-orange-500 text-xs font-black uppercase tracking-widest">Live</span></>
+                    : <><span className="w-2 h-2 rounded-full bg-yellow-500/80" /><span className="text-yellow-500/90 text-xs font-black uppercase tracking-widest">Reconnecting…</span></>
                 }
               </div>
               <h3 style={{ color: t.text }} className="font-black text-xl">Order #{activeOrder._id?.slice(-6).toUpperCase()}</h3>
@@ -1831,6 +1998,19 @@ function OrdersPage({ isDark, user, setPage }) {
               </div>
               <div className="ml-auto text-orange-500 text-xs font-bold animate-pulse">On the way</div>
             </motion.div>
+          )}
+
+          {canPay && (
+            <div className="mt-5">
+              <button
+                onClick={payNow}
+                disabled={paying}
+                className="w-full py-3 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black rounded-2xl text-sm shadow-lg shadow-orange-500/25 disabled:opacity-60"
+              >
+                {paying ? 'Opening payment…' : `Pay Now · ₹${activeOrder.finalPrice ?? activeOrder.totalPrice}`}
+              </button>
+              <p style={{ color: t.faint }} className="text-[11px] text-center mt-1.5">Payment wasn't completed — finish it to send your order to the kitchen.</p>
+            </div>
           )}
 
           {canCancel && (

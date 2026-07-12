@@ -66,6 +66,7 @@ const OrderManager = ({ onNewOrder } = {}) => {
     const prevFirstOrderIdRef = useRef(null);
     const [newOrderAlert, setNewOrderAlert] = useState(false);
     const [newOrderData, setNewOrderData] = useState(null);
+    const [newOrderEvent, setNewOrderEvent] = useState('new'); // 'new' | 'cancelled' — controls alert copy
 
     const fetchOrders = useCallback(async (opts = { notifyIfNew: false, showLoading: true }) => {
         // showLoading controls whether the global spinner is displayed.
@@ -155,8 +156,15 @@ const OrderManager = ({ onNewOrder } = {}) => {
                         const payload = JSON.parse(e.data);
                         // refresh orders silently
                         fetchOrders({ notifyIfNew: true, showLoading: false });
-                        // If payload contains a single order, show it as a new alert/modal
-                        if (payload && (payload.type === 'order_confirmed' || payload.type === 'order_status_updated')) {
+                        // Only a genuinely NEW order (or a customer cancellation) pops an alert.
+                        // NOT order_status_updated — that also fires on the admin's OWN status
+                        // changes, which used to bounce back as a fake "New Order Received" popup.
+                        if (payload && (payload.type === 'order_confirmed' || payload.type === 'order_created')) {
+                            setNewOrderEvent('new');
+                            setNewOrderData(payload.order);
+                            if (!document.hidden) setNewOrderAlert(true);
+                        } else if (payload && payload.type === 'order_cancelled_by_customer') {
+                            setNewOrderEvent('cancelled');
                             setNewOrderData(payload.order);
                             if (!document.hidden) setNewOrderAlert(true);
                         }
@@ -165,8 +173,10 @@ const OrderManager = ({ onNewOrder } = {}) => {
                     }
                 };
                 es.onerror = (err) => {
-                    console.warn('Admin SSE error', err);
-                    try { es.close(); } catch (_) {}
+                    // Do NOT close: closing kills EventSource's native auto-reconnect. The server
+                    // now sends a heartbeat, so a dropped stream (deploy, wifi blip, laptop sleep)
+                    // reconnects on its own; the 10s poll covers the gap meanwhile.
+                    console.warn('Admin SSE error (will auto-reconnect)', err);
                 };
             }
         } catch (err) { console.warn('Failed to open SSE', err); }
@@ -224,8 +234,10 @@ const OrderManager = ({ onNewOrder } = {}) => {
                         <p><strong>Mobile:</strong> {viewOrder.mobile || 'N/A'}</p>
                         <p><strong>User Email:</strong> {viewOrder.user?.email || 'N/A'}</p>
                         <p><strong>Address:</strong> {viewOrder.address}</p>
-                    {viewOrder.locationLink && (
-                        <p><strong>Location:</strong> <a href={viewOrder.locationLink} target="_blank" rel="noreferrer">Open in Google Maps</a> {viewOrder.locationCoords && <small>({viewOrder.locationCoords})</small>}</p>
+                    {viewOrder.locationLink ? (
+                        <p><strong>Location:</strong> <a href={viewOrder.locationLink} target="_blank" rel="noreferrer">📍 Open in Google Maps</a> {viewOrder.locationCoords && <small className="text-muted">({viewOrder.locationCoords})</small>}</p>
+                    ) : (
+                        <p className="text-muted"><strong>Location:</strong> No map pin provided — using the typed address only.</p>
                     )}
                     <p><strong>Status:</strong> <Badge bg={getOrderStatusBadge(viewOrder.status)}>{viewOrder.status}</Badge></p>
                     <hr />
@@ -271,11 +283,11 @@ const OrderManager = ({ onNewOrder } = {}) => {
                                 ))}
                         </tbody>
                     </Table>
-                    <h5 className="text-end">Subtotal: ₹{viewOrder.totalPrice.toFixed(2)}</h5>
+                    <h5 className="text-end">Subtotal: ₹{(viewOrder.totalPrice ?? 0).toFixed(2)}</h5>
                     {viewOrder.appliedCoupon && (
-                        <h5 className="text-end text-success">Discount ({viewOrder.appliedCoupon.code}): -₹{(viewOrder.totalPrice - viewOrder.finalPrice).toFixed(2)}</h5>
+                        <h5 className="text-end text-success">Discount ({viewOrder.appliedCoupon.code}): -₹{((viewOrder.totalPrice ?? 0) - (viewOrder.finalPrice ?? 0)).toFixed(2)}</h5>
                     )}
-                    <h4 className="text-end">Total Paid: ₹{viewOrder.finalPrice.toFixed(2)}</h4>
+                    <h4 className="text-end">Total Paid: ₹{(viewOrder.finalPrice ?? 0).toFixed(2)}</h4>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setViewOrder(null)}>Close</Button>
@@ -298,12 +310,14 @@ const OrderManager = ({ onNewOrder } = {}) => {
 
     const renderNewOrderAlert = () => {
         if (!newOrderAlert || !newOrderData) return null;
+        const isCancel = newOrderEvent === 'cancelled';
         return (
             <Modal show={newOrderAlert} onHide={handleDismissNewAlert} centered>
                 <Modal.Header closeButton>
-                    <Modal.Title>New Order Received</Modal.Title>
+                    <Modal.Title>{isCancel ? '⚠️ Order Cancelled by Customer' : 'New Order Received'}</Modal.Title>
                 </Modal.Header>
                 <Modal.Body>
+                    {isCancel && <Alert variant="warning" className="py-2 mb-3">This order was just cancelled by the customer — stop preparing it if you'd started. Any paid amount is auto-refunded.</Alert>}
                     <p><strong>Order ID:</strong> {newOrderData._id}</p>
                     <p><strong>Customer:</strong> {newOrderData.customerName}</p>
                     <p><strong>Total:</strong> ₹{(newOrderData.finalPrice ?? 0).toFixed(2)}</p>
@@ -316,10 +330,12 @@ const OrderManager = ({ onNewOrder } = {}) => {
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={handleDismissNewAlert}>Dismiss</Button>
-                    {newOrderData.paymentMethod === 'UPI' && newOrderData.paymentStatus !== 'Failed' && (
+                    {!isCancel && newOrderData.paymentMethod === 'UPI' && newOrderData.paymentStatus !== 'Failed' && (
                         <Button variant="danger" onClick={() => { if (newOrderData) handleStatusChange(newOrderData._id, 'Rejected'); handleDismissNewAlert(); }}>Payment Failed</Button>
                     )}
-                    <Button variant="outline-primary" onClick={() => { if (newOrderData) handleAcknowledge(newOrderData._id); handleDismissNewAlert(); }}>Acknowledge</Button>
+                    {!isCancel && (
+                        <Button variant="outline-primary" onClick={() => { if (newOrderData) handleAcknowledge(newOrderData._id); handleDismissNewAlert(); }}>Acknowledge</Button>
+                    )}
                     <Button variant="primary" onClick={handleViewNewOrder}>View</Button>
                 </Modal.Footer>
             </Modal>
@@ -351,7 +367,7 @@ const OrderManager = ({ onNewOrder } = {}) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {(orders || []).filter(o => o.status !== 'Delivered').map(order => (
+                        {(orders || []).filter(o => o.status !== 'Delivered' && o.status !== 'Rejected').map(order => (
                             <tr key={order._id}>
                                 <td><small>{order._id}</small></td>
                                 <td>{order.customerName}<br /><small>{order.user?.email}</small><br /><small>📱 {order.mobile || '—'}</small></td>
@@ -458,8 +474,10 @@ const PastOrdersManager = () => {
                     <p><strong>Mobile:</strong> {viewOrder.mobile || 'N/A'}</p>
                     <p><strong>User Email:</strong> {viewOrder.user?.email || 'N/A'}</p>
                     <p><strong>Address:</strong> {viewOrder.address}</p>
-                    {viewOrder.locationLink && (
-                        <p><strong>Location:</strong> <a href={viewOrder.locationLink} target="_blank" rel="noreferrer">Open in Google Maps</a> {viewOrder.locationCoords && <small>({viewOrder.locationCoords})</small>}</p>
+                    {viewOrder.locationLink ? (
+                        <p><strong>Location:</strong> <a href={viewOrder.locationLink} target="_blank" rel="noreferrer">📍 Open in Google Maps</a> {viewOrder.locationCoords && <small className="text-muted">({viewOrder.locationCoords})</small>}</p>
+                    ) : (
+                        <p className="text-muted"><strong>Location:</strong> No map pin provided — using the typed address only.</p>
                     )}
                     <p><strong>Status:</strong> <Badge bg={getOrderStatusBadge(viewOrder.status)}>{viewOrder.status}</Badge></p>
                     <hr />
@@ -480,7 +498,7 @@ const PastOrdersManager = () => {
                             ))}
                         </tbody>
                     </Table>
-                    <h4 className="text-end">Total Paid: ₹{viewOrder.finalPrice.toFixed(2)}</h4>
+                    <h4 className="text-end">Total Paid: ₹{(viewOrder.finalPrice ?? 0).toFixed(2)}</h4>
                 </Modal.Body>
                 <Modal.Footer>
                     <Button variant="secondary" onClick={() => setViewOrder(null)}>Close</Button>

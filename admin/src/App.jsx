@@ -10,6 +10,27 @@ import Footer from './components/FooterMain.jsx';
 import { GlobalStyles } from './styles/GlobalStyles.jsx';
 
 
+// Catches any render-time crash (e.g. a malformed order record) so ONE bad row can't
+// white-screen the entire dashboard. Without this, an unguarded field access unmounts
+// the whole React tree for every admin.
+class ErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false }; }
+  static getDerivedStateFromError() { return { hasError: true }; }
+  componentDidCatch(error, info) { console.error('[admin] render error:', error, info); }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="container my-5 text-center">
+          <h4>Something went wrong loading this view.</h4>
+          <p className="text-muted">One record couldn't be displayed. The rest of the dashboard is fine.</p>
+          <button className="btn btn-primary" onClick={() => window.location.reload()}>Reload dashboard</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
+
 // --- Main Admin App ---
 function App() {
   const [route, setRoute] = useState(window.location.hash || '#/admin-login');
@@ -23,8 +44,15 @@ function App() {
     const adminName = localStorage.getItem('admin_name');
     setAuth({ token: adminToken, name: adminName });
 
+    // When any API call 401s (expired/invalid token), api.js fires this — flip auth state
+    // so the app shows the login page instead of a hung, silently-failing dashboard.
+    const onUnauth = () => setAuth({ token: null, name: null });
+    window.addEventListener('admin-unauthorized', onUnauth);
     window.addEventListener('hashchange', handleHashChange);
-    return () => window.removeEventListener('hashchange', handleHashChange);
+    return () => {
+      window.removeEventListener('admin-unauthorized', onUnauth);
+      window.removeEventListener('hashchange', handleHashChange);
+    };
   }, []);
 
   const handleLoginSuccess = (token, name) => {
@@ -59,7 +87,7 @@ function App() {
   return (
     <div className="d-flex flex-column min-vh-100">
       <GlobalStyles />
-      <main className="container my-5 flex-grow-1">{renderPage()}</main>
+      <main className="container my-5 flex-grow-1"><ErrorBoundary>{renderPage()}</ErrorBoundary></main>
       <Footer />
     </div>
   );

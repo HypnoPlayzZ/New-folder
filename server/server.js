@@ -224,10 +224,12 @@ const sendAdminNotification = (notification) => {
 // --- SSE Customer Order Status Setup ---
 const customerSseClients = new Map(); // orderId -> Set of res objects
 
-const notifyCustomerOrderStatus = (orderId, status) => {
+const notifyCustomerOrderStatus = (orderId, status, paymentStatus) => {
   const clients = customerSseClients.get(orderId.toString());
   if (!clients) return;
-  const message = JSON.stringify({ status });
+  const payload = { status };
+  if (paymentStatus) payload.paymentStatus = paymentStatus;
+  const message = JSON.stringify(payload);
   clients.forEach(res => {
     try { res.write(`data: ${message}\n\n`); }
     catch (e) { clients.delete(res); }
@@ -361,15 +363,48 @@ const Otp = mongoose.model('Otp', OtpSchema);
 
 // Abandoned-order sweep: online orders created but never paid (customer closed the
 // Razorpay sheet, lost signal, etc.) would otherwise pile up forever showing a fake
-// "Live" tracker. Every 10 min, expire ones older than 30 min. Guarded on
-// paymentStatus:'Pending' so a real captured payment is NEVER touched.
+// "Live" tracker. Every 10 min we expire stale ones — carefully, so we NEVER orphan
+// real money:
+//  - Orders that never started a Razorpay payment (no razorpayOrderId): reject after 30 min.
+//  - Orders that DID start one: wait 60 min AND first ask Razorpay whether a payment was
+//    actually captured (UPI app-switch / bank delays can land late). If captured, recover
+//    it (mark Paid) instead of rejecting; only reject if truly unpaid.
+// Every expiry broadcasts to admin + customer + email (no silent desync).
 setInterval(async () => {
     try {
-        const cutoff = new Date(Date.now() - 30 * 60 * 1000);
-        await Order.updateMany(
-            { status: 'Pending Payment', paymentStatus: 'Pending', createdAt: { $lt: cutoff } },
-            { $set: { status: 'Rejected', paymentStatus: 'Failed' } }
-        );
+        const now = Date.now();
+        const cutoff = new Date(now - 30 * 60 * 1000);
+        const rzpCutoff = new Date(now - 60 * 60 * 1000);
+        const stale = await Order.find({
+            status: 'Pending Payment',
+            paymentStatus: 'Pending',
+            $or: [
+                { razorpayOrderId: { $in: [null, ''] }, createdAt: { $lt: cutoff } },
+                { razorpayOrderId: { $exists: true, $nin: [null, ''] }, createdAt: { $lt: rzpCutoff } },
+            ],
+        });
+        for (const order of stale) {
+            try {
+                if (order.razorpayOrderId && razorpay) {
+                    const rp = await razorpay.orders.fetchPayments(order.razorpayOrderId);
+                    const captured = (rp?.items || []).find(p => p.status === 'captured');
+                    if (captured) {
+                        await markRazorpayPaymentSuccessful(order, captured.id); // recovers + broadcasts
+                        console.warn(`[sweep] recovered late-captured payment ${captured.id} for order ${order._id}`);
+                        continue;
+                    }
+                }
+            } catch (e) { console.warn('[sweep] razorpay check failed for', String(order._id), '-', e.message); }
+            const updated = await Order.findOneAndUpdate(
+                { _id: order._id, paymentStatus: 'Pending' },
+                { $set: { status: 'Rejected', paymentStatus: 'Failed' } },
+                { new: true }
+            );
+            if (!updated) continue;
+            try { sendAdminNotification({ type: 'order_status_updated', order: updated }); } catch (_) {}
+            try { notifyCustomerOrderStatus(updated._id, updated.status, updated.paymentStatus); } catch (_) {}
+            onOrderStatusNotify(updated).catch(() => {});
+        }
     } catch (e) { console.warn('[sweep] abandoned-order cleanup failed:', e.message); }
 }, 10 * 60 * 1000).unref?.();
 
@@ -795,7 +830,7 @@ app.patch('/api/orders/:id/cancel', authMiddleware, async (req, res) => {
         await order.save();
         res.json(order);
         try { sendAdminNotification({ type: 'order_cancelled_by_customer', order }); } catch (e) { console.warn('notify admin failed', e); }
-        try { notifyCustomerOrderStatus(order._id, order.status); } catch (e) { console.warn('notify customer failed', e); }
+        try { notifyCustomerOrderStatus(order._id, order.status, order.paymentStatus); } catch (e) { console.warn('notify customer failed', e); }
     } catch (error) {
         console.error('Order cancellation error:', error);
         res.status(500).json({ message: 'Error cancelling order.' });
@@ -868,17 +903,28 @@ app.post('/api/payments/create-order', authMiddleware, limiter({ limit: 30, wind
         if (order.paymentMethod !== 'RAZORPAY') return res.status(400).json({ message: 'Order is not a Razorpay order.' });
         if (order.paymentStatus === 'Paid') return res.status(400).json({ message: 'Order is already paid.' });
 
-        // Razorpay expects the amount in the smallest currency unit (paise).
-        const amount = Math.round(order.finalPrice * 100);
-        const rOrder = await razorpay.orders.create({
-            amount,
-            currency: 'INR',
-            receipt: order._id.toString(),
-            notes: { appOrderId: order._id.toString(), userId: req.user.userId.toString() },
-        });
-
-        order.razorpayOrderId = rOrder.id;
-        await order.save();
+        // Idempotent: if a Razorpay order was already created for this app-order and it
+        // isn't paid yet, reuse it. A retry/double-tap would otherwise mint a second
+        // Razorpay order and orphan the id the customer actually pays against.
+        let rOrder;
+        if (order.razorpayOrderId) {
+            try {
+                const existing = await razorpay.orders.fetch(order.razorpayOrderId);
+                if (existing && existing.status !== 'paid') rOrder = existing;
+            } catch (_) { /* stale/invalid id — fall through and create a fresh one */ }
+        }
+        if (!rOrder) {
+            // Razorpay expects the amount in the smallest currency unit (paise).
+            const amount = Math.round(order.finalPrice * 100);
+            rOrder = await razorpay.orders.create({
+                amount,
+                currency: 'INR',
+                receipt: order._id.toString(),
+                notes: { appOrderId: order._id.toString(), userId: req.user.userId.toString() },
+            });
+            order.razorpayOrderId = rOrder.id;
+            await order.save();
+        }
 
         res.json({
             keyId: process.env.RAZORPAY_KEY_ID,
@@ -912,7 +958,7 @@ const markRazorpayPaymentSuccessful = async (order, paymentId) => {
         return current || order;
     }
     try { sendAdminNotification({ type: 'order_confirmed', order: updated }); } catch (e) { console.warn('notify admin failed', e); }
-    try { notifyCustomerOrderStatus(updated._id, updated.status); } catch (e) { console.warn('notify customer failed', e); }
+    try { notifyCustomerOrderStatus(updated._id, updated.status, updated.paymentStatus); } catch (e) { console.warn('notify customer failed', e); }
     try { await onOrderPlacedNotify(updated); } catch (e) { console.warn('email failed', e); }
     return updated;
 };
@@ -952,8 +998,25 @@ app.post('/api/payments/verify', authMiddleware, limiter({ limit: 30, windowMs: 
         const order = await Order.findOne({ _id: orderId, user: req.user.userId, razorpayOrderId: razorpay_order_id });
         if (!order) return res.status(404).json({ message: 'Order not found.' });
 
-        await markRazorpayPaymentSuccessful(order, razorpay_payment_id);
-        res.json({ message: 'Payment verified.', order });
+        const result = await markRazorpayPaymentSuccessful(order, razorpay_payment_id);
+        if (result && result.paymentStatus === 'Paid') {
+            return res.json({ message: 'Payment verified.', order: result });
+        }
+        // Signature was valid (money captured) but the order is no longer payable — e.g. it
+        // expired/was cancelled before this landed. Don't tell the customer "success": refund
+        // the captured amount and return a distinct status the client can message honestly.
+        const r = await refundPayment(razorpay_payment_id, order.finalPrice, order._id);
+        try {
+            await Order.findByIdAndUpdate(order._id, {
+                $set: { refundStatus: r.ok ? 'Refunded' : 'Refund Due', ...(r.refundId ? { refundId: r.refundId } : {}) },
+            });
+        } catch (_) {}
+        return res.status(409).json({
+            message: r.ok
+                ? 'This order expired before payment completed, so your payment has been refunded.'
+                : 'This order expired before payment completed. Our team will refund you shortly.',
+            order: result,
+        });
     } catch (error) {
         console.error('[razorpay] verify failed:', error);
         res.status(500).json({ message: 'Failed to verify payment.' });
@@ -992,6 +1055,7 @@ async function handleRazorpayWebhook(req, res) {
                     order.paymentStatus = 'Failed';
                     await order.save();
                     try { sendAdminNotification({ type: 'order_payment_failed', order }); } catch (e) { console.warn('notify admin failed', e); }
+                    try { notifyCustomerOrderStatus(order._id, order.status, order.paymentStatus); } catch (e) { console.warn('notify customer failed', e); }
                 }
             }
         }
@@ -1074,13 +1138,24 @@ app.get('/api/orders/:id/status-stream', async (req, res) => {
     res.setHeader('Content-Type', 'text/event-stream');
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
-    res.write(`:connected\n\ndata: ${JSON.stringify({ status: order.status })}\n\n`);
+    res.write(`:connected\n\ndata: ${JSON.stringify({ status: order.status, paymentStatus: order.paymentStatus })}\n\n`);
 
     if (!customerSseClients.has(orderId)) customerSseClients.set(orderId, new Set());
     customerSseClients.get(orderId).add(res);
 
+    // Heartbeat: Render's proxy silently drops idle SSE sockets. A comment ping every
+    // 20s keeps the stream open and lets the browser detect a genuine drop and reconnect.
+    const heartbeat = setInterval(() => {
+        try { res.write(':ping\n\n'); } catch (_) { clearInterval(heartbeat); }
+    }, 20000);
+
     req.on('close', () => {
-        customerSseClients.get(orderId)?.delete(res);
+        clearInterval(heartbeat);
+        const set = customerSseClients.get(orderId);
+        if (set) {
+            set.delete(res);
+            if (set.size === 0) customerSseClients.delete(orderId); // prune empty entry — no leak
+        }
         res.end();
     });
 });
@@ -1124,7 +1199,14 @@ adminRouter.get('/notifications', (req, res) => {
 
     res.write(':connected\n\n');
 
+    // Heartbeat keeps the stream alive through Render's idle-proxy timeout and lets the
+    // browser's native EventSource reconnect promptly detect a real drop.
+    const heartbeat = setInterval(() => {
+        try { res.write(':ping\n\n'); } catch (_) { clearInterval(heartbeat); }
+    }, 20000);
+
     req.on('close', () => {
+        clearInterval(heartbeat);
         adminSseClients.delete(res);
         res.end();
     });
@@ -1211,7 +1293,7 @@ adminRouter.patch('/orders/:id/status', async (req, res) => {
         res.json(updatedOrder);
 
         try { sendAdminNotification({ type: 'order_status_updated', order: updatedOrder }); } catch(e) { console.warn('notify admin failed', e); }
-        try { notifyCustomerOrderStatus(req.params.id, updatedOrder.status); } catch(e) { console.warn('notify customer failed', e); }
+        try { notifyCustomerOrderStatus(req.params.id, updatedOrder.status, updatedOrder.paymentStatus); } catch(e) { console.warn('notify customer failed', e); }
         onOrderStatusNotify(updatedOrder).catch(e => console.warn('email failed', e));
     } catch (error) {
         console.error('Error updating order status:', error);
@@ -1417,7 +1499,14 @@ adminRouter.post('/menu/upload-csv', csvUpload.single('csvFile'), async (req, re
     bufferStream
         .pipe(csv())
         .on('data', (data) => results.push(data))
+        .on('error', (err) => {
+            // Without this listener, a malformed CSV emits an unhandled 'error' event that
+            // crashes the ENTIRE process (all customers + admins offline). Fail this one request instead.
+            console.error('[csv] parse error:', err.message);
+            if (!res.headersSent) res.status(400).json({ message: 'Could not read that CSV file. Please check the format and try again.' });
+        })
         .on('end', async () => {
+          try {
             let updatedCount = 0;
             let createdCount = 0;
 
@@ -1475,11 +1564,15 @@ adminRouter.post('/menu/upload-csv', csvUpload.single('csvFile'), async (req, re
                     console.error(`Could not process row for item: ${row['Item'] || 'UNKNOWN'}`, e);
                 }
             }
-            res.status(200).json({ 
+            res.status(200).json({
                 message: 'CSV processed successfully.',
                 updated: updatedCount,
                 created: createdCount,
             });
+          } catch (err) {
+            console.error('[csv] processing failed:', err);
+            if (!res.headersSent) res.status(500).json({ message: 'CSV processing failed.' });
+          }
         });
 });
 
@@ -1515,6 +1608,11 @@ app.use((err, req, res, next) => {
     console.error('[unhandled]', err);
     res.status(500).json({ message: 'Something went wrong. Please try again.' });
 });
+
+// Last-resort backstop: a stray rejection/exception (e.g. a bad upload stream) should be
+// logged, not crash the whole server and take every customer + admin offline with it.
+process.on('unhandledRejection', (reason) => console.error('[unhandledRejection]', reason));
+process.on('uncaughtException', (err) => console.error('[uncaughtException]', err));
 
 app.listen(port, () => console.log(`Server running on port ${port}`));
 

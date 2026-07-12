@@ -28,6 +28,9 @@ api.interceptors.response.use(
                 localStorage.removeItem('admin_token');
                 localStorage.removeItem('admin_name');
                 window.location.hash = '#/admin-login';
+                // Also tell the React app so it flips auth state and re-renders the login page.
+                // Clearing localStorage alone left the dashboard hanging with every action failing.
+                window.dispatchEvent(new Event('admin-unauthorized'));
             } catch {}
         }
         return Promise.reject(error);
