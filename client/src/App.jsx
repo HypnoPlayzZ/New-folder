@@ -1163,7 +1163,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
   const [mobile, setMobile] = useState("");
   const [addressErr, setAddressErr] = useState("");
   const [mobileErr, setMobileErr] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState('COD'); // 'COD' | 'RAZORPAY'
+  const [paymentMethod, setPaymentMethod] = useState('RAZORPAY'); // COD disabled for now
   const [processing, setProcessing] = useState(false);
   const [done, setDone] = useState(false);
   const t = isDark ? themes.dark : themes.light;
@@ -1240,7 +1240,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
       setCoupon("");
       setAddress("");
       setMobile("");
-      setPaymentMethod('COD');
+      setPaymentMethod('RAZORPAY');
       setPage("orders");
     }, 1500);
   }
@@ -1543,9 +1543,11 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                       {/* Payment method */}
                       <div style={{ background: t.card, border: `1px solid ${t.border}` }} className="rounded-2xl p-3">
                         <p style={{ color: t.muted }} className="text-xs font-bold uppercase tracking-wider mb-2 ml-1">Payment</p>
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className="grid grid-cols-1 gap-2">
                           {[
-                            { id: 'COD', label: 'Cash on Delivery', sub: 'Pay when you receive' },
+                            // COD temporarily disabled — re-enable by uncommenting
+                            // this line and switching the grid above back to grid-cols-2:
+                            // { id: 'COD', label: 'Cash on Delivery', sub: 'Pay when you receive' },
                             { id: 'RAZORPAY', label: 'Pay Online', sub: 'UPI · Card · Wallet' },
                           ].map(opt => (
                             <button

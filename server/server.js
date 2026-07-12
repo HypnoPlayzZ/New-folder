@@ -661,8 +661,10 @@ app.post('/api/orders', authMiddleware, limiter({ limit: 30, windowMs: 60_000 })
         }
 
         const finalPrice = Math.max(0, Math.round(subtotal + delivery - discountAmount));
-        const allowedMethods = ['COD', 'UPI', 'RAZORPAY'];
-        const paymentMethod = allowedMethods.includes(body.paymentMethod) ? body.paymentMethod : 'COD';
+        // COD temporarily disabled — re-add 'COD' to re-enable. A stray/unknown
+        // method falls back to RAZORPAY so no order can be created that skips payment.
+        const allowedMethods = ['UPI', 'RAZORPAY'];
+        const paymentMethod = allowedMethods.includes(body.paymentMethod) ? body.paymentMethod : 'RAZORPAY';
 
         const orderData = {
             user: req.user.userId,
@@ -689,8 +691,12 @@ app.post('/api/orders', authMiddleware, limiter({ limit: 30, windowMs: 60_000 })
         const savedOrder = await newOrder.save();
         res.status(201).json(savedOrder);
 
-        // Notify admin UIs of new order
-        try { sendAdminNotification({ type: 'order_created', order: savedOrder }); } catch (e) { console.warn('notify admin failed', e); }
+        // Notify admin only for orders that are immediately actionable (COD, or
+        // already paid). Online orders stay silent until Razorpay confirms payment,
+        // which fires 'order_confirmed' from markRazorpayPaymentSuccessful.
+        if (savedOrder.status !== 'Pending Payment') {
+            try { sendAdminNotification({ type: 'order_created', order: savedOrder }); } catch (e) { console.warn('notify admin failed', e); }
+        }
         // Email customer (only for COD here; Razorpay/UPI emails fire after payment confirmed)
         if (savedOrder.paymentMethod === 'COD') {
             onOrderPlacedNotify(savedOrder).catch(e => console.warn('email failed', e));
@@ -1034,7 +1040,12 @@ adminRouter.post('/register', async (req, res) => {
 });
 
 adminRouter.get('/orders', async (req, res) => {
-    const orders = await Order.find().populate('items.menuItemId').populate('user', 'name email').sort({ createdAt: -1 });
+    // Only surface actionable orders: online orders once Razorpay confirms payment
+    // (paymentStatus 'Paid'), and COD orders immediately (COD currently disabled
+    // client-side). Never-paid / abandoned online orders stay hidden from admin
+    // until payment succeeds.
+    const orders = await Order.find({ $or: [{ paymentStatus: 'Paid' }, { paymentMethod: 'COD' }] })
+        .populate('items.menuItemId').populate('user', 'name email').sort({ createdAt: -1 });
     res.json(orders);
 });
 
