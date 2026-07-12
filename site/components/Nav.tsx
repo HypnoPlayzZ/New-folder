@@ -27,7 +27,7 @@ export default function Nav() {
             Order
           </a>
         )}
-        <ThemeToggle />
+        {/* theme toggle removed — Steamy Bites is dark-only (Quiet Heat night) */}
       </div>
     </nav>
   );

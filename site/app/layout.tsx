@@ -63,7 +63,8 @@ const jsonLd = {
 };
 
 /* Applies the saved theme before first paint so Night/Day never flashes. */
-const themeInit = `try{var t=localStorage.getItem("sb-theme");if(t==="light"||t==="dark")document.documentElement.dataset.theme=t}catch(e){}`;
+// Dark-only: force the Quiet Heat night theme and ignore any stored light preference.
+const themeInit = `try{document.documentElement.dataset.theme="dark";localStorage.setItem("sb-theme","dark")}catch(e){}`;
 
 export default function RootLayout({
   children,

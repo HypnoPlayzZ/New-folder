@@ -377,8 +377,8 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
 
           {/* Right Controls */}
           <div className="flex items-center gap-2">
-            {/* Theme Toggle — available everywhere; the new home renders in both themes */}
-            {true && (
+            {/* Theme toggle removed — site is dark-only. Flip to `true` to restore. */}
+            {false && (
               <motion.button
                 onClick={toggleTheme}
                 whileHover={{ rotate: 20, scale: 1.1 }}
