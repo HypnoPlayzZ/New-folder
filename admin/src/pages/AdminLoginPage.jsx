@@ -24,7 +24,11 @@ const AdminLoginPage = ({ onLoginSuccess }) => {
             <div className="col-md-6">
                 <Card className="shadow-sm">
                     <Card.Body className="p-5">
-                        <h2 className="text-center mb-4">Admin Portal Login</h2>
+                        <div className="text-center mb-4">
+                            <img src="/logo.svg" alt="Steamy Bites" width="88" height="88" className="sb-brand-logo mx-auto mb-2" />
+                            <div className="sb-brand-word" style={{ fontSize: '2rem' }}>STEAMY BITES</div>
+                            <h2 style={{ fontSize: '1rem', color: 'var(--text-muted)', letterSpacing: '0.06em', textTransform: 'uppercase', marginTop: '0.35rem' }}>Admin Portal</h2>
+                        </div>
                         {error && <Alert variant="danger">{error}</Alert>}
                         <Form onSubmit={handleSubmit}>
                             <Form.Group className="mb-3">

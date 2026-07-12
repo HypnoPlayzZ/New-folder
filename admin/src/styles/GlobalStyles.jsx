@@ -2,56 +2,68 @@ import React from 'react';
 
 export const GlobalStyles = () => (
   <style>{`
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600&display=swap');
-    
+    @import url('https://fonts.googleapis.com/css2?family=Anton&family=Saira:wght@300;400;500;600;700;800&display=swap');
+
     :root {
-        --bg-light-start: #ffffff;
-        --bg-light-end: #ffecd2;
-        --bg-card: #ffffff;
-        --text-dark: #212529;
-        --text-muted: #6c757d;
-        --primary-accent: #ff8c00;
-        --primary-hover: #e67e00;
+        /* Steamy Bites brand — warm cream ground, deep momo-green accent */
+        --bg-light-start: #f7eedd;
+        --bg-light-end:   #ede4d1;
+        --bg-card:        #ffffff;
+        --text-dark:      #2b2620;   /* matches the logo outline ink */
+        --text-muted:     #7a7266;
+        --primary-accent: #1e4636;   /* momo green */
+        --primary-hover:  #2f6f52;
     }
 
-    body { 
-        font-family: 'Poppins', sans-serif; 
+    body {
+        font-family: 'Saira', system-ui, sans-serif;
         background: linear-gradient(to right, var(--bg-light-start), var(--bg-light-end));
         color: var(--text-dark);
     }
 
-    /* Animations */
-    @keyframes fadeIn { 
-        from { opacity: 0; transform: translateY(20px); } 
-        to { opacity: 1; transform: translateY(0); } 
-    }
-    
-    @keyframes pulse-orange {
-        0% { box-shadow: 0 0 0 0 rgba(255, 140, 0, 0.7); }
-        70% { box-shadow: 0 0 0 10px rgba(255, 140, 0, 0); }
-        100% { box-shadow: 0 0 0 0 rgba(255, 140, 0, 0); }
+    h1, h2, h3, h4, h5, h6 {
+        font-family: 'Saira', system-ui, sans-serif;
+        font-weight: 600;
+        color: var(--text-dark);
     }
 
-    .fade-in { 
-        animation: fadeIn 0.6s ease-in-out forwards; 
+    /* Brand wordmark — Anton, matching the site logo */
+    .sb-brand-word {
+        font-family: 'Anton', sans-serif;
+        letter-spacing: 0.04em;
+        color: var(--primary-accent);
+        line-height: 1;
     }
+    .sb-brand-logo { display: block; }
+
+    /* Animations */
+    @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(20px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes pulse-green {
+        0% { box-shadow: 0 0 0 0 rgba(30, 70, 54, 0.6); }
+        70% { box-shadow: 0 0 0 10px rgba(30, 70, 54, 0); }
+        100% { box-shadow: 0 0 0 0 rgba(30, 70, 54, 0); }
+    }
+    .fade-in { animation: fadeIn 0.6s ease-in-out forwards; }
 
     /* Header & Navigation */
     .navbar {
         background-color: rgba(255, 255, 255, 0.8) !important;
         backdrop-filter: blur(10px);
     }
-    .navbar-brand .fw-bold { 
-        color: var(--primary-accent); 
-        font-family: 'Playfair Display', serif;
+    .navbar-brand .fw-bold {
+        color: var(--primary-accent);
+        font-family: 'Anton', sans-serif;
     }
 
     .nav-link {
         color: var(--text-dark) !important;
         transition: color 0.3s ease;
     }
-    .nav-link:hover, .nav-link.active { 
-        color: var(--primary-accent) !important; 
+    .nav-link:hover, .nav-link.active {
+        color: var(--primary-accent) !important;
     }
 
     /* Buttons */
@@ -63,7 +75,7 @@ export const GlobalStyles = () => (
     .btn-danger:hover, .btn-primary:hover {
         background-color: var(--primary-hover);
         transform: scale(1.05);
-        animation: pulse-orange 1.5s infinite;
+        animation: pulse-green 1.5s infinite;
     }
      .btn-outline-danger {
         color: var(--primary-accent);
@@ -77,20 +89,20 @@ export const GlobalStyles = () => (
     }
 
     /* Hero Section */
-    .hero-section { 
-        background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop') no-repeat center center; 
-        background-size: cover; 
-        color: white; 
-        padding: 8rem 0; 
-        margin-bottom: 4rem; 
-        border-radius: 1.5rem; 
-        animation: fadeIn 1s ease-in-out; 
+    .hero-section {
+        background: linear-gradient(rgba(0, 0, 0, 0.5), rgba(0, 0, 0, 0.5)), url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?q=80&w=2070&auto=format&fit=crop') no-repeat center center;
+        background-size: cover;
+        color: white;
+        padding: 8rem 0;
+        margin-bottom: 4rem;
+        border-radius: 1.5rem;
+        animation: fadeIn 1s ease-in-out;
     }
-    
-    .hero-section h1 { 
-        font-family: 'Playfair Display', serif;
-        font-weight: 700; 
-        font-size: 4rem; 
+
+    .hero-section h1 {
+        font-family: 'Anton', sans-serif;
+        font-weight: 400;
+        font-size: 4rem;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
     }
 
@@ -99,22 +111,22 @@ export const GlobalStyles = () => (
         background-color: var(--bg-card);
         padding: 2rem 3rem;
         border-radius: 1rem;
-        box-shadow: 0 10px 40px rgba(0,0,0,0.08);
+        box-shadow: 0 10px 40px rgba(43, 38, 32, 0.08);
     }
     .menu-list-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
         padding: 1.5rem;
-        border-bottom: 1px solid #dee2e6;
+        border-bottom: 1px solid #e7e0d3;
         animation: fadeIn 0.5s ease-in-out forwards;
         transition: all 0.3s ease-in-out;
         border-radius: 0.75rem;
     }
     .menu-list-item:hover {
         transform: scale(1.03);
-        background-color: #fffaf0;
-        box-shadow: 0 8px 25px rgba(0,0,0,0.1);
+        background-color: #f7eedd;
+        box-shadow: 0 8px 25px rgba(43, 38, 32, 0.1);
     }
     .menu-list-item:last-child {
         border-bottom: none;
@@ -164,7 +176,7 @@ export const GlobalStyles = () => (
         background-color: #fff;
         color: var(--primary-accent);
         font-weight: 600;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+        box-shadow: 0 4px 15px rgba(43, 38, 32, 0.2);
         transition: all 0.3s ease;
     }
     .add-button-container .btn:hover {
@@ -173,7 +185,7 @@ export const GlobalStyles = () => (
         color: #fff;
     }
 
-    /* --- New, Attractive Coupon Styles --- */
+    /* --- Coupon Styles --- */
     .coupon-section {
         animation: fadeIn 1s ease-in-out 0.5s;
         animation-fill-mode: both;
@@ -200,9 +212,8 @@ export const GlobalStyles = () => (
     }
     .coupon-card:hover {
         transform: translateY(-10px) scale(1.05);
-        box-shadow: 0 15px 30px rgba(230, 126, 34, 0.4);
+        box-shadow: 0 15px 30px rgba(30, 70, 54, 0.4);
     }
-    /* Creates the "ticket" cutout effect */
     .coupon-card::before, .coupon-card::after {
         content: '';
         position: absolute;
@@ -222,8 +233,9 @@ export const GlobalStyles = () => (
         transform: translateY(-50%);
     }
     .coupon-code {
-        font-weight: 700;
-        font-family: 'Playfair Display', serif;
+        font-weight: 400;
+        font-family: 'Anton', sans-serif;
+        letter-spacing: 0.03em;
         margin-bottom: 0.5rem;
         font-size: 1.5rem;
         border: 2px dashed rgba(255,255,255,0.7);
@@ -246,27 +258,30 @@ export const GlobalStyles = () => (
         border: none;
     }
     .form-control {
-        background-color: #f8f9fa;
-        border-color: #dee2e6;
+        background-color: #faf8f2;
+        border-color: #e7e0d3;
         color: var(--text-dark);
     }
     .form-control:focus {
         background-color: #fff;
         border-color: var(--primary-accent);
         color: var(--text-dark);
-        box-shadow: 0 0 0 0.25rem rgba(255, 140, 0, 0.25);
+        box-shadow: 0 0 0 0.25rem rgba(30, 70, 54, 0.22);
     }
 
     .list-group-item {
         background-color: transparent;
-        border-color: #dee2e6;
+        border-color: #e7e0d3;
     }
 
-    .nav-tabs .nav-link.active { 
+    .nav-tabs .nav-link.active {
         background-color: var(--bg-card);
-        color: var(--primary-accent); 
-        border-color: #dee2e6 #dee2e6 var(--bg-card); 
+        color: var(--primary-accent);
+        border-color: #e7e0d3 #e7e0d3 var(--bg-card);
     }
+
+    /* Bootstrap primary badges → brand green (Razorpay/UPI tags etc.) */
+    .badge.bg-primary { background-color: var(--primary-accent) !important; }
 
     footer {
         background-color: var(--bg-card) !important;
@@ -276,4 +291,3 @@ export const GlobalStyles = () => (
     }
   `}</style>
 );
-

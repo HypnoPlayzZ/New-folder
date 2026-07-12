@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024"><g transform="translate(512,512) scale(1.5) translate(-512,-478)"><path d="M 674 452 c -14.08 -15.84, 14.08 -29.92, 0 -49.28 c -10.559999999999999 -14.08, 7.04 -26.4, 0 -38.72" fill="none" stroke="#D9A441" stroke-width="11" stroke-linecap="round"/><path d="M 336 492 c -8.8 -9.9, 8.8 -18.700000000000003, 0 -30.800000000000004 c -6.6 -8.8, 4.4 -16.5, 0 -24.2" fill="none" stroke="#D9A441" stroke-width="10" stroke-linecap="round"/><path d="M 352 628
+    C 348 518, 420 436, 512 430
+    C 604 436, 676 518, 672 628
+    C 646 666, 378 666, 352 628 Z"
+    fill="#FFF6E3" stroke="#2B2620" stroke-width="10" stroke-linejoin="round"/><path d="M 468 468 Q 420 490 396 540" fill="none" stroke="#2B2620" stroke-width="8" stroke-linecap="round"/><path d="M 488 474 Q 458 505 446 548" fill="none" stroke="#2B2620" stroke-width="8" stroke-linecap="round"/><path d="M 512 478 Q 510 510 506 542" fill="none" stroke="#2B2620" stroke-width="8" stroke-linecap="round"/><path d="M 536 474 Q 566 505 578 548" fill="none" stroke="#2B2620" stroke-width="8" stroke-linecap="round"/><path d="M 556 468 Q 604 490 628 540" fill="none" stroke="#2B2620" stroke-width="8" stroke-linecap="round"/><ellipse cx="460" cy="566" rx="13" ry="16" fill="#2B2620"/><ellipse cx="564" cy="566" rx="13" ry="16" fill="#2B2620"/><circle cx="456" cy="560" r="4.5" fill="#FFFFFF"/><circle cx="560" cy="560" r="4.5" fill="#FFFFFF"/><path d="M 482 602 q 30 24 60 0" fill="none" stroke="#2B2620" stroke-width="9" stroke-linecap="round"/><ellipse cx="416" cy="598" rx="16" ry="9" fill="#F26A2E" opacity="0.7"/><ellipse cx="608" cy="598" rx="16" ry="9" fill="#F26A2E" opacity="0.7"/><g transform="translate(0,58) rotate(-10 512 450)"><path d="M 414 372
+    C 358 366, 352 288, 416 274
+    C 424 222, 492 210, 512 224
+    C 532 210, 600 222, 608 274
+    C 672 288, 666 366, 610 372 Z"
+    fill="#FFFFFF" stroke="#2B2620" stroke-width="10" stroke-linejoin="round"/><rect x="406" y="360" width="212" height="50" rx="14" fill="#C62828" stroke="#2B2620" stroke-width="9"/></g></g></svg>

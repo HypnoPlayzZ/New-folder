@@ -1111,7 +1111,13 @@ const MenuManager = () => {
         return (
             <Container fluid className="fade-in">
                 <div className="d-flex justify-content-between align-items-center mb-4">
-                    <h1>Admin Dashboard</h1>
+                    <div className="d-flex align-items-center gap-3">
+                        <img src="/logo.svg" alt="Steamy Bites" width="56" height="56" className="sb-brand-logo" />
+                        <div>
+                            <div className="sb-brand-word" style={{ fontSize: '1.35rem' }}>STEAMY BITES</div>
+                            <h1 className="mb-0" style={{ fontSize: '1.1rem', color: 'var(--text-muted)', letterSpacing: '0.02em' }}>Admin Dashboard</h1>
+                        </div>
+                    </div>
                     <div>
                         <span className="me-3">Welcome, {adminName}</span>
                         <Button variant="outline-secondary" size="sm" onClick={() => handleLogout('admin')}>Logout</Button>
