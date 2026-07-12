@@ -310,7 +310,8 @@ const OrderSchema = new mongoose.Schema({
     // When a PAID order is cancelled/rejected we must NOT relabel it "Failed"
     // (that hides a real captured payment). We keep paymentStatus 'Paid' and flag
     // that a refund is owed, so it stays visible to admin for reconciliation.
-    refundStatus: { type: String, enum: ['None', 'Refund Due', 'Refunded'], default: 'None' },
+    refundStatus: { type: String, enum: ['None', 'Refund Due', 'Refunded', 'Refund Failed'], default: 'None' },
+    refundId: { type: String },
     razorpayOrderId: { type: String, index: true },
     razorpayPaymentId: { type: String },
     locationCoords: { type: String, required: false },
@@ -374,7 +375,9 @@ setInterval(async () => {
 
 // --- Middleware ---
 const authMiddleware = (req, res, next) => {
-    const token = req.headers.authorization?.split(' ')[1];
+    // Header is preferred; query ?token= is the fallback so EventSource/SSE (which
+    // can't set custom headers) can authenticate the admin notifications stream.
+    const token = req.headers.authorization?.split(' ')[1] || req.query.token;
     if (!token) return res.status(401).json({ message: 'Authentication required' });
     try {
         const decoded = jwt.verify(token, jwtSecret);
@@ -778,8 +781,17 @@ app.patch('/api/orders/:id/cancel', authMiddleware, async (req, res) => {
         // Never relabel a real captured payment as "Failed" (that hides money already
         // taken). Flag a refund and keep paymentStatus 'Paid' so it stays visible to admin.
         order.status = 'Rejected';
-        if (order.paymentStatus === 'Paid') order.refundStatus = 'Refund Due';
-        else order.paymentStatus = 'Failed';
+        if (order.paymentStatus === 'Paid' && order.razorpayPaymentId) {
+            // Auto-refund the captured payment. Keep paymentStatus 'Paid' (money was
+            // real); refundStatus records the outcome so admin can see any failures.
+            const r = await refundPayment(order.razorpayPaymentId, order.finalPrice, order._id);
+            order.refundStatus = r.ok ? 'Refunded' : 'Refund Failed';
+            if (r.refundId) order.refundId = r.refundId;
+        } else if (order.paymentStatus === 'Paid') {
+            order.refundStatus = 'Refund Due'; // paid but no gateway id — refund manually
+        } else {
+            order.paymentStatus = 'Failed';
+        }
         await order.save();
         res.json(order);
         try { sendAdminNotification({ type: 'order_cancelled_by_customer', order }); } catch (e) { console.warn('notify admin failed', e); }
@@ -903,6 +915,22 @@ const markRazorpayPaymentSuccessful = async (order, paymentId) => {
     try { notifyCustomerOrderStatus(updated._id, updated.status); } catch (e) { console.warn('notify customer failed', e); }
     try { await onOrderPlacedNotify(updated); } catch (e) { console.warn('email failed', e); }
     return updated;
+};
+
+// Issue a real Razorpay refund for a captured payment. Pure gateway call — the
+// caller persists refundStatus/refundId on the order. Returns {ok, refundId?, reason?}.
+const refundPayment = async (paymentId, amountRupees, orderId) => {
+    if (!razorpay || !paymentId) return { ok: false, reason: 'no-gateway-or-payment-id' };
+    try {
+        const refund = await razorpay.payments.refund(paymentId, {
+            amount: Math.round(amountRupees * 100), // full refund of what was charged, in paise
+            notes: { appOrderId: String(orderId), reason: 'order cancelled/rejected' },
+        });
+        return { ok: true, refundId: refund.id };
+    } catch (e) {
+        console.error('[razorpay] refund failed for order', String(orderId), '-', e?.error?.description || e.message);
+        return { ok: false, reason: e?.error?.description || e.message };
+    }
 };
 
 app.post('/api/payments/verify', authMiddleware, limiter({ limit: 30, windowMs: 60_000 }), async (req, res) => {
@@ -1159,8 +1187,16 @@ adminRouter.patch('/orders/:id/status', async (req, res) => {
         if (status === 'Delivered') {
             updatePayload.paymentStatus = 'Paid';
         } else if (status === 'Rejected') {
-            if (existing.paymentStatus === 'Paid') updatePayload.refundStatus = 'Refund Due';
-            else updatePayload.paymentStatus = 'Failed';
+            if (existing.paymentStatus === 'Paid' && existing.razorpayPaymentId) {
+                // Auto-refund the captured payment; keep paymentStatus 'Paid' (money was real).
+                const r = await refundPayment(existing.razorpayPaymentId, existing.finalPrice, existing._id);
+                updatePayload.refundStatus = r.ok ? 'Refunded' : 'Refund Failed';
+                if (r.refundId) updatePayload.refundId = r.refundId;
+            } else if (existing.paymentStatus === 'Paid') {
+                updatePayload.refundStatus = 'Refund Due';
+            } else {
+                updatePayload.paymentStatus = 'Failed';
+            }
         }
 
         const updatedOrder = await Order.findByIdAndUpdate(
