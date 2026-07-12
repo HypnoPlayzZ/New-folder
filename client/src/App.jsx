@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import './App.css';
-import { api, getMenuCached } from './api';
+import { api, getMenuCached, pingBackend } from './api';
 import SteamyHome from './experience/SteamyHome'; // preserved: previous cinematic home, swap back by rendering it in the "home" branch
 import SupperHome from './SupperHome';
 import './supper.css';
@@ -2649,19 +2649,38 @@ function AppInner() {
     try { localStorage.setItem('sb_cart', JSON.stringify(cart)); } catch { /* private mode */ }
   }, [cart]);
 
+  // Cold-start feedback: the api layer fires 'server:wakeup' while it retries a sleeping
+  // Render backend. Show a non-blocking "waking up" toast so a slow first load doesn't
+  // look broken; it's dismissed once the menu actually arrives (below).
+  useEffect(() => {
+    const onWakeup = () => {
+      toast.loading('Waking up the kitchen — the first load after a while can take ~30s…', { id: 'sb-warming', duration: Infinity });
+    };
+    window.addEventListener('server:wakeup', onWakeup);
+    return () => window.removeEventListener('server:wakeup', onWakeup);
+  }, []);
+
   // Fetch the live menu once on mount; fall back silently to MENU_DATA on failure.
   useEffect(() => {
     let cancelled = false;
+    // Kick a sleeping Render dyno awake ASAP, in parallel with the menu fetch itself.
+    pingBackend();
+    const loadMenu = async () => {
+      const data = await getMenuCached();
+      if (cancelled) return;
+      const flat = normalizeServerMenu(data);
+      if (flat) setMenuItems(flat);
+    };
     (async () => {
       try {
-        const data = await getMenuCached();
-        if (cancelled) return;
-        const flat = normalizeServerMenu(data);
-        if (flat) setMenuItems(flat);
+        await loadMenu();
       } catch {
-        // network/cold-start: leave menuItems empty so MenuPage falls back to MENU_DATA
+        // A cold start can outrun the first retry budget; the wake-up ping should have the
+        // dyno up by now, so pause and try once more before falling back to MENU_DATA.
+        try { await new Promise((r) => setTimeout(r, 8000)); if (!cancelled) await loadMenu(); } catch {}
       } finally {
         if (!cancelled) setMenuLoading(false);
+        toast.dismiss('sb-warming');
       }
     })();
     return () => { cancelled = true; };
