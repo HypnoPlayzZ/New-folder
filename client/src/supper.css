@@ -23,6 +23,22 @@
   font-weight: 340;
 }
 
+/* Saira — hero headline face (self-hosted variable font, latin subset) */
+@font-face {
+  font-family: "Saira";
+  src: url("/fonts/saira.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: "Saira";
+  src: url("/fonts/saira-italic.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: italic;
+  font-display: swap;
+}
+
 /* ---------- home hero ---------- */
 .sc-hero {
   position: relative;
@@ -111,8 +127,8 @@
   position: relative;
 }
 .sc-hero h1 {
-  font-family: 'Geist', system-ui, sans-serif;
-  font-weight: 340;
+  font-family: 'Saira', 'Geist', system-ui, sans-serif;
+  font-weight: 600;
   font-size: clamp(2.3rem, 5vw, 4.4rem);
   line-height: 1.12;
   max-width: 22ch;
