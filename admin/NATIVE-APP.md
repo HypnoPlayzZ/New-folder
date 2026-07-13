@@ -52,6 +52,21 @@ sizes with:
 cd admin && npx @capacitor/assets generate
 ```
 
+## New-order alerts (native)
+Built with `@capacitor/local-notifications` + `@capacitor-community/keep-awake`
+(all gated on `Capacitor.isNativePlatform()`, so the web admin is unaffected):
+- Each new **paid** order fires an OS notification (sound + vibration + heads-up).
+- While any paid order is unaccepted, the in-app bell loops **and** the device is kept
+  awake (screen won't sleep) — so a kitchen phone/tablet left on the Orders screen keeps
+  ringing. It's released once every order is accepted.
+- On app resume, orders refetch immediately.
+- Android 13+ prompts for notification permission on first launch — allow it.
+
+**Limitation:** these fire while the app is running (foreground / on-screen). To alert a
+**fully-closed / backgrounded-and-suspended** app you need push (FCM for Android, APNs for
+iOS). That needs a Firebase project + Apple push key + a server push service (secrets you
+create) — not yet wired. See the "push (Tier 2)" plan when ready.
+
 ## Backend requirement (already in code, needs a Render deploy)
 `server/server.js` CORS allowlist includes the Capacitor origins
 (`capacitor://localhost`, `https://localhost`, `http://localhost`). Without these the

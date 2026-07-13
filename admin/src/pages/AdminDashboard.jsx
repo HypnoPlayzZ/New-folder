@@ -5,6 +5,28 @@ import {
 } from 'react-bootstrap';
 import { DragDropContext, Droppable, Draggable } from 'react-beautiful-dnd';
 import { api } from '../api';
+import { Capacitor } from '@capacitor/core';
+
+// True only inside the native iOS/Android (Capacitor) app. All native-only behavior
+// below is gated on this so the web admin (Vercel) is completely unaffected.
+const IS_NATIVE = (() => { try { return Capacitor.isNativePlatform(); } catch { return false; } })();
+
+// Fire a real OS notification (sound + vibration + heads-up) for a new paid order.
+// No-op on web. Complements the in-app looping bell so a new order is impossible to miss.
+const notifyNativeNewOrder = async (order) => {
+    if (!IS_NATIVE) return;
+    try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        await LocalNotifications.schedule({
+            notifications: [{
+                id: Math.floor(Math.random() * 2000000000),
+                title: '🔔 New order received',
+                body: `${order?.customerName || 'Customer'} · ₹${order?.finalPrice ?? 0}`,
+                schedule: { at: new Date(Date.now() + 50) },
+            }],
+        });
+    } catch (_) { /* plugin unavailable / permission denied */ }
+};
 
 // --- Admin Register Page Component (from File 2) ---
 const AdminRegisterPage = () => {
@@ -71,6 +93,7 @@ const OrderManager = ({ onNewOrder } = {}) => {
     // --- New-order alarm: a loud looping bell that rings until every new order is accepted ---
     const alarmCtxRef = useRef(null);
     const alarmTimerRef = useRef(null);
+    const keepAwakeOnRef = useRef(false); // native: is the screen currently held awake?
     const ensureAudio = () => {
         try {
             if (!alarmCtxRef.current) alarmCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
@@ -128,6 +151,9 @@ const OrderManager = ({ onNewOrder } = {}) => {
                 if (prevId && latestId && prevId !== latestId) {
                     // New order arrived
                     setNewOrderData(fetched[0]);
+                    // Native app: fire an OS notification (sound + vibration) so the order
+                    // is noticed even if the admin isn't looking at this screen.
+                    notifyNativeNewOrder(fetched[0]);
                     // Inform parent (so it can switch tabs or take other action)
                     try { onNewOrder && onNewOrder(fetched[0]); } catch (e) { /* ignore */ }
                     // notify whole admin UI to refresh
@@ -219,6 +245,25 @@ const OrderManager = ({ onNewOrder } = {}) => {
         return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock); };
     }, []);
 
+    // Native app only: request notification permission once, and refetch orders the moment
+    // the app returns to the foreground (catches anything that arrived while backgrounded).
+    useEffect(() => {
+        if (!IS_NATIVE) return;
+        let resumeSub;
+        (async () => {
+            try {
+                const { LocalNotifications } = await import('@capacitor/local-notifications');
+                const perm = await LocalNotifications.checkPermissions();
+                if (perm.display !== 'granted') await LocalNotifications.requestPermissions();
+            } catch (_) { /* ignore */ }
+            try {
+                const { App } = await import('@capacitor/app');
+                resumeSub = await App.addListener('resume', () => fetchOrders({ notifyIfNew: true, showLoading: false }));
+            } catch (_) { /* ignore */ }
+        })();
+        return () => { try { resumeSub && resumeSub.remove(); } catch (_) {} };
+    }, [fetchOrders]);
+
     // Ring the looping bell whenever there's an unaccepted new order (status 'Received'
     // and not acknowledged). Keeps ringing as more arrive; stops when all are accepted
     // (acknowledged, or advanced past 'Received').
@@ -227,9 +272,26 @@ const OrderManager = ({ onNewOrder } = {}) => {
         // legacy COD order that is 'Received' but never paid) must never trigger the alarm.
         const pending = (orders || []).filter(o => o.status === 'Received' && !o.isAcknowledged && o.paymentStatus === 'Paid').length;
         if (pending > 0) startAlarm(); else stopAlarm();
+        // Native app: keep the (kitchen) device awake while an order is waiting, so it keeps
+        // ringing and stays on the orders screen instead of sleeping. No-op on web.
+        if (IS_NATIVE) {
+            (async () => {
+                try {
+                    const { KeepAwake } = await import('@capacitor-community/keep-awake');
+                    if (pending > 0 && !keepAwakeOnRef.current) { await KeepAwake.keepAwake(); keepAwakeOnRef.current = true; }
+                    else if (pending === 0 && keepAwakeOnRef.current) { await KeepAwake.allowSleep(); keepAwakeOnRef.current = false; }
+                } catch (_) { /* plugin unavailable */ }
+            })();
+        }
     }, [orders]);
 
-    useEffect(() => () => stopAlarm(), []); // stop the alarm if this view unmounts
+    useEffect(() => () => {
+        stopAlarm(); // stop the alarm if this view unmounts
+        if (IS_NATIVE && keepAwakeOnRef.current) {
+            keepAwakeOnRef.current = false;
+            import('@capacitor-community/keep-awake').then(({ KeepAwake }) => KeepAwake.allowSleep()).catch(() => {});
+        }
+    }, []);
 
     const handleStatusChange = async (orderId, newStatus) => {
         try {
