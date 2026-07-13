@@ -1422,12 +1422,14 @@ const MenuManager = () => {
     };
 
     const AdminDashboard = ({ adminName, handleLogout }) => {
-        const [activeTab, setActiveTab] = useState('menu');
+        // Land on Manage Orders (the order-receiving screen) by default — it's the page
+        // the kitchen/counter watches. Menu management is secondary.
+        const [activeTab, setActiveTab] = useState('orders');
         const [unreadOrders, setUnreadOrders] = useState(0);
 
         return (
             <Container fluid className="fade-in">
-                <div className="d-flex justify-content-between align-items-center mb-4">
+                <div className="d-flex flex-wrap gap-2 justify-content-between align-items-center mb-4">
                     <div className="d-flex align-items-center gap-3">
                         <img src="/logo.svg" alt="Steamy Bites" width="56" height="56" className="sb-brand-logo" />
                         <div>

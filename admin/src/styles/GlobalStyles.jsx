@@ -289,5 +289,57 @@ export const GlobalStyles = () => (
     footer a {
         color: var(--primary-accent) !important;
     }
+
+    /* ============================================================
+       MOBILE / NATIVE-APP LAYOUT (phones & small tablets, <=768px)
+       Only affects small screens — the desktop web admin is unchanged.
+       Fixes: 9 tabs wrapping into a messy stack, fixed-width menu rows
+       squeezing text, and excessive desktop spacing in the app webview.
+       ============================================================ */
+    @media (max-width: 768px) {
+        /* Trim the big desktop top/bottom margin so content isn't pushed down. */
+        main.container {
+            margin-top: 1rem !important;
+            margin-bottom: 1.5rem !important;
+            padding-left: 0.75rem;
+            padding-right: 0.75rem;
+        }
+        .sb-brand-logo { width: 44px !important; height: 44px !important; }
+
+        /* Tab bar: keep all tabs in ONE horizontally-swipeable row instead of an
+           ugly multi-row wrap. */
+        .nav-tabs {
+            flex-wrap: nowrap !important;
+            justify-content: flex-start !important;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: thin;
+        }
+        .nav-tabs::-webkit-scrollbar { height: 3px; }
+        .nav-tabs .nav-item { flex: 0 0 auto; }
+        .nav-tabs .nav-link { white-space: nowrap; padding: 0.5rem 0.8rem; }
+
+        /* Menu rows: stack vertically so the fixed image + action button don't crush
+           the text or overflow the screen. */
+        .menu-list-container { padding: 1rem !important; }
+        .menu-list-item {
+            flex-direction: column;
+            align-items: stretch;
+            gap: 0.75rem;
+            padding: 1rem;
+        }
+        .menu-list-item:hover { transform: none; } /* no zoom on touch */
+        .menu-item-details { padding-right: 0 !important; }
+        .menu-item-action { width: 100% !important; margin-left: 0 !important; }
+        .menu-item-image-container img { width: 100% !important; height: 180px !important; }
+        .menu-list-item:hover .menu-item-image-container img { transform: none; }
+        .add-button-container { position: static; transform: none; margin-top: 0.25rem; }
+        .add-button-container .btn:hover { transform: none; }
+
+        /* Wide data tables (Orders/Past Orders) scroll inside their own box — never
+           let them push a horizontal scrollbar onto the whole page. */
+        .table-responsive { -webkit-overflow-scrolling: touch; }
+    }
   `}</style>
 );
