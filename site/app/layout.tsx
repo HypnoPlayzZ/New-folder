@@ -43,7 +43,7 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#050505",
+  themeColor: "#1e4636",
 };
 
 const jsonLd = {
@@ -64,7 +64,7 @@ const jsonLd = {
 
 /* Applies the saved theme before first paint so Night/Day never flashes. */
 // Dark-only: force the Quiet Heat night theme and ignore any stored light preference.
-const themeInit = `try{document.documentElement.dataset.theme="dark";localStorage.setItem("sb-theme","dark")}catch(e){}`;
+const themeInit = `try{document.documentElement.dataset.theme="light";localStorage.setItem("sb-theme","light")}catch(e){}`;
 
 export default function RootLayout({
   children,

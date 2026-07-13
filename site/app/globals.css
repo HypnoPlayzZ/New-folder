@@ -41,18 +41,21 @@
 :root[data-theme="light"] {
   --bg: #f7eedd;
   --bg2: #efe4d1;
-  --ink: #2b2620;
-  --dim: #7a7266;
-  --dim2: #5f584c;
+  --ink: #1e4636;
+  --dim: #5f6b61;
+  --dim2: #45514a;
   --acc: #a6741f;
-  --pop: #c62828;
-  --hair: rgba(43, 38, 32, 0.2);
-  --hair2: rgba(43, 38, 32, 0.1);
+  --pop: #d9a441;
+  --hair: rgba(30, 70, 54, 0.22);
+  --hair2: rgba(30, 70, 54, 0.1);
   --arch-shadow: none;
   --wisp-a: 0.05;
   --grain-o: 0.2;
-  --video-filter: invert(1) hue-rotate(180deg) saturate(0.5) brightness(1.05) contrast(0.96);
+  --video-filter: saturate(1.05) contrast(1.02) brightness(0.96);
 }
+/* Cream/day: hide the dark hero footage so the hero reads as a clean cream field with the
+   green badge + type; content-section videos still play as real (non-inverted) footage. */
+:root[data-theme="light"] .hero-video-wrap { display: none; }
 
 html {
   scroll-behavior: smooth;
