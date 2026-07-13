@@ -380,6 +380,25 @@ const SettingsSchema = new mongoose.Schema({
 }, { timestamps: true });
 const Settings = mongoose.model('Settings', SettingsSchema);
 
+// --- Support chat: one thread per customer (keyed by user) -------------------
+const ChatMessageSchema = new mongoose.Schema({
+    user: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
+    sender: { type: String, enum: ['customer', 'admin'], required: true },
+    text: { type: String, required: true },
+    readByAdmin: { type: Boolean, default: false },
+    readByCustomer: { type: Boolean, default: true },
+}, { timestamps: true });
+const ChatMessage = mongoose.model('ChatMessage', ChatMessageSchema);
+
+// Realtime chat fan-out to a specific customer (userId -> Set<res>).
+const customerChatClients = new Map();
+const notifyCustomerChat = (userId, payload) => {
+    const clients = customerChatClients.get(String(userId));
+    if (!clients) return;
+    const message = JSON.stringify(payload);
+    clients.forEach((res) => { try { res.write(`data: ${message}\n\n`); } catch (e) { clients.delete(res); } });
+};
+
 // Find-or-create the singleton settings doc. Cheap; called per order + per settings read.
 const getSettings = async () => {
     let s = await Settings.findOne();
@@ -1266,6 +1285,50 @@ app.get('/api/my-complaints', authMiddleware, async (req, res) => {
     res.json(complaints);
 });
 
+// --- Support chat (customer side) ---
+app.get('/api/chat', authMiddleware, async (req, res) => {
+    try {
+        const msgs = await ChatMessage.find({ user: req.user.userId }).sort({ createdAt: 1 }).limit(200);
+        await ChatMessage.updateMany({ user: req.user.userId, sender: 'admin', readByCustomer: false }, { $set: { readByCustomer: true } });
+        res.json(msgs);
+    } catch (e) { res.status(500).json({ message: 'Failed to load chat' }); }
+});
+
+app.post('/api/chat', authMiddleware, limiter({ limit: 30, windowMs: 60_000 }), async (req, res) => {
+    try {
+        const text = sanitize(req.body?.text, 1000);
+        if (!text) return res.status(400).json({ message: 'Message is required.' });
+        const msg = await ChatMessage.create({ user: req.user.userId, sender: 'customer', text, readByAdmin: false, readByCustomer: true });
+        res.status(201).json(msg);
+        try {
+            const u = await User.findById(req.user.userId).select('name email');
+            sendAdminNotification({ type: 'chat_message', userId: String(req.user.userId), name: u?.name || u?.email || 'Customer', text: msg.text });
+        } catch (_) {}
+    } catch (e) { res.status(500).json({ message: 'Failed to send message' }); }
+});
+
+// Customer chat live stream (SSE; token via query since EventSource can't set headers).
+app.get('/api/chat/stream', async (req, res) => {
+    const token = req.query.token || req.headers.authorization?.split(' ')[1];
+    if (!token) return res.status(401).json({ message: 'Authentication required' });
+    let userId;
+    try { userId = jwt.verify(token, jwtSecret).userId; } catch { return res.status(401).json({ message: 'Invalid token' }); }
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.write(':connected\n\n');
+    const key = String(userId);
+    if (!customerChatClients.has(key)) customerChatClients.set(key, new Set());
+    customerChatClients.get(key).add(res);
+    const heartbeat = setInterval(() => { try { res.write(':ping\n\n'); } catch (_) { clearInterval(heartbeat); } }, 20000);
+    req.on('close', () => {
+        clearInterval(heartbeat);
+        const set = customerChatClients.get(key);
+        if (set) { set.delete(res); if (set.size === 0) customerChatClients.delete(key); }
+        res.end();
+    });
+});
+
 
 // --- Admin Router ---
 const adminRouter = express.Router();
@@ -1713,6 +1776,50 @@ adminRouter.patch('/settings', async (req, res) => {
     } catch (error) {
         res.status(400).json({ message: 'Failed to update settings', error: error.message });
     }
+});
+
+// --- Support chat (admin side) ---
+adminRouter.get('/chats', async (req, res) => {
+    try {
+        const convos = await ChatMessage.aggregate([
+            { $sort: { createdAt: -1 } },
+            { $group: {
+                _id: '$user',
+                lastText: { $first: '$text' },
+                lastSender: { $first: '$sender' },
+                lastAt: { $first: '$createdAt' },
+                unread: { $sum: { $cond: [{ $and: [{ $eq: ['$sender', 'customer'] }, { $eq: ['$readByAdmin', false] }] }, 1, 0] } },
+            } },
+            { $sort: { lastAt: -1 } },
+            { $limit: 100 },
+        ]);
+        const users = await User.find({ _id: { $in: convos.map(c => c._id) } }).select('name email');
+        const byId = new Map(users.map(u => [String(u._id), u]));
+        res.json(convos.map(c => {
+            const u = byId.get(String(c._id));
+            return { userId: String(c._id), name: u?.name || u?.email || 'Customer', email: u?.email || '', lastText: c.lastText, lastSender: c.lastSender, lastAt: c.lastAt, unread: c.unread };
+        }));
+    } catch (e) { res.status(500).json({ message: 'Failed to load chats' }); }
+});
+
+adminRouter.get('/chats/:userId', async (req, res) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.userId)) return res.status(400).json({ message: 'Bad user id' });
+        const msgs = await ChatMessage.find({ user: req.params.userId }).sort({ createdAt: 1 }).limit(300);
+        await ChatMessage.updateMany({ user: req.params.userId, sender: 'customer', readByAdmin: false }, { $set: { readByAdmin: true } });
+        res.json(msgs);
+    } catch (e) { res.status(500).json({ message: 'Failed to load chat' }); }
+});
+
+adminRouter.post('/chats/:userId', async (req, res) => {
+    try {
+        if (!mongoose.Types.ObjectId.isValid(req.params.userId)) return res.status(400).json({ message: 'Bad user id' });
+        const text = sanitize(req.body?.text, 1000);
+        if (!text) return res.status(400).json({ message: 'Message is required.' });
+        const msg = await ChatMessage.create({ user: req.params.userId, sender: 'admin', text, readByAdmin: true, readByCustomer: false });
+        res.status(201).json(msg);
+        try { notifyCustomerChat(req.params.userId, { type: 'chat_message', message: msg }); } catch (_) {}
+    } catch (e) { res.status(500).json({ message: 'Failed to send message' }); }
 });
 
 // --- Server Start ---

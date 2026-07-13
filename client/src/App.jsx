@@ -6,7 +6,7 @@ import {
   Zap, Leaf, MapPin, ArrowRight, Package, Flame,
   ChevronRight, Bike, Instagram, Facebook, Twitter,
   ChefHat, Sparkles, BadgePercent, Phone, Mail,
-  UtensilsCrossed,
+  UtensilsCrossed, MessageCircle,
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import './App.css';
@@ -2081,6 +2081,95 @@ function OrdersPage({ isDark, user, setPage }) {
 // COMPONENT: TESTIMONIALS SECTION
 // ─────────────────────────────────────────────
 // ─────────────────────────────────────────────
+// COMPONENT: SUPPORT CHAT WIDGET
+// Floating chat that connects the customer directly to whoever's on the admin
+// dashboard. Live both ways via /api/chat/stream (customer) + admin SSE.
+// ─────────────────────────────────────────────
+function ChatWidget({ user, setPage, isDark }) {
+  const t = isDark ? themes.dark : themes.light;
+  const [open, setOpen] = useState(false);
+  const [msgs, setMsgs] = useState([]);
+  const [text, setText] = useState('');
+  const [unread, setUnread] = useState(0);
+  const listRef = useRef(null);
+  const isAuthed = !!user && !!localStorage.getItem('customer_token');
+
+  const load = async () => {
+    try { const r = await api.get('/chat'); setMsgs(r.data || []); setUnread(0); } catch { /* ignore */ }
+  };
+
+  useEffect(() => { if (open && isAuthed) load(); }, [open, isAuthed]);
+
+  useEffect(() => {
+    if (!isAuthed) return;
+    const token = localStorage.getItem('customer_token');
+    if (!token) return;
+    const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://steamybitesbackend.onrender.com/api';
+    const es = new EventSource(`${baseURL}/chat/stream?token=${token}`);
+    es.onmessage = (e) => {
+      try {
+        const d = JSON.parse(e.data);
+        if (d.type === 'chat_message' && d.message) {
+          setMsgs(prev => prev.some(m => m._id === d.message._id) ? prev : [...prev, d.message]);
+          setUnread(u => (open ? 0 : u + 1));
+        }
+      } catch { /* ignore */ }
+    };
+    return () => { try { es.close(); } catch {} };
+  }, [isAuthed, open]);
+
+  useEffect(() => { if (open && listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight; }, [msgs, open]);
+
+  async function send() {
+    const body = text.trim();
+    if (!body) return;
+    setText('');
+    const temp = { _id: 'tmp' + Date.now(), sender: 'customer', text: body };
+    setMsgs(prev => [...prev, temp]);
+    try { const r = await api.post('/chat', { text: body }); setMsgs(prev => prev.map(m => m._id === temp._id ? r.data : m)); }
+    catch { toast.error('Message not sent'); setMsgs(prev => prev.filter(m => m._id !== temp._id)); }
+  }
+
+  function toggle() {
+    if (!isAuthed) { toast.error('Please sign in to chat with us'); setPage('auth'); return; }
+    setOpen(o => { const n = !o; if (n) setUnread(0); return n; });
+  }
+
+  return (
+    <>
+      {open && isAuthed && (
+        <div style={{ position: 'fixed', left: 20, bottom: 88, zIndex: 61, width: 320, maxWidth: 'calc(100vw - 40px)', height: 420, maxHeight: '70vh',
+          background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16, boxShadow: '0 16px 40px rgba(20,36,27,0.26)',
+          display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: "'Geist', system-ui, sans-serif" }}>
+          <div style={{ padding: '12px 14px', background: '#1e4636', color: '#f7eedd', fontWeight: 800, display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ flex: 1 }}>Chat with Steamy Bites</span>
+            <button onClick={() => setOpen(false)} aria-label="Close chat" style={{ color: '#f7eedd', fontSize: 18, lineHeight: 1 }}>×</button>
+          </div>
+          <div ref={listRef} style={{ flex: 1, overflowY: 'auto', padding: 12, display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {msgs.length === 0 && <p style={{ color: t.faint, fontSize: 13, textAlign: 'center', marginTop: 20 }}>Ask us anything — order help, timings, custom requests.</p>}
+            {msgs.map(m => (
+              <div key={m._id} style={{ alignSelf: m.sender === 'customer' ? 'flex-end' : 'flex-start', maxWidth: '82%',
+                background: m.sender === 'customer' ? '#1e4636' : 'rgba(30,70,54,0.09)', color: m.sender === 'customer' ? '#f7eedd' : t.text,
+                padding: '8px 11px', borderRadius: 12, fontSize: 13.5, lineHeight: 1.35, wordBreak: 'break-word' }}>{m.text}</div>
+            ))}
+          </div>
+          <div style={{ display: 'flex', gap: 8, padding: 10, borderTop: `1px solid ${t.border}` }}>
+            <input value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') send(); }}
+              placeholder="Type a message…" style={{ flex: 1, background: t.inputBg, border: `1px solid ${t.border}`, color: t.text, borderRadius: 10, padding: '8px 11px', fontSize: 13.5, outline: 'none' }} />
+            <button onClick={send} style={{ background: '#a6741f', color: '#fff', borderRadius: 10, padding: '0 14px', fontWeight: 700, fontSize: 13 }}>Send</button>
+          </div>
+        </div>
+      )}
+      <button onClick={toggle} aria-label="Chat support" style={{ position: 'fixed', left: 20, bottom: 24, zIndex: 61, width: 56, height: 56, borderRadius: 99,
+        background: '#1e4636', color: '#f7eedd', boxShadow: '0 8px 24px rgba(20,36,27,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <MessageCircle className="w-6 h-6" />
+        {unread > 0 && <span style={{ position: 'absolute', top: -2, right: -2, background: '#c0392b', color: '#fff', fontSize: 11, fontWeight: 800, minWidth: 18, height: 18, borderRadius: 99, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0 4px' }}>{unread}</span>}
+      </button>
+    </>
+  );
+}
+
+// ─────────────────────────────────────────────
 // COMPONENT: DRAGGABLE ORDER-STATUS OVERLAY
 // Floating widget that stays on every page and shows the customer's active order
 // status live (same SSE stream as Track Order). Draggable; position persisted.
@@ -2918,6 +3007,7 @@ function AppInner() {
         settings={settings}
       />
       <OrderStatusOverlay user={user} setPage={setPage} isDark={isDark} />
+      <ChatWidget user={user} setPage={setPage} isDark={isDark} />
     </div>
   );
 }

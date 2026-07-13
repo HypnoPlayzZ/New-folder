@@ -1252,6 +1252,106 @@ const MenuManager = () => {
         );
     };
 
+    // --- Support Chat Manager (customer <-> admin live chat) ---
+    const ChatManager = () => {
+        const [convos, setConvos] = useState([]);
+        const [activeUser, setActiveUser] = useState(null);
+        const [thread, setThread] = useState([]);
+        const [text, setText] = useState('');
+        const [loading, setLoading] = useState(true);
+        const listRef = useRef(null);
+        const activeRef = useRef(null);
+
+        const loadConvos = useCallback(async () => {
+            try { const r = await api.get('/admin/chats'); setConvos(Array.isArray(r.data) ? r.data : []); } catch (e) { /* ignore */ }
+            setLoading(false);
+        }, []);
+
+        const openThread = async (userId) => {
+            setActiveUser(userId); activeRef.current = userId;
+            try { const r = await api.get(`/admin/chats/${userId}`); setThread(Array.isArray(r.data) ? r.data : []); } catch (e) {}
+            loadConvos();
+        };
+
+        useEffect(() => {
+            loadConvos();
+            const poll = setInterval(loadConvos, 15000);
+            let es;
+            try {
+                const token = localStorage.getItem('admin_token');
+                const apiBase = import.meta.env.VITE_API_BASE_URL || 'https://steamybitesbackend.onrender.com/api';
+                if (token) {
+                    es = new EventSource(`${apiBase}/admin/notifications?token=${encodeURIComponent(token)}`);
+                    es.onmessage = (e) => {
+                        try {
+                            const p = JSON.parse(e.data);
+                            if (p && p.type === 'chat_message') {
+                                loadConvos();
+                                if (activeRef.current && p.userId === activeRef.current) {
+                                    api.get(`/admin/chats/${activeRef.current}`).then(r => setThread(Array.isArray(r.data) ? r.data : [])).catch(() => {});
+                                }
+                            }
+                        } catch (err) {}
+                    };
+                }
+            } catch (err) {}
+            return () => { clearInterval(poll); if (es) try { es.close(); } catch (_) {} };
+        }, [loadConvos]);
+
+        useEffect(() => { if (listRef.current) listRef.current.scrollTop = listRef.current.scrollHeight; }, [thread]);
+
+        const send = async () => {
+            const body = text.trim();
+            if (!body || !activeUser) return;
+            setText('');
+            const temp = { _id: 'tmp' + Date.now(), sender: 'admin', text: body };
+            setThread(prev => [...prev, temp]);
+            try { const r = await api.post(`/admin/chats/${activeUser}`, { text: body }); setThread(prev => prev.map(m => m._id === temp._id ? r.data : m)); loadConvos(); }
+            catch (e) { setThread(prev => prev.filter(m => m._id !== temp._id)); }
+        };
+
+        return (
+            <Card>
+                <Card.Header className="d-flex justify-content-between align-items-center">
+                    <strong>Support Chat</strong>
+                    <Button variant="light" size="sm" onClick={loadConvos}>Refresh</Button>
+                </Card.Header>
+                <Card.Body>
+                    <Row>
+                        <Col md={4} style={{ borderRight: '1px solid #eee', maxHeight: 470, overflowY: 'auto' }}>
+                            {loading && <Spinner animation="border" size="sm" />}
+                            {!loading && convos.length === 0 && <p className="text-muted">No conversations yet.</p>}
+                            {convos.map(c => (
+                                <div key={c.userId} onClick={() => openThread(c.userId)} style={{ cursor: 'pointer', padding: '10px', borderRadius: 8, background: activeUser === c.userId ? 'rgba(30,70,54,0.08)' : 'transparent', marginBottom: 4 }}>
+                                    <div className="d-flex justify-content-between align-items-center">
+                                        <strong style={{ fontSize: 14 }}>{c.name}</strong>
+                                        {c.unread > 0 && <Badge bg="danger" pill>{c.unread}</Badge>}
+                                    </div>
+                                    <small className="text-muted d-block text-truncate">{c.lastSender === 'admin' ? 'You: ' : ''}{c.lastText}</small>
+                                </div>
+                            ))}
+                        </Col>
+                        <Col md={8}>
+                            {!activeUser ? <p className="text-muted">Select a conversation to reply.</p> : (
+                                <div className="d-flex flex-column" style={{ height: 470 }}>
+                                    <div ref={listRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 6, padding: 8 }}>
+                                        {thread.map(m => (
+                                            <div key={m._id} style={{ alignSelf: m.sender === 'admin' ? 'flex-end' : 'flex-start', maxWidth: '75%', background: m.sender === 'admin' ? '#1e4636' : '#efe9dd', color: m.sender === 'admin' ? '#fff' : '#2b2620', padding: '7px 10px', borderRadius: 10, fontSize: 14, wordBreak: 'break-word' }}>{m.text}</div>
+                                        ))}
+                                    </div>
+                                    <div className="d-flex gap-2 mt-2">
+                                        <Form.Control value={text} onChange={e => setText(e.target.value)} onKeyDown={e => { if (e.key === 'Enter') send(); }} placeholder="Reply to customer…" />
+                                        <Button onClick={send} style={{ background: '#1e4636', border: 'none' }}>Send</Button>
+                                    </div>
+                                </div>
+                            )}
+                        </Col>
+                    </Row>
+                </Card.Body>
+            </Card>
+        );
+    };
+
     const AdminDashboard = ({ adminName, handleLogout }) => {
         const [activeTab, setActiveTab] = useState('menu');
         const [unreadOrders, setUnreadOrders] = useState(0);
@@ -1285,6 +1385,7 @@ const MenuManager = () => {
                         <Nav.Item><Nav.Link eventKey="bulk-upload">Bulk Upload</Nav.Link></Nav.Item>
                         <Nav.Item><Nav.Link eventKey="coupons">Manage Coupons</Nav.Link></Nav.Item>
                         <Nav.Item><Nav.Link eventKey="settings">Store Settings</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link eventKey="chat">Support Chat</Nav.Link></Nav.Item>
                         <Nav.Item><Nav.Link href="#/admin-register">Register New Admin</Nav.Link></Nav.Item>
                     </Nav>
                     <Tab.Content>
@@ -1304,6 +1405,7 @@ const MenuManager = () => {
                         <Tab.Pane eventKey="bulk-upload"><BulkUploadManager /></Tab.Pane>
                         <Tab.Pane eventKey="coupons"><CouponManager /></Tab.Pane>
                         <Tab.Pane eventKey="settings"><StoreSettingsManager /></Tab.Pane>
+                        <Tab.Pane eventKey="chat"><ChatManager /></Tab.Pane>
                         {/* The "Register New Admin" tab just links to the hash route, which App.js will handle */}
                     </Tab.Content>
                 </Tab.Container>
