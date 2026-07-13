@@ -22,7 +22,8 @@ const notifyNativeNewOrder = async (order) => {
                 id: Math.floor(Math.random() * 2000000000),
                 title: '🔔 New order received',
                 body: `${order?.customerName || 'Customer'} · ₹${order?.finalPrice ?? 0}`,
-                schedule: { at: new Date(Date.now() + 50) },
+                sound: 'default',
+                // no `schedule` -> delivered immediately (a tiny future delay was unreliable on iOS)
             }],
         });
     } catch (_) { /* plugin unavailable / permission denied */ }
@@ -454,10 +455,14 @@ const OrderManager = ({ onNewOrder } = {}) => {
 
     return (
         <Card>
-            <Card.Header>
+            <Card.Header className="d-flex gap-2 flex-wrap align-items-center">
                 <Button variant="light" onClick={() => fetchOrders({ notifyIfNew: false })} disabled={isLoading}>
                         {isLoading ? <Spinner animation="border" size="sm" /> : 'Refresh Orders'}
                     </Button>
+                <Button variant="outline-secondary" onClick={() => { ensureAudio(); playBell(); notifyNativeNewOrder({ customerName: 'Test order', finalPrice: 0 }); }}>
+                    🔔 Test alarm
+                </Button>
+                <small className="text-muted">Tap once to enable order sound on this device.</small>
             </Card.Header>
             <Card.Body>
                 {error && <Alert variant="danger">{error}</Alert>}

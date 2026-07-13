@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import AVFoundation
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -7,7 +8,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     var window: UIWindow?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        // Override point for customization after application launch.
+        // Play the new-order alarm through the speaker even when the phone's ringer/silent
+        // switch is on — kitchen/counter phones are often on silent, which would otherwise
+        // mute the WebAudio bell. .playback + .mixWithOthers = audible on silent, without
+        // hijacking other audio.
+        do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, options: [.mixWithOthers])
+            try AVAudioSession.sharedInstance().setActive(true)
+        } catch {
+            print("[AudioSession] setup failed: \(error)")
+        }
         return true
     }
 
