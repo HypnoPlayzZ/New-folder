@@ -122,6 +122,9 @@ export const DEFAULT_SETTINGS = {
     storeName: 'Steamy Bites',
     storePhone: '',
     storeAddress: '',
+    storeLat: 0,
+    storeLng: 0,
+    deliveryRadiusKm: 0, // 0 = geofence off (fail-open when offline; server default is 2km once store location is set)
 };
 
 // Settings drive time-sensitive state (store open/closed, delivery fee). Keep the cache

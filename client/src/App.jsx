@@ -1295,6 +1295,20 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user, settin
 
   const sub = cart.reduce((s, i) => s + i.selectedPrice * i.qty, 0);
   const st = settings || {};
+  // Delivery geofence (active only once the store has set a location + radius > 0).
+  const geofenceOn = Number(st.deliveryRadiusKm) > 0 && (Number(st.storeLat) !== 0 || Number(st.storeLng) !== 0);
+  const pickedDistanceKm = (() => {
+    if (!geofenceOn || !locationCoords) return null;
+    const p = String(locationCoords).split(',').map((x) => parseFloat(x.trim()));
+    if (p.length !== 2 || !isFinite(p[0]) || !isFinite(p[1])) return null;
+    const R = 6371, toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(p[0] - st.storeLat), dLng = toRad(p[1] - st.storeLng);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(st.storeLat)) * Math.cos(toRad(p[0])) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
+  })();
+  const needsLocation = geofenceOn && !locationCoords;
+  const outsideArea = geofenceOn && pickedDistanceKm != null && pickedDistanceKm > Number(st.deliveryRadiusKm);
+  const orderBlocked = st.storeOpen === false || needsLocation || outsideArea;
   const deliveryFee = Number.isFinite(st.deliveryFee) ? st.deliveryFee : 40;
   const freeThreshold = Number.isFinite(st.freeDeliveryThreshold) ? st.freeDeliveryThreshold : 250;
   const delivery = sub >= freeThreshold ? 0 : deliveryFee;
@@ -1445,6 +1459,14 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user, settin
     }
     if (st.storeOpen === false) {
       toast.error('The store is currently closed. Please order during opening hours.');
+      return;
+    }
+    if (needsLocation) {
+      toast.error('Please pin your delivery location on the map so we can check it is within our delivery area.');
+      return;
+    }
+    if (outsideArea) {
+      toast.error(`Sorry — you're ${pickedDistanceKm.toFixed(1)} km away. We only deliver within ${st.deliveryRadiusKm} km of the store.`);
       return;
     }
     if (st.minOrderValue > 0 && sub < st.minOrderValue) {
@@ -1691,6 +1713,15 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user, settin
                       {/* Delivery location — optional map pin, shared to the kitchen/admin */}
                       <div style={{ background: t.card, border: `1px solid ${t.border}` }} className="rounded-2xl p-3">
                         <LocationPicker value={locationCoords} onChange={setLocationCoords} isDark={isDark} />
+                        {geofenceOn && (
+                          <p className="text-xs mt-2 mb-0" style={{ color: outsideArea ? '#c0392b' : (pickedDistanceKm != null ? '#1e7d4f' : t.muted) }}>
+                            {needsLocation
+                              ? `📍 We deliver within ${st.deliveryRadiusKm} km — pin your location to place the order.`
+                              : outsideArea
+                                ? `🚫 You're ${pickedDistanceKm.toFixed(1)} km away — outside our ${st.deliveryRadiusKm} km delivery area.`
+                                : `✅ Within our delivery area (${pickedDistanceKm.toFixed(1)} km from the store).`}
+                          </p>
+                        )}
                       </div>
 
                       {/* Payment method */}
@@ -1745,7 +1776,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user, settin
                   <div style={{ borderTop: `1px solid ${t.border}` }} className="p-4 flex-shrink-0">
                     <motion.button
                       onClick={placeOrder}
-                      disabled={processing || st.storeOpen === false}
+                      disabled={processing || orderBlocked}
                       whileHover={{ scale: 1.02, y: -1 }}
                       whileTap={{ scale: 0.98 }}
                       className="order-btn w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black rounded-2xl text-base shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2"
@@ -1758,7 +1789,10 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user, settin
                       ) : (
                         <>
                           <Truck className="w-5 h-5" />
-                          {st.storeOpen === false ? 'Store Closed' : (paymentMethod === 'RAZORPAY' ? `Pay ₹${total}` : `Confirm Order · ₹${total}`)}
+                          {st.storeOpen === false ? 'Store Closed'
+                            : needsLocation ? 'Pin your delivery location'
+                            : outsideArea ? 'Outside delivery area'
+                            : (paymentMethod === 'RAZORPAY' ? `Pay ₹${total}` : `Confirm Order · ₹${total}`)}
                         </>
                       )}
                     </motion.button>

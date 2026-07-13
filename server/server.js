@@ -383,6 +383,11 @@ const SettingsSchema = new mongoose.Schema({
     storeName: { type: String, default: 'Steamy Bites' },
     storePhone: { type: String, default: '' },
     storeAddress: { type: String, default: '' },
+    // Delivery geofence: only accept orders within deliveryRadiusKm of (storeLat,storeLng).
+    // Disabled until the owner sets a store location (lat/lng both 0 => off).
+    storeLat: { type: Number, default: 0 },
+    storeLng: { type: Number, default: 0 },
+    deliveryRadiusKm: { type: Number, default: 2, min: 0 }, // 0 = no geofence
 }, { timestamps: true });
 const Settings = mongoose.model('Settings', SettingsSchema);
 
@@ -410,6 +415,21 @@ const getSettings = async () => {
     let s = await Settings.findOne();
     if (!s) s = await Settings.create({});
     return s;
+};
+
+// Parse a "lat,lng" string into {lat,lng}, or null if malformed.
+const parseLatLng = (str) => {
+    if (!str || typeof str !== 'string') return null;
+    const parts = str.split(',').map((x) => parseFloat(x.trim()));
+    if (parts.length !== 2 || !Number.isFinite(parts[0]) || !Number.isFinite(parts[1])) return null;
+    return { lat: parts[0], lng: parts[1] };
+};
+// Great-circle distance in km between two lat/lng points.
+const haversineKm = (lat1, lng1, lat2, lng2) => {
+    const R = 6371, toRad = (d) => (d * Math.PI) / 180;
+    const dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+    const a = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(a));
 };
 
 // --- Public catalog realtime channel -----------------------------------------
@@ -826,6 +846,18 @@ app.post('/api/orders', authMiddleware, limiter({ limit: 30, windowMs: 60_000 })
         const settings = await getSettings();
         if (!settings.storeOpen) {
             return res.status(400).json({ message: 'The store is currently closed. Please order during opening hours.' });
+        }
+        // Geofence: only accept deliveries within the store's radius (active once the owner
+        // has set a store location + a non-zero radius).
+        if (settings.deliveryRadiusKm > 0 && (settings.storeLat !== 0 || settings.storeLng !== 0)) {
+            const dest = parseLatLng(body.locationCoords);
+            if (!dest) {
+                return res.status(400).json({ message: 'Please pin your delivery location on the map so we can confirm it is within our delivery area.' });
+            }
+            const km = haversineKm(settings.storeLat, settings.storeLng, dest.lat, dest.lng);
+            if (km > settings.deliveryRadiusKm) {
+                return res.status(400).json({ message: `Sorry — your location is ${km.toFixed(1)} km away. We only deliver within ${settings.deliveryRadiusKm} km of the store.` });
+            }
         }
         if (settings.minOrderValue > 0 && subtotal < settings.minOrderValue) {
             return res.status(400).json({ message: `Minimum order value is ₹${settings.minOrderValue}. Please add a little more to your cart.` });
@@ -1782,7 +1814,8 @@ adminRouter.patch('/settings', async (req, res) => {
         // Whitelist — never mass-assign arbitrary fields onto the settings doc.
         const allowed = ['deliveryFee', 'freeDeliveryThreshold', 'minOrderValue', 'deliveryEta',
             'storeOpen', 'openingHours', 'taxPercent', 'paymentOnline', 'paymentCod',
-            'storeName', 'storePhone', 'storeAddress'];
+            'storeName', 'storePhone', 'storeAddress',
+            'storeLat', 'storeLng', 'deliveryRadiusKm'];
         for (const key of allowed) {
             if (req.body[key] !== undefined) s[key] = req.body[key];
         }

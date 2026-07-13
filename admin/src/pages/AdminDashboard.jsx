@@ -1357,12 +1357,26 @@ const MenuManager = () => {
                     storeName: s.storeName || '',
                     storePhone: s.storePhone || '',
                     storeAddress: s.storeAddress || '',
+                    storeLat: Number(s.storeLat) || 0,
+                    storeLng: Number(s.storeLng) || 0,
+                    deliveryRadiusKm: Number(s.deliveryRadiusKm) || 0,
                 };
                 const res = await api.patch('/admin/settings', payload);
                 setS(res.data);
                 setMsg('Settings saved — live on the storefront now.');
             } catch (e) { setErr(e.response?.data?.message || 'Could not save settings'); }
             setSaving(false);
+        };
+
+        // One-tap store location: stand at the store and capture GPS coords for the geofence.
+        const useCurrentLocation = () => {
+            if (!navigator.geolocation) { setErr('Geolocation is not available on this device.'); return; }
+            setMsg('Getting your location…'); setErr('');
+            navigator.geolocation.getCurrentPosition(
+                (pos) => { setS(prev => ({ ...prev, storeLat: +pos.coords.latitude.toFixed(6), storeLng: +pos.coords.longitude.toFixed(6) })); setMsg('📍 Location captured — press “Save Settings” to apply.'); },
+                () => setErr('Could not read location. Allow location access, or type the store lat/long manually.'),
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
         };
 
         if (loading) return <div className="text-center"><Spinner animation="border" /></div>;
@@ -1403,6 +1417,16 @@ const MenuManager = () => {
                             <Col md={4}><Form.Group className="mb-3"><Form.Label>Store phone</Form.Label><Form.Control value={s.storePhone || ''} onChange={e => upd('storePhone', e.target.value)} /></Form.Group></Col>
                             <Col md={4}><Form.Group className="mb-3"><Form.Label>Store address</Form.Label><Form.Control value={s.storeAddress || ''} onChange={e => upd('storeAddress', e.target.value)} /></Form.Group></Col>
                         </Row>
+                        <div className="mb-3 p-3 rounded" style={{ background: 'rgba(0,0,0,0.04)' }}>
+                            <Form.Label className="d-block fw-bold mb-2">Delivery area — only accept orders within this radius</Form.Label>
+                            <Row>
+                                <Col md={3}><Form.Group className="mb-2"><Form.Label>Store latitude</Form.Label><Form.Control type="number" step="any" value={s.storeLat ?? 0} onChange={e => upd('storeLat', e.target.value)} placeholder="28.6304" /></Form.Group></Col>
+                                <Col md={3}><Form.Group className="mb-2"><Form.Label>Store longitude</Form.Label><Form.Control type="number" step="any" value={s.storeLng ?? 0} onChange={e => upd('storeLng', e.target.value)} placeholder="77.2177" /></Form.Group></Col>
+                                <Col md={3}><Form.Group className="mb-2"><Form.Label>Radius (km, 0 = off)</Form.Label><Form.Control type="number" step="any" min="0" value={s.deliveryRadiusKm ?? 0} onChange={e => upd('deliveryRadiusKm', e.target.value)} /></Form.Group></Col>
+                                <Col md={3} className="d-flex align-items-end"><Button variant="outline-secondary" size="sm" className="mb-2 w-100" onClick={useCurrentLocation}>📍 Use my current location</Button></Col>
+                            </Row>
+                            <small className="text-muted">At the store, tap “Use my current location” (or paste the store’s lat, long). Orders whose delivery pin is farther than the radius are blocked — on the storefront and the server. Set radius to 0 to turn the geofence off.</small>
+                        </div>
                         <Button variant="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save Settings'}</Button>
                     </Form>
                 </Card.Body>
