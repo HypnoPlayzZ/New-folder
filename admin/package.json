@@ -11,6 +11,11 @@
     "start": "vite"
   },
   "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/app": "^8.1.0",
+    "@capacitor/cli": "^8.4.1",
+    "@capacitor/core": "^8.4.1",
+    "@capacitor/ios": "^8.4.1",
     "axios": "^1.7.2",
     "bootstrap": "^5.3.3",
     "react": "^18.3.1",
@@ -20,6 +25,7 @@
     "tone": "^15.1.22"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
     "@vitejs/plugin-react": "^4.3.1",

@@ -115,7 +115,13 @@ const allowedOrigins = [
     'http://localhost:5174',
     'http://localhost:5175',
     'http://localhost:5176',
-    'http://localhost:5180'  // pinned client dev port (5173 is taken by another project)
+    'http://localhost:5180', // pinned client dev port (5173 is taken by another project)
+    // Native app (Capacitor) webview origins — the Steamy Bites Admin iOS/Android app
+    // calls this API and opens the realtime SSE stream from these origins.
+    'capacitor://localhost', // iOS Capacitor default scheme
+    'https://localhost',     // Android (capacitor.config androidScheme: 'https')
+    'http://localhost',      // Android fallback / older webview scheme
+    'ionic://localhost'      // legacy Ionic/Capacitor scheme
 ];
 
 const corsOptions = {

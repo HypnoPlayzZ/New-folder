@@ -24,3 +24,6 @@ dist-ssr
 *.sw?
 .vercel
 .env*
+# ...but DO commit the production API base (public backend URL, no secrets) so the
+# native (Capacitor) app and hosted production builds are reproducible.
+!.env.production
