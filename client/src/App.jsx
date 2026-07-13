@@ -335,7 +335,7 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
           borderBottom: scrolled ? `1px solid ${t.border}` : "1px solid transparent",
           boxShadow: scrolled ? "0 4px 24px rgba(0,0,0,0.08)" : "none",
         }}
-        className="navbar-glass fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+        className="navbar-glass fixed left-0 right-0 z-50 transition-all duration-300"
       >
         <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
           {/* Logo */}
