@@ -1324,6 +1324,23 @@ const MenuManager = () => {
 
         const upd = (k, v) => setS(prev => ({ ...prev, [k]: v }));
 
+        // Store open/close must apply INSTANTLY — persist the moment the switch flips instead
+        // of waiting for the "Save Settings" button below (flipping the switch without pressing
+        // Save was why closing/opening "didn't work"). Optimistic, with revert on failure.
+        const toggleStoreOpen = async (checked) => {
+            setS(prev => ({ ...prev, storeOpen: checked }));
+            setSaving(true); setMsg(''); setErr('');
+            try {
+                const res = await api.patch('/admin/settings', { storeOpen: checked });
+                setS(res.data);
+                setMsg(checked ? '✅ Store is now OPEN — live on the storefront.' : '🔴 Store is now CLOSED — live on the storefront.');
+            } catch (e) {
+                setErr(e.response?.data?.message || 'Could not update store status');
+                setS(prev => ({ ...prev, storeOpen: !checked })); // revert
+            }
+            setSaving(false);
+        };
+
         const save = async () => {
             setSaving(true); setMsg(''); setErr('');
             try {
@@ -1363,8 +1380,8 @@ const MenuManager = () => {
                     <Form>
                         <div className="mb-3 p-3 rounded" style={{ background: 'rgba(0,0,0,0.04)' }}>
                             <Form.Check type="switch" id="storeOpenSwitch"
-                                label={s.storeOpen ? 'Store is OPEN — accepting orders' : 'Store is CLOSED — new orders blocked'}
-                                checked={!!s.storeOpen} onChange={e => upd('storeOpen', e.target.checked)} />
+                                label={s.storeOpen ? 'Store is OPEN — accepting orders (flip to close instantly)' : 'Store is CLOSED — new orders blocked (flip to open instantly)'}
+                                checked={!!s.storeOpen} disabled={saving} onChange={e => toggleStoreOpen(e.target.checked)} />
                         </div>
                         <Row>
                             <Col md={4}><Form.Group className="mb-3"><Form.Label>Delivery fee (₹)</Form.Label><Form.Control type="number" min="0" value={s.deliveryFee ?? 0} onChange={e => upd('deliveryFee', e.target.value)} /></Form.Group></Col>

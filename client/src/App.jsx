@@ -289,7 +289,7 @@ const TAG_COLORS = {
 // ─────────────────────────────────────────────
 // COMPONENT: NAVBAR
 // ─────────────────────────────────────────────
-function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, toggleTheme }) {
+function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, toggleTheme, topOffset = 0 }) {
   const [mob, setMob] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   // The Supper Club home supports Night AND Day (arch on ivory in Day),
@@ -329,6 +329,7 @@ function Navbar({ cartCount, setPage, page, setCartOpen, user, setUser, isDark, 
         transition={{ duration: 0.5, ease }}
         style={{
           background: navBg,
+          top: topOffset, // sit below the fixed store-status strip so they don't overlap
           backdropFilter: transparentHeader ? "none" : "blur(24px)",
           WebkitBackdropFilter: transparentHeader ? "none" : "blur(24px)",
           borderBottom: scrolled ? `1px solid ${t.border}` : "1px solid transparent",
@@ -2817,16 +2818,30 @@ class AppErrorBoundary extends React.Component {
 // settings.storeOpen live (updated via the settings SSE + 30s poll). Open = slim green
 // strip; Closed = prominent red banner. Ordering is separately blocked at checkout.
 // (Name kept as StoreClosedBanner for continuity; it now covers both states.)
-function StoreClosedBanner({ settings }) {
-  if (!settings) return null;
-  const open = settings.storeOpen !== false;
-  const hours = settings.openingHours && String(settings.openingHours).trim();
-  const eta = settings.deliveryEta && String(settings.deliveryEta).trim();
+function StoreClosedBanner({ settings, onHeight }) {
+  const ref = useRef(null);
+  const open = settings ? settings.storeOpen !== false : true;
+  const hours = settings && settings.openingHours && String(settings.openingHours).trim();
+  const eta = settings && settings.deliveryEta && String(settings.deliveryEta).trim();
   const text = open
     ? `🟢 Open now — accepting orders${eta ? ` · ~${eta}` : (hours ? ` · ${hours}` : '')}`
     : `🔴 We’re currently closed${hours ? ` · ${hours}` : ''} — browse the menu; ordering resumes when we reopen.`;
+  // Report our rendered height so the page can push the fixed navbar + content down by it
+  // (otherwise this fixed bar overlaps the navbar). Re-measures on text change + resize.
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || !onHeight) return;
+    const report = () => onHeight(el.offsetHeight);
+    report();
+    let ro;
+    try { ro = new ResizeObserver(report); ro.observe(el); } catch { /* older browsers */ }
+    window.addEventListener('resize', report);
+    return () => { try { ro && ro.disconnect(); } catch {} window.removeEventListener('resize', report); };
+  }, [text, onHeight]);
+  if (!settings) return null;
   return (
     <div
+      ref={ref}
       role="status"
       aria-live="polite"
       style={{
@@ -2865,6 +2880,7 @@ function AppInner() {
   const [menuItems, setMenuItems] = useState([]);
   const [menuLoading, setMenuLoading] = useState(true);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [bannerH, setBannerH] = useState(36); // measured height of the fixed store-status strip
   const t = isDark ? themes.dark : themes.light;
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
@@ -2976,7 +2992,7 @@ function AppInner() {
   return (
     <div
       data-theme={isDark ? "dark" : "light"}
-      style={{ background: t.bg, minHeight: "100vh", fontFamily: "'Geist', system-ui, sans-serif" }}
+      style={{ background: t.bg, minHeight: "100vh", fontFamily: "'Geist', system-ui, sans-serif", paddingTop: bannerH }}
     >
       {/* Sonner Toast System */}
       <Toaster
@@ -2994,6 +3010,7 @@ function AppInner() {
       />
 
       <Navbar
+        topOffset={bannerH}
         cartCount={cartCount}
         setPage={setPage}
         page={page}
@@ -3051,7 +3068,7 @@ function AppInner() {
       />
       <OrderStatusOverlay user={user} setPage={setPage} isDark={isDark} />
       <ChatWidget user={user} setPage={setPage} isDark={isDark} />
-      <StoreClosedBanner settings={settings} />
+      <StoreClosedBanner settings={settings} onHeight={setBannerH} />
     </div>
   );
 }
