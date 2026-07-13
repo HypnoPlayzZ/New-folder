@@ -290,6 +290,26 @@ export const GlobalStyles = () => (
         color: var(--primary-accent) !important;
     }
 
+    /* --- Manage Orders: mobile card layout (shown only on phones via d-md-none) --- */
+    .sb-order-card {
+        background: var(--bg-card);
+        border: 1px solid #e7e0d3;
+        border-left: 5px solid var(--primary-accent);
+        border-radius: 12px;
+        padding: 14px 16px;
+        margin-bottom: 12px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        box-shadow: 0 2px 10px rgba(43, 38, 32, 0.05);
+    }
+    .sb-oc-id { font-family: 'Anton', sans-serif; font-size: 1.05rem; letter-spacing: 0.02em; color: var(--text-dark); }
+    .sb-oc-date { font-size: 0.8rem; color: var(--text-muted); }
+    .sb-oc-total { font-family: 'Anton', sans-serif; font-size: 1.3rem; color: var(--primary-accent); white-space: nowrap; }
+    .sb-oc-cust { line-height: 1.35; }
+    .sb-oc-muted { font-size: 0.82rem; color: var(--text-muted); word-break: break-word; }
+    .sb-oc-label { font-size: 0.75rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+
     /* ============================================================
        MOBILE / NATIVE-APP LAYOUT (phones & small tablets, <=768px)
        Only affects small screens — the desktop web admin is unchanged.

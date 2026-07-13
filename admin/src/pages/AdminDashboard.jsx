@@ -459,6 +459,8 @@ const OrderManager = ({ onNewOrder } = {}) => {
             </Card.Header>
             <Card.Body>
                 {error && <Alert variant="danger">{error}</Alert>}
+                {/* Desktop / tablet (>=768px): full table */}
+                <div className="d-none d-md-block">
                 <Table striped bordered hover responsive>
                     <thead>
                         <tr>
@@ -534,6 +536,74 @@ const OrderManager = ({ onNewOrder } = {}) => {
                         ))}
                     </tbody>
                 </Table>
+                </div>
+
+                {/* Phone (<768px): one readable card per order — no horizontal scrolling */}
+                <div className="d-md-none">
+                    {!isLoading && (orders || []).filter(o => o.status !== 'Delivered').length === 0 && (
+                        <p className="text-center text-muted my-4">No active orders right now.</p>
+                    )}
+                    {(orders || []).filter(o => o.status !== 'Delivered').map(order => (
+                        <div className="sb-order-card" key={order._id} style={{ borderLeft: `5px solid ${getOrderStatusColor(order.status)}` }}>
+                            <div className="d-flex justify-content-between align-items-start gap-2">
+                                <div>
+                                    <div className="sb-oc-id">#{String(order._id).slice(-6)}</div>
+                                    <div className="sb-oc-date">{new Date(order.createdAt).toLocaleString()}</div>
+                                </div>
+                                <div className="sb-oc-total">₹{(order.finalPrice ?? 0).toFixed(2)}</div>
+                            </div>
+
+                            <div className="sb-oc-cust">
+                                <strong>{order.customerName}</strong>
+                                <div className="sb-oc-muted">{order.user?.email || '—'}</div>
+                                <div>📱 {order.mobile || '—'}</div>
+                            </div>
+
+                            <div className="d-flex flex-wrap gap-2 align-items-center">
+                                <Badge bg={order.paymentMethod === 'UPI' ? 'primary' : 'secondary'}>{order.paymentMethod}</Badge>
+                                <Badge bg={(order.paymentStatus === 'Paid') ? 'success' : 'warning'} pill>{order.paymentStatus || 'Unknown'}</Badge>
+                                {order.utr && <small className="sb-oc-muted">UTR: {order.utr}</small>}
+                            </div>
+
+                            <div className="d-flex align-items-center gap-2">
+                                <span className="sb-oc-label">Status</span>
+                                {order.status === 'Rejected' ? (
+                                    <Badge bg="danger">Cancelled</Badge>
+                                ) : (
+                                    <Form.Select
+                                        size="sm"
+                                        value={order.status}
+                                        onChange={(e) => handleStatusChange(order._id, e.target.value)}
+                                        style={{ backgroundColor: getOrderStatusColor(order.status), color: 'white', flex: 1 }}
+                                    >
+                                        <option value="Pending Payment">Pending Payment</option>
+                                        <option value="Received">Received</option>
+                                        <option value="Preparing">Preparing</option>
+                                        <option value="Ready">Ready</option>
+                                        <option value="Out for Delivery">Out for Delivery</option>
+                                        <option value="Delivered">Delivered</option>
+                                        <option value="Rejected">Rejected</option>
+                                    </Form.Select>
+                                )}
+                            </div>
+
+                            <div className="d-flex flex-wrap gap-2">
+                                {order.isAcknowledged ? (
+                                    <Badge bg="success" className="d-inline-flex align-items-center">Acknowledged ✓</Badge>
+                                ) : (
+                                    <Button size="sm" variant="outline-primary" onClick={() => handleAcknowledge(order._id)}>Acknowledge</Button>
+                                )}
+                                <Button size="sm" variant="info" onClick={() => setViewOrder(order)}>View</Button>
+                                {order.locationLink && (
+                                    <Button size="sm" variant="outline-secondary" onClick={() => window.open(order.locationLink, '_blank')}>Map</Button>
+                                )}
+                                {order.status !== 'Rejected' && order.paymentMethod === 'UPI' && order.paymentStatus !== 'Failed' && (
+                                    <Button size="sm" variant="danger" onClick={() => handleStatusChange(order._id, 'Rejected')}>Payment Failed</Button>
+                                )}
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </Card.Body>
             {renderOrderModal()}
             {renderNewOrderAlert()}
