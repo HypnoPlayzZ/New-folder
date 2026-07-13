@@ -212,7 +212,9 @@ const OrderManager = ({ onNewOrder } = {}) => {
                             setNewOrderEvent('new');
                             setNewOrderData(payload.order);
                             if (!document.hidden) setNewOrderAlert(true);
-                        } else if (payload && payload.type === 'order_cancelled_by_customer') {
+                        } else if (payload && payload.type === 'order_cancelled_by_customer' && payload.order?.paymentStatus === 'Paid') {
+                            // Only PAID orders were ever shown to admin. Ignore cancellations of
+                            // unpaid/abandoned orders — no popup for an order they never saw.
                             setNewOrderEvent('cancelled');
                             setNewOrderData(payload.order);
                             if (!document.hidden) setNewOrderAlert(true);

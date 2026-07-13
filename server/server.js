@@ -918,6 +918,10 @@ app.patch('/api/orders/:id/cancel', authMiddleware, async (req, res) => {
         if (!['Pending Payment', 'Received'].includes(order.status)) {
             return res.status(400).json({ message: `Cannot cancel an order that is already ${order.status}.` });
         }
+        // The admin only ever sees PAID orders. An unpaid / abandoned order was never on
+        // the dashboard, so a "cancelled by customer" popup for it would be confusing
+        // noise — capture visibility now (before we may flip paymentStatus to 'Failed').
+        const wasVisibleToAdmin = order.paymentStatus === 'Paid';
         // Never relabel a real captured payment as "Failed" (that hides money already
         // taken). Flag a refund and keep paymentStatus 'Paid' so it stays visible to admin.
         order.status = 'Rejected';
@@ -934,7 +938,9 @@ app.patch('/api/orders/:id/cancel', authMiddleware, async (req, res) => {
         }
         await order.save();
         res.json(order);
-        try { sendAdminNotification({ type: 'order_cancelled_by_customer', order }); } catch (e) { console.warn('notify admin failed', e); }
+        if (wasVisibleToAdmin) {
+            try { sendAdminNotification({ type: 'order_cancelled_by_customer', order }); } catch (e) { console.warn('notify admin failed', e); }
+        }
         try { notifyCustomerOrderStatus(order._id, order.status, order.paymentStatus); } catch (e) { console.warn('notify customer failed', e); }
     } catch (error) {
         console.error('Order cancellation error:', error);
