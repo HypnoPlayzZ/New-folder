@@ -2813,25 +2813,32 @@ class AppErrorBoundary extends React.Component {
 // ─────────────────────────────────────────────
 // APP ROOT
 // ─────────────────────────────────────────────
-// Persistent store-status notice shown on EVERY page. Appears only when the admin has
-// closed the store (settings.storeOpen === false) and disappears the moment they reopen
-// it (the settings SSE updates `settings` live). Ordering is separately blocked at checkout.
+// Persistent store OPEN/CLOSED status strip shown on EVERY page. Reflects
+// settings.storeOpen live (updated via the settings SSE + 30s poll). Open = slim green
+// strip; Closed = prominent red banner. Ordering is separately blocked at checkout.
+// (Name kept as StoreClosedBanner for continuity; it now covers both states.)
 function StoreClosedBanner({ settings }) {
-  if (!settings || settings.storeOpen !== false) return null;
+  if (!settings) return null;
+  const open = settings.storeOpen !== false;
   const hours = settings.openingHours && String(settings.openingHours).trim();
+  const eta = settings.deliveryEta && String(settings.deliveryEta).trim();
+  const text = open
+    ? `🟢 Open now — accepting orders${eta ? ` · ~${eta}` : (hours ? ` · ${hours}` : '')}`
+    : `🔴 We’re currently closed${hours ? ` · ${hours}` : ''} — browse the menu; ordering resumes when we reopen.`;
   return (
     <div
       role="status"
       aria-live="polite"
       style={{
         position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100000,
-        background: '#8a1c1c', color: '#fff', textAlign: 'center',
-        padding: '9px 16px', fontSize: '0.86rem', fontWeight: 600,
+        background: open ? '#1e4636' : '#8a1c1c', color: '#fff', textAlign: 'center',
+        padding: open ? '5px 16px' : '9px 16px',
+        fontSize: open ? '0.78rem' : '0.86rem', fontWeight: 600,
         lineHeight: 1.35, letterSpacing: '0.01em',
-        boxShadow: '0 2px 14px rgba(0,0,0,0.28)'
+        boxShadow: open ? '0 1px 8px rgba(0,0,0,0.16)' : '0 2px 14px rgba(0,0,0,0.28)'
       }}
     >
-      🔴 We’re currently closed{hours ? ` · ${hours}` : ''} — browse the menu now; ordering resumes when we reopen.
+      {text}
     </div>
   );
 }
