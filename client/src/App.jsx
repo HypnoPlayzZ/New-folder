@@ -2080,6 +2080,101 @@ function OrdersPage({ isDark, user, setPage }) {
 // ─────────────────────────────────────────────
 // COMPONENT: TESTIMONIALS SECTION
 // ─────────────────────────────────────────────
+// ─────────────────────────────────────────────
+// COMPONENT: DRAGGABLE ORDER-STATUS OVERLAY
+// Floating widget that stays on every page and shows the customer's active order
+// status live (same SSE stream as Track Order). Draggable; position persisted.
+// ─────────────────────────────────────────────
+function OrderStatusOverlay({ user, setPage, isDark }) {
+  const t = isDark ? themes.dark : themes.light;
+  const [order, setOrder] = useState(null);
+  const [connected, setConnected] = useState(false);
+  const [collapsed, setCollapsed] = useState(false);
+  const [dismissed, setDismissed] = useState(false);
+  const [pos, setPos] = useState(() => {
+    try { const p = JSON.parse(localStorage.getItem('sb_overlay_pos')); if (p && Number.isFinite(p.x) && Number.isFinite(p.y)) return p; } catch {}
+    const w = typeof window !== 'undefined' ? window.innerWidth : 1000;
+    const h = typeof window !== 'undefined' ? window.innerHeight : 700;
+    return { x: w - 288, y: h - 196 };
+  });
+  const isAuthed = !!user && !!localStorage.getItem('customer_token');
+  const ACTIVE = ['Pending Payment', 'Received', 'Preparing', 'Ready', 'Out for Delivery'];
+
+  const fetchActive = async () => {
+    if (!isAuthed) { setOrder(null); return; }
+    try {
+      const res = await api.get('/my-orders');
+      setOrder((res.data || []).find(o => ACTIVE.includes(o.status)) || null);
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => { fetchActive(); }, [isAuthed]);
+
+  useEffect(() => {
+    if (!order?._id) return;
+    const token = localStorage.getItem('customer_token');
+    if (!token) return;
+    const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://steamybitesbackend.onrender.com/api';
+    const es = new EventSource(`${baseURL}/orders/${order._id}/status-stream?token=${token}`);
+    let fails = 0;
+    es.onopen = () => { fails = 0; setConnected(true); };
+    es.onmessage = (e) => {
+      try { const d = JSON.parse(e.data); setConnected(true); setOrder(prev => prev ? { ...prev, status: d.status ?? prev.status } : prev); } catch {}
+    };
+    es.onerror = () => { setConnected(false); fails += 1; if (fails >= 4) { try { es.close(); } catch {} } };
+    const poll = setInterval(fetchActive, 30000);
+    return () => { try { es.close(); } catch {} clearInterval(poll); setConnected(false); };
+  }, [order?._id]);
+
+  function onDragStart(e) {
+    const p = e.touches ? e.touches[0] : e;
+    const startX = p.clientX, startY = p.clientY, ox = pos.x, oy = pos.y;
+    const move = (ev) => {
+      const q = ev.touches ? ev.touches[0] : ev;
+      setPos({
+        x: Math.max(6, Math.min(window.innerWidth - 56, ox + (q.clientX - startX))),
+        y: Math.max(64, Math.min(window.innerHeight - 56, oy + (q.clientY - startY))),
+      });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      setPos(cur => { try { localStorage.setItem('sb_overlay_pos', JSON.stringify(cur)); } catch {} return cur; });
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  }
+
+  if (!isAuthed || !order || dismissed) return null;
+  const step = STATUS_TO_STEP[order.status] ?? 0;
+  const isRejected = order.status === 'Rejected';
+
+  return (
+    <div style={{ position: 'fixed', left: pos.x, top: pos.y, zIndex: 60, width: collapsed ? 'auto' : 264,
+      background: t.surface, border: `1px solid ${t.border}`, borderRadius: 16,
+      boxShadow: '0 12px 34px rgba(20,36,27,0.22)', overflow: 'hidden', fontFamily: "'Geist', system-ui, sans-serif" }}>
+      <div onPointerDown={onDragStart} style={{ cursor: 'grab', touchAction: 'none', display: 'flex', alignItems: 'center',
+        gap: 8, padding: '10px 12px', background: 'rgba(30,70,54,0.07)', userSelect: 'none' }}>
+        <span style={{ width: 8, height: 8, borderRadius: 99, background: connected ? '#1e4636' : '#c79a3e', flexShrink: 0 }} />
+        <span style={{ color: t.text, fontWeight: 800, fontSize: 13, flex: 1, whiteSpace: 'nowrap' }}>Order #{String(order._id).slice(-6).toUpperCase()}</span>
+        <button onClick={() => setCollapsed(c => !c)} aria-label="Collapse" style={{ color: t.faint, fontSize: 15, lineHeight: 1, padding: '0 4px' }}>{collapsed ? '▢' : '–'}</button>
+        <button onClick={() => setDismissed(true)} aria-label="Dismiss" style={{ color: t.faint, fontSize: 17, lineHeight: 1, padding: '0 2px' }}>×</button>
+      </div>
+      {!collapsed && (
+        <div style={{ padding: 12 }}>
+          <div style={{ color: isRejected ? '#c0392b' : '#a6741f', fontWeight: 800, fontSize: 12, textTransform: 'uppercase', letterSpacing: '0.05em' }}>{order.status}</div>
+          {!isRejected && (
+            <div style={{ display: 'flex', gap: 4, marginTop: 9 }}>
+              {[0, 1, 2, 3].map(i => (<div key={i} style={{ flex: 1, height: 4, borderRadius: 2, background: i <= step ? '#1e4636' : t.border }} />))}
+            </div>
+          )}
+          <button onClick={() => setPage('orders')} style={{ marginTop: 11, width: '100%', padding: 8, background: '#1e4636', color: '#f7eedd', borderRadius: 10, fontWeight: 700, fontSize: 12.5 }}>Track order</button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function TestimonialsSection({ isDark }) {
   const t = isDark ? themes.dark : themes.light;
   const doubled = [...REVIEWS, ...REVIEWS]; // duplicate for infinite scroll
@@ -2822,6 +2917,7 @@ function AppInner() {
         user={user}
         settings={settings}
       />
+      <OrderStatusOverlay user={user} setPage={setPage} isDark={isDark} />
     </div>
   );
 }
