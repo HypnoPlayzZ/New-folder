@@ -367,7 +367,7 @@ const OrderManager = ({ onNewOrder } = {}) => {
                     {/* --- END OF NEW PAYMENT DETAILS --- */}
                     <hr />
                     <h5>Items</h5>
-                    <Table striped bordered>
+                    <Table striped bordered responsive>
                         <thead>
                             <tr>
                                 <th>Item</th>
@@ -662,7 +662,7 @@ const PastOrdersManager = () => {
                     <p><strong>Status:</strong> <Badge bg={getOrderStatusBadge(viewOrder.status)}>{viewOrder.status}</Badge></p>
                     <hr />
                     <h5>Items</h5>
-                    <Table striped bordered>
+                    <Table striped bordered responsive>
                         <thead>
                             <tr><th>Item</th><th>Variant</th><th>Qty</th><th>Price</th><th>Total</th></tr>
                         </thead>

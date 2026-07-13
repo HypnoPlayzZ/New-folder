@@ -2813,6 +2813,29 @@ class AppErrorBoundary extends React.Component {
 // ─────────────────────────────────────────────
 // APP ROOT
 // ─────────────────────────────────────────────
+// Persistent store-status notice shown on EVERY page. Appears only when the admin has
+// closed the store (settings.storeOpen === false) and disappears the moment they reopen
+// it (the settings SSE updates `settings` live). Ordering is separately blocked at checkout.
+function StoreClosedBanner({ settings }) {
+  if (!settings || settings.storeOpen !== false) return null;
+  const hours = settings.openingHours && String(settings.openingHours).trim();
+  return (
+    <div
+      role="status"
+      aria-live="polite"
+      style={{
+        position: 'fixed', top: 0, left: 0, right: 0, zIndex: 100000,
+        background: '#8a1c1c', color: '#fff', textAlign: 'center',
+        padding: '9px 16px', fontSize: '0.86rem', fontWeight: 600,
+        lineHeight: 1.35, letterSpacing: '0.01em',
+        boxShadow: '0 2px 14px rgba(0,0,0,0.28)'
+      }}
+    >
+      🔴 We’re currently closed{hours ? ` · ${hours}` : ''} — browse the menu now; ordering resumes when we reopen.
+    </div>
+  );
+}
+
 function AppInner() {
   const [page, setPage] = useState("home");
   // Cart persists across reloads (accidental refresh, phone rotation, the
@@ -3008,6 +3031,7 @@ function AppInner() {
       />
       <OrderStatusOverlay user={user} setPage={setPage} isDark={isDark} />
       <ChatWidget user={user} setPage={setPage} isDark={isDark} />
+      <StoreClosedBanner settings={settings} />
     </div>
   );
 }
