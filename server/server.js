@@ -361,6 +361,44 @@ OtpSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 const Otp = mongoose.model('Otp', OtpSchema);
 
+// --- Store Settings (singleton doc) ------------------------------------------
+// One document holds all owner-configurable store config. Defaults mirror the
+// previously-hardcoded behaviour, so nothing changes until an admin edits them.
+const SettingsSchema = new mongoose.Schema({
+    deliveryFee: { type: Number, default: 40, min: 0 },
+    freeDeliveryThreshold: { type: Number, default: 250, min: 0 }, // subtotal >= this => free delivery
+    minOrderValue: { type: Number, default: 0, min: 0 },           // block checkout below this (0 = no minimum)
+    deliveryEta: { type: String, default: '30 min' },
+    storeOpen: { type: Boolean, default: true },
+    openingHours: { type: String, default: '' },
+    taxPercent: { type: Number, default: 0, min: 0, max: 100 },
+    paymentOnline: { type: Boolean, default: true },               // Razorpay / UPI
+    paymentCod: { type: Boolean, default: false },                 // Cash on delivery
+    storeName: { type: String, default: 'Steamy Bites' },
+    storePhone: { type: String, default: '' },
+    storeAddress: { type: String, default: '' },
+}, { timestamps: true });
+const Settings = mongoose.model('Settings', SettingsSchema);
+
+// Find-or-create the singleton settings doc. Cheap; called per order + per settings read.
+const getSettings = async () => {
+    let s = await Settings.findOne();
+    if (!s) s = await Settings.create({});
+    return s;
+};
+
+// --- Public catalog realtime channel -----------------------------------------
+// Broadcasts a tiny event whenever the menu / coupons / settings change, so the
+// customer web app + mobile app can refetch and update live (no cache lag).
+const catalogSseClients = new Set();
+const broadcastCatalog = (type) => {
+    const message = JSON.stringify({ type, at: Date.now() });
+    catalogSseClients.forEach((res) => {
+        try { res.write(`data: ${message}\n\n`); }
+        catch (e) { catalogSseClients.delete(res); }
+    });
+};
+
 // Abandoned-order sweep: online orders created but never paid (customer closed the
 // Razorpay sheet, lost signal, etc.) would otherwise pile up forever showing a fake
 // "Live" tracker. Every 10 min we expire stale ones — carefully, so we NEVER orphan
@@ -473,6 +511,35 @@ app.get('/api/coupons', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: 'Error fetching coupons' });
     }
+});
+
+// Public store settings — the customer web app + mobile app read delivery fee,
+// thresholds, open/closed, ETA, tax, and enabled payment methods from here.
+app.get('/api/settings', async (req, res) => {
+    try {
+        res.json(await getSettings());
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching settings' });
+    }
+});
+
+// Public realtime catalog stream. Emits {type:'menu'|'coupons'|'settings'} whenever
+// the admin changes those, so open storefronts refetch and update live.
+app.get('/api/stream/catalog', (req, res) => {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.write(':connected\n\n');
+    catalogSseClients.add(res);
+    const heartbeat = setInterval(() => {
+        try { res.write(':ping\n\n'); } catch (_) { clearInterval(heartbeat); }
+    }, 20000);
+    req.on('close', () => {
+        clearInterval(heartbeat);
+        catalogSseClients.delete(res);
+        res.end();
+    });
 });
 
 app.post('/api/coupons/validate', async (req, res) => {
@@ -727,7 +794,17 @@ app.post('/api/orders', authMiddleware, limiter({ limit: 30, windowMs: 60_000 })
         });
 
         const subtotal = cleanItems.reduce((s, it) => s + it.priceAtOrder * it.quantity, 0);
-        const delivery = subtotal >= 250 ? 0 : 40;
+
+        // Owner-configurable store settings (defaults mirror the old hardcoded values).
+        const settings = await getSettings();
+        if (!settings.storeOpen) {
+            return res.status(400).json({ message: 'The store is currently closed. Please order during opening hours.' });
+        }
+        if (settings.minOrderValue > 0 && subtotal < settings.minOrderValue) {
+            return res.status(400).json({ message: `Minimum order value is ₹${settings.minOrderValue}. Please add a little more to your cart.` });
+        }
+        const delivery = subtotal >= settings.freeDeliveryThreshold ? 0 : settings.deliveryFee;
+        const tax = settings.taxPercent > 0 ? Math.round((subtotal * settings.taxPercent) / 100) : 0;
 
         // Validate coupon server-side if one was applied.
         let appliedCoupon, discountAmount = 0;
@@ -750,14 +827,17 @@ app.post('/api/orders', authMiddleware, limiter({ limit: 30, windowMs: 60_000 })
             };
         }
 
-        const finalPrice = Math.max(0, Math.round(subtotal + delivery - discountAmount));
+        const finalPrice = Math.max(0, Math.round(subtotal + delivery + tax - discountAmount));
         // A fully-discounted (₹0) order has nothing to collect, and Razorpay rejects
         // amounts below ₹1 — so confirm it immediately instead of leaving it unpayable.
         const isFree = finalPrice < 1;
-        // COD temporarily disabled — re-add 'COD' to re-enable. A stray/unknown
-        // method falls back to RAZORPAY so no order can be created that skips payment.
-        const allowedMethods = ['UPI', 'RAZORPAY'];
-        const paymentMethod = allowedMethods.includes(body.paymentMethod) ? body.paymentMethod : 'RAZORPAY';
+        // Payment methods come from store settings. A stray/unknown method falls back to
+        // an enabled one so no order can ever be created that skips payment.
+        const allowedMethods = [];
+        if (settings.paymentOnline) allowedMethods.push('RAZORPAY', 'UPI');
+        if (settings.paymentCod) allowedMethods.push('COD');
+        if (allowedMethods.length === 0) allowedMethods.push('RAZORPAY');
+        const paymentMethod = allowedMethods.includes(body.paymentMethod) ? body.paymentMethod : allowedMethods[0];
 
         const orderData = {
             user: req.user.userId,
@@ -934,8 +1014,11 @@ app.post('/api/payments/create-order', authMiddleware, limiter({ limit: 30, wind
             order: { _id: order._id, finalPrice: order.finalPrice, customerName: order.customerName, mobile: order.mobile },
         });
     } catch (error) {
-        console.error('[razorpay] create-order failed:', error);
-        res.status(500).json({ message: 'Failed to create payment order.' });
+        console.error('[razorpay] create-order failed:', error?.error || error);
+        // Surface the real Razorpay reason (invalid key/secret, account not activated, KYC
+        // pending, amount limits, etc.) so a failure is actionable instead of an opaque 500.
+        const reason = error?.error?.description || error?.message;
+        res.status(500).json({ message: reason ? `Payment setup failed: ${reason}` : 'Failed to create payment order.' });
     }
 });
 
@@ -1361,6 +1444,7 @@ adminRouter.post('/menu', imageUpload.single('image'), async (req, res) => {
         });
         await newMenuItem.save();
         res.status(201).json(newMenuItem);
+        broadcastCatalog('menu');
     } catch (error) {
         if (error.code === 11000) return res.status(400).json({ message: 'A menu item with this name already exists.' });
         res.status(400).json({ message: 'Error creating menu item', error: error.message });
@@ -1378,6 +1462,7 @@ adminRouter.patch('/menu/reorder', async (req, res) => {
         }));
         await MenuItem.bulkWrite(bulkOps);
         res.status(200).json({ message: 'Menu order updated successfully.' });
+        broadcastCatalog('menu');
     } catch (error) {
         res.status(500).json({ message: 'Failed to reorder menu items.' });
     }
@@ -1394,6 +1479,7 @@ adminRouter.patch('/categories/reorder', async (req, res) => {
         }));
         await Category.bulkWrite(bulkOps);
         res.status(200).json({ message: 'Category order updated successfully.' });
+        broadcastCatalog('menu');
     } catch (error) {
         res.status(500).json({ message: 'Failed to reorder categories.' });
     }
@@ -1411,6 +1497,7 @@ adminRouter.post('/categories', async (req, res) => {
         const newCategory = new Category({ name: name.trim(), position: newPosition });
         await newCategory.save();
         res.status(201).json(newCategory);
+        broadcastCatalog('menu');
     } catch (error) {
         console.error('Error creating category:', error);
         res.status(500).json({ message: 'Failed to create category' });
@@ -1452,6 +1539,7 @@ adminRouter.patch('/menu/:id', imageUpload.single('image'), async (req, res) => 
         const updatedItem = await MenuItem.findByIdAndUpdate(req.params.id, updateData, { new: true });
         if (!updatedItem) return res.status(404).json({ message: 'Menu item not found' });
         res.json(updatedItem);
+        broadcastCatalog('menu');
     } catch (error) {
         if (error.code === 11000) return res.status(400).json({ message: 'A menu item with this name already exists.' });
         res.status(400).json({ message: 'Error updating menu item', error: error.message });
@@ -1461,6 +1549,7 @@ adminRouter.patch('/menu/:id', imageUpload.single('image'), async (req, res) => 
 adminRouter.delete('/menu/:id', async (req, res) => {
     await MenuItem.findByIdAndDelete(req.params.id);
     res.json({ message: 'Menu item deleted' });
+    broadcastCatalog('menu');
 });
 
 adminRouter.get('/complaints', async (req, res) => {
@@ -1569,6 +1658,7 @@ adminRouter.post('/menu/upload-csv', csvUpload.single('csvFile'), async (req, re
                 updated: updatedCount,
                 created: createdCount,
             });
+            broadcastCatalog('menu');
           } catch (err) {
             console.error('[csv] processing failed:', err);
             if (!res.headersSent) res.status(500).json({ message: 'CSV processing failed.' });
@@ -1586,6 +1676,7 @@ adminRouter.post('/coupons', async (req, res) => {
         const newCoupon = new Coupon({ ...req.body, code: req.body.code.toUpperCase() });
         await newCoupon.save();
         res.status(201).json(newCoupon);
+        broadcastCatalog('coupons');
     } catch (error) {
         res.status(400).json({ message: 'Error creating coupon', error: error.message });
     }
@@ -1594,6 +1685,34 @@ adminRouter.post('/coupons', async (req, res) => {
 adminRouter.patch('/coupons/:id', async (req, res) => {
     const updatedCoupon = await Coupon.findByIdAndUpdate(req.params.id, req.body, { new: true });
     res.json(updatedCoupon);
+    broadcastCatalog('coupons');
+});
+
+// --- Store settings (admin read + update) ---
+adminRouter.get('/settings', async (req, res) => {
+    try {
+        res.json(await getSettings());
+    } catch (error) {
+        res.status(500).json({ message: 'Failed to load settings' });
+    }
+});
+
+adminRouter.patch('/settings', async (req, res) => {
+    try {
+        const s = await getSettings();
+        // Whitelist — never mass-assign arbitrary fields onto the settings doc.
+        const allowed = ['deliveryFee', 'freeDeliveryThreshold', 'minOrderValue', 'deliveryEta',
+            'storeOpen', 'openingHours', 'taxPercent', 'paymentOnline', 'paymentCod',
+            'storeName', 'storePhone', 'storeAddress'];
+        for (const key of allowed) {
+            if (req.body[key] !== undefined) s[key] = req.body[key];
+        }
+        await s.save();
+        res.json(s);
+        broadcastCatalog('settings');
+    } catch (error) {
+        res.status(400).json({ message: 'Failed to update settings', error: error.message });
+    }
 });
 
 // --- Server Start ---

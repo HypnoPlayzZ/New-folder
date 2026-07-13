@@ -68,6 +68,43 @@ const OrderManager = ({ onNewOrder } = {}) => {
     const [newOrderData, setNewOrderData] = useState(null);
     const [newOrderEvent, setNewOrderEvent] = useState('new'); // 'new' | 'cancelled' — controls alert copy
 
+    // --- New-order alarm: a loud looping bell that rings until every new order is accepted ---
+    const alarmCtxRef = useRef(null);
+    const alarmTimerRef = useRef(null);
+    const ensureAudio = () => {
+        try {
+            if (!alarmCtxRef.current) alarmCtxRef.current = new (window.AudioContext || window.webkitAudioContext)();
+            if (alarmCtxRef.current.state === 'suspended') alarmCtxRef.current.resume();
+        } catch (_) { /* audio unavailable */ }
+    };
+    const playBell = () => {
+        const ctx = alarmCtxRef.current;
+        if (!ctx || ctx.state !== 'running') return;
+        const now = ctx.currentTime;
+        // Two-tone "ding-dong" bell at max volume.
+        [[988, 0], [740, 0.22]].forEach(([freq, t]) => {
+            const o = ctx.createOscillator();
+            const g = ctx.createGain();
+            o.type = 'triangle';
+            o.frequency.value = freq;
+            o.connect(g); g.connect(ctx.destination);
+            g.gain.setValueAtTime(0.0001, now + t);
+            g.gain.exponentialRampToValueAtTime(1.0, now + t + 0.02); // max gain
+            g.gain.exponentialRampToValueAtTime(0.0001, now + t + 0.6);
+            o.start(now + t);
+            o.stop(now + t + 0.65);
+        });
+    };
+    const startAlarm = () => {
+        ensureAudio();
+        if (alarmTimerRef.current) return; // already ringing
+        playBell();
+        alarmTimerRef.current = setInterval(playBell, 1500);
+    };
+    const stopAlarm = () => {
+        if (alarmTimerRef.current) { clearInterval(alarmTimerRef.current); alarmTimerRef.current = null; }
+    };
+
     const fetchOrders = useCallback(async (opts = { notifyIfNew: false, showLoading: true }) => {
         // showLoading controls whether the global spinner is displayed.
         // When polling in the background we set showLoading=false to avoid
@@ -93,31 +130,12 @@ const OrderManager = ({ onNewOrder } = {}) => {
 
                     // If the page is hidden (background), do not show modal or play sound.
                     // Instead rely on the parent to increment an unread counter.
+                    // Show the popup only when the tab is visible (a modal on a hidden tab is
+                    // pointless). SOUND is handled separately by the persistent looping alarm
+                    // (startAlarm), which rings until the order is accepted, regardless of tab
+                    // focus — so a backgrounded kitchen tab still rings loudly.
                     if (!document.hidden) {
                         setNewOrderAlert(true);
-                        // Play a short notification sound (Tone.js if present)
-                        try {
-                            // dynamic import to avoid breaking if tone missing
-                            const Tone = await import('tone');
-                            const synth = new Tone.Synth().toDestination();
-                            // quick arpeggio
-                            synth.triggerAttackRelease('C6', '8n');
-                            setTimeout(() => synth.dispose?.(), 500);
-                        } catch (e) {
-                            // fallback: use WebAudio beep
-                            try {
-                                const ctx = new (window.AudioContext || window.webkitAudioContext)();
-                                const o = ctx.createOscillator();
-                                const g = ctx.createGain();
-                                o.type = 'sine';
-                                o.frequency.value = 880;
-                                o.connect(g);
-                                g.connect(ctx.destination);
-                                o.start();
-                                g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.25);
-                                setTimeout(() => { o.stop(); ctx.close(); }, 300);
-                            } catch (_) { /* ignore */ }
-                        }
                     }
                 }
                 // update prevFirstOrderIdRef for next poll
@@ -186,6 +204,25 @@ const OrderManager = ({ onNewOrder } = {}) => {
             if (es) try { es.close(); } catch (_) {}
         };
     }, [fetchOrders]);
+
+    // Unlock audio on the first user interaction (browser autoplay policy blocks sound
+    // until the user has interacted with the page) so the alarm can actually ring.
+    useEffect(() => {
+        const unlock = () => ensureAudio();
+        window.addEventListener('pointerdown', unlock);
+        window.addEventListener('keydown', unlock);
+        return () => { window.removeEventListener('pointerdown', unlock); window.removeEventListener('keydown', unlock); };
+    }, []);
+
+    // Ring the looping bell whenever there's an unaccepted new order (status 'Received'
+    // and not acknowledged). Keeps ringing as more arrive; stops when all are accepted
+    // (acknowledged, or advanced past 'Received').
+    useEffect(() => {
+        const pending = (orders || []).filter(o => o.status === 'Received' && !o.isAcknowledged).length;
+        if (pending > 0) startAlarm(); else stopAlarm();
+    }, [orders]);
+
+    useEffect(() => () => stopAlarm(), []); // stop the alarm if this view unmounts
 
     const handleStatusChange = async (orderId, newStatus) => {
         try {
@@ -367,7 +404,7 @@ const OrderManager = ({ onNewOrder } = {}) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {(orders || []).filter(o => o.status !== 'Delivered' && o.status !== 'Rejected').map(order => (
+                        {(orders || []).filter(o => o.status !== 'Delivered').map(order => (
                             <tr key={order._id}>
                                 <td><small>{order._id}</small></td>
                                 <td>{order.customerName}<br /><small>{order.user?.email}</small><br /><small>📱 {order.mobile || '—'}</small></td>
@@ -385,6 +422,9 @@ const OrderManager = ({ onNewOrder } = {}) => {
                                     {order.utr && <><br /><small>UTR: {order.utr}</small></>}
                                 </td>
                                 <td>
+                                    {order.status === 'Rejected' ? (
+                                        <Badge bg="danger">Cancelled</Badge>
+                                    ) : (
                                     <Form.Select
                                         size="sm"
                                         value={order.status}
@@ -399,6 +439,7 @@ const OrderManager = ({ onNewOrder } = {}) => {
                                         <option value="Delivered">Delivered</option>
                                         <option value="Rejected">Rejected</option>
                                     </Form.Select>
+                                    )}
                                 </td>
                                 <td>
                                     {order.isAcknowledged ? (
@@ -415,7 +456,7 @@ const OrderManager = ({ onNewOrder } = {}) => {
                                         {order.locationLink && (
                                             <Button size="sm" variant="outline-secondary" onClick={() => window.open(order.locationLink, '_blank')}>Map</Button>
                                         )}
-                                        {order.paymentMethod === 'UPI' && order.paymentStatus !== 'Failed' && (
+                                        {order.status !== 'Rejected' && order.paymentMethod === 'UPI' && order.paymentStatus !== 'Failed' && (
                                             <Button size="sm" variant="danger" onClick={() => handleStatusChange(order._id, 'Rejected')}>Payment Failed</Button>
                                         )}
                                     </div>
@@ -1124,6 +1165,93 @@ const MenuManager = () => {
     };
 
     // --- Main Admin Dashboard Component (from File 2 structure) ---
+    // --- Store Settings Manager (delivery, thresholds, hours, taxes, payment, store info) ---
+    const StoreSettingsManager = () => {
+        const [s, setS] = useState(null);
+        const [loading, setLoading] = useState(true);
+        const [saving, setSaving] = useState(false);
+        const [msg, setMsg] = useState('');
+        const [err, setErr] = useState('');
+
+        const load = async () => {
+            setLoading(true); setErr('');
+            try { const res = await api.get('/admin/settings'); setS(res.data); }
+            catch (e) { setErr(e.response?.data?.message || 'Could not load settings'); }
+            setLoading(false);
+        };
+        useEffect(() => { load(); }, []);
+
+        const upd = (k, v) => setS(prev => ({ ...prev, [k]: v }));
+
+        const save = async () => {
+            setSaving(true); setMsg(''); setErr('');
+            try {
+                const payload = {
+                    deliveryFee: Number(s.deliveryFee) || 0,
+                    freeDeliveryThreshold: Number(s.freeDeliveryThreshold) || 0,
+                    minOrderValue: Number(s.minOrderValue) || 0,
+                    deliveryEta: s.deliveryEta || '',
+                    storeOpen: !!s.storeOpen,
+                    openingHours: s.openingHours || '',
+                    taxPercent: Number(s.taxPercent) || 0,
+                    paymentOnline: !!s.paymentOnline,
+                    paymentCod: !!s.paymentCod,
+                    storeName: s.storeName || '',
+                    storePhone: s.storePhone || '',
+                    storeAddress: s.storeAddress || '',
+                };
+                const res = await api.patch('/admin/settings', payload);
+                setS(res.data);
+                setMsg('Settings saved — live on the storefront now.');
+            } catch (e) { setErr(e.response?.data?.message || 'Could not save settings'); }
+            setSaving(false);
+        };
+
+        if (loading) return <div className="text-center"><Spinner animation="border" /></div>;
+        if (!s) return <Alert variant="danger">{err || 'Could not load settings.'}</Alert>;
+
+        return (
+            <Card>
+                <Card.Header className="d-flex justify-content-between align-items-center">
+                    <strong>Store Settings</strong>
+                    <Button variant="light" size="sm" onClick={load} disabled={saving}>Reload</Button>
+                </Card.Header>
+                <Card.Body>
+                    {msg && <Alert variant="success" className="py-2">{msg}</Alert>}
+                    {err && <Alert variant="danger" className="py-2">{err}</Alert>}
+                    <Form>
+                        <div className="mb-3 p-3 rounded" style={{ background: 'rgba(0,0,0,0.04)' }}>
+                            <Form.Check type="switch" id="storeOpenSwitch"
+                                label={s.storeOpen ? 'Store is OPEN — accepting orders' : 'Store is CLOSED — new orders blocked'}
+                                checked={!!s.storeOpen} onChange={e => upd('storeOpen', e.target.checked)} />
+                        </div>
+                        <Row>
+                            <Col md={4}><Form.Group className="mb-3"><Form.Label>Delivery fee (₹)</Form.Label><Form.Control type="number" min="0" value={s.deliveryFee ?? 0} onChange={e => upd('deliveryFee', e.target.value)} /></Form.Group></Col>
+                            <Col md={4}><Form.Group className="mb-3"><Form.Label>Free delivery above (₹)</Form.Label><Form.Control type="number" min="0" value={s.freeDeliveryThreshold ?? 0} onChange={e => upd('freeDeliveryThreshold', e.target.value)} /></Form.Group></Col>
+                            <Col md={4}><Form.Group className="mb-3"><Form.Label>Minimum order (₹, 0 = none)</Form.Label><Form.Control type="number" min="0" value={s.minOrderValue ?? 0} onChange={e => upd('minOrderValue', e.target.value)} /></Form.Group></Col>
+                        </Row>
+                        <Row>
+                            <Col md={4}><Form.Group className="mb-3"><Form.Label>Delivery ETA</Form.Label><Form.Control value={s.deliveryEta || ''} onChange={e => upd('deliveryEta', e.target.value)} placeholder="30 min" /></Form.Group></Col>
+                            <Col md={4}><Form.Group className="mb-3"><Form.Label>Tax / GST (%)</Form.Label><Form.Control type="number" min="0" max="100" value={s.taxPercent ?? 0} onChange={e => upd('taxPercent', e.target.value)} /></Form.Group></Col>
+                            <Col md={4}><Form.Group className="mb-3"><Form.Label>Opening hours (label)</Form.Label><Form.Control value={s.openingHours || ''} onChange={e => upd('openingHours', e.target.value)} placeholder="11 AM – 11 PM" /></Form.Group></Col>
+                        </Row>
+                        <div className="mb-3">
+                            <Form.Label className="d-block">Payment methods</Form.Label>
+                            <Form.Check inline type="checkbox" id="payOnlineChk" label="Online (UPI / Card / Wallet)" checked={!!s.paymentOnline} onChange={e => upd('paymentOnline', e.target.checked)} />
+                            <Form.Check inline type="checkbox" id="payCodChk" label="Cash on Delivery" checked={!!s.paymentCod} onChange={e => upd('paymentCod', e.target.checked)} />
+                        </div>
+                        <Row>
+                            <Col md={4}><Form.Group className="mb-3"><Form.Label>Store name</Form.Label><Form.Control value={s.storeName || ''} onChange={e => upd('storeName', e.target.value)} /></Form.Group></Col>
+                            <Col md={4}><Form.Group className="mb-3"><Form.Label>Store phone</Form.Label><Form.Control value={s.storePhone || ''} onChange={e => upd('storePhone', e.target.value)} /></Form.Group></Col>
+                            <Col md={4}><Form.Group className="mb-3"><Form.Label>Store address</Form.Label><Form.Control value={s.storeAddress || ''} onChange={e => upd('storeAddress', e.target.value)} /></Form.Group></Col>
+                        </Row>
+                        <Button variant="primary" onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save Settings'}</Button>
+                    </Form>
+                </Card.Body>
+            </Card>
+        );
+    };
+
     const AdminDashboard = ({ adminName, handleLogout }) => {
         const [activeTab, setActiveTab] = useState('menu');
         const [unreadOrders, setUnreadOrders] = useState(0);
@@ -1156,6 +1284,7 @@ const MenuManager = () => {
                         <Nav.Item><Nav.Link eventKey="complaints">Manage Complaints</Nav.Link></Nav.Item>
                         <Nav.Item><Nav.Link eventKey="bulk-upload">Bulk Upload</Nav.Link></Nav.Item>
                         <Nav.Item><Nav.Link eventKey="coupons">Manage Coupons</Nav.Link></Nav.Item>
+                        <Nav.Item><Nav.Link eventKey="settings">Store Settings</Nav.Link></Nav.Item>
                         <Nav.Item><Nav.Link href="#/admin-register">Register New Admin</Nav.Link></Nav.Item>
                     </Nav>
                     <Tab.Content>
@@ -1174,6 +1303,7 @@ const MenuManager = () => {
                         <Tab.Pane eventKey="complaints"><ComplaintManager /></Tab.Pane>
                         <Tab.Pane eventKey="bulk-upload"><BulkUploadManager /></Tab.Pane>
                         <Tab.Pane eventKey="coupons"><CouponManager /></Tab.Pane>
+                        <Tab.Pane eventKey="settings"><StoreSettingsManager /></Tab.Pane>
                         {/* The "Register New Admin" tab just links to the hash route, which App.js will handle */}
                     </Tab.Content>
                 </Tab.Container>

@@ -106,5 +106,31 @@ export async function getCouponsCached() {
     return res.data;
 }
 
+// Store settings (delivery fee, thresholds, open/closed, tax, payment methods).
+// Defaults mirror the server defaults so the storefront renders correctly even if
+// the backend hasn't been deployed with /settings yet (graceful degradation).
+export const DEFAULT_SETTINGS = {
+    deliveryFee: 40,
+    freeDeliveryThreshold: 250,
+    minOrderValue: 0,
+    deliveryEta: '30 min',
+    storeOpen: true,
+    openingHours: '',
+    taxPercent: 0,
+    paymentOnline: true,
+    paymentCod: false,
+    storeName: 'Steamy Bites',
+    storePhone: '',
+    storeAddress: '',
+};
+
+export async function getSettingsCached() {
+    const cached = readCache('cache_settings', 5 * 60 * 1000); // 5 minutes
+    if (cached) return cached;
+    const res = await api.get('/settings');
+    writeCache('cache_settings', res.data);
+    return res.data;
+}
+
 export { api };
 

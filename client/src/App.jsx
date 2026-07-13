@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { toast, Toaster } from "sonner";
 import './App.css';
-import { api, getMenuCached, pingBackend } from './api';
+import { api, getMenuCached, pingBackend, getSettingsCached, DEFAULT_SETTINGS } from './api';
 import SteamyHome from './experience/SteamyHome'; // preserved: previous cinematic home, swap back by rendering it in the "home" branch
 import SupperHome from './SupperHome';
 import './supper.css';
@@ -1276,7 +1276,7 @@ function LocationPicker({ value, onChange, isDark }) {
   );
 }
 
-function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
+function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user, settings }) {
   const [coupon, setCoupon] = useState("");
   // appliedCoupon: { code, discountType, discountValue, discountAmount } from server
   const [appliedCoupon, setAppliedCoupon] = useState(null);
@@ -1293,7 +1293,11 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
   const t = isDark ? themes.dark : themes.light;
 
   const sub = cart.reduce((s, i) => s + i.selectedPrice * i.qty, 0);
-  const delivery = sub >= 250 ? 0 : 40;
+  const st = settings || {};
+  const deliveryFee = Number.isFinite(st.deliveryFee) ? st.deliveryFee : 40;
+  const freeThreshold = Number.isFinite(st.freeDeliveryThreshold) ? st.freeDeliveryThreshold : 250;
+  const delivery = sub >= freeThreshold ? 0 : deliveryFee;
+  const taxPercent = Number.isFinite(st.taxPercent) ? st.taxPercent : 0;
   // Recompute discount when subtotal changes (e.g. user adds/removes items
   // after applying a percentage coupon).
   const disc = appliedCoupon
@@ -1304,7 +1308,8 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
           : Math.round(appliedCoupon.discountValue)
       )
     : 0;
-  const total = Math.max(0, sub + delivery - disc);
+  const tax = taxPercent > 0 ? Math.round((sub * taxPercent) / 100) : 0;
+  const total = Math.max(0, sub + delivery + tax - disc);
 
   function updQty(key, d) {
     setCart(prev =>
@@ -1437,6 +1442,14 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
       toast.error('Our live menu is still loading. Please refresh and add your items again.');
       return;
     }
+    if (st.storeOpen === false) {
+      toast.error('The store is currently closed. Please order during opening hours.');
+      return;
+    }
+    if (st.minOrderValue > 0 && sub < st.minOrderValue) {
+      toast.error(`Minimum order is ₹${st.minOrderValue}. Please add a little more to your cart.`);
+      return;
+    }
     setProcessing(true);
     try {
       // Server recomputes totals and revalidates the coupon, so what we send is
@@ -1523,7 +1536,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                 </div>
                 <div>
                   <h3 style={{ color: t.text }} className="font-black text-lg">Your Cart</h3>
-                  <p style={{ color: t.faint }} className="text-xs">{cart.reduce((s, i) => s + i.qty, 0)} items · Est. 30 min</p>
+                  <p style={{ color: t.faint }} className="text-xs">{cart.reduce((s, i) => s + i.qty, 0)} items · Est. {st.deliveryEta || '30 min'}</p>
                 </div>
               </div>
               <motion.button
@@ -1684,10 +1697,8 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                         <p style={{ color: t.muted }} className="text-xs font-bold uppercase tracking-wider mb-2 ml-1">Payment</p>
                         <div className="grid grid-cols-1 gap-2">
                           {[
-                            // COD temporarily disabled — re-enable by uncommenting
-                            // this line and switching the grid above back to grid-cols-2:
-                            // { id: 'COD', label: 'Cash on Delivery', sub: 'Pay when you receive' },
-                            { id: 'RAZORPAY', label: 'Pay Online', sub: 'UPI · Card · Wallet' },
+                            ...(st.paymentOnline !== false ? [{ id: 'RAZORPAY', label: 'Pay Online', sub: 'UPI · Card · Wallet' }] : []),
+                            ...(st.paymentCod ? [{ id: 'COD', label: 'Cash on Delivery', sub: 'Pay when you receive' }] : []),
                           ].map(opt => (
                             <button
                               key={opt.id}
@@ -1711,6 +1722,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                         {[
                           ["Subtotal", `₹${sub}`],
                           ["Delivery", delivery === 0 ? "FREE" : `₹${delivery}`],
+                          ...(tax > 0 ? [[`Tax (${taxPercent}%)`, `₹${tax}`]] : []),
                           ...(disc > 0 ? [["Discount", `-₹${disc}`]] : []),
                         ].map(([label, val]) => (
                           <div key={label} className="flex justify-between text-sm">
@@ -1732,7 +1744,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                   <div style={{ borderTop: `1px solid ${t.border}` }} className="p-4 flex-shrink-0">
                     <motion.button
                       onClick={placeOrder}
-                      disabled={processing}
+                      disabled={processing || st.storeOpen === false}
                       whileHover={{ scale: 1.02, y: -1 }}
                       whileTap={{ scale: 0.98 }}
                       className="order-btn w-full py-4 bg-gradient-to-r from-orange-500 to-orange-600 text-white font-black rounded-2xl text-base shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2"
@@ -1745,7 +1757,7 @@ function CartModal({ cart, setCart, open, setOpen, setPage, isDark, user }) {
                       ) : (
                         <>
                           <Truck className="w-5 h-5" />
-                          {paymentMethod === 'RAZORPAY' ? `Pay ₹${total}` : `Confirm Order · ₹${total}`}
+                          {st.storeOpen === false ? 'Store Closed' : (paymentMethod === 'RAZORPAY' ? `Pay ₹${total}` : `Confirm Order · ₹${total}`)}
                         </>
                       )}
                     </motion.button>
@@ -2638,6 +2650,7 @@ function AppInner() {
   const [isDark, setIsDark] = useState(true);
   const [menuItems, setMenuItems] = useState([]);
   const [menuLoading, setMenuLoading] = useState(true);
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const t = isDark ? themes.dark : themes.light;
   const cartCount = cart.reduce((s, i) => s + i.qty, 0);
 
@@ -2684,6 +2697,40 @@ function AppInner() {
       }
     })();
     return () => { cancelled = true; };
+  }, []);
+
+  // Live store settings (delivery fee, thresholds, open/closed, tax, payment methods).
+  // Falls back to defaults if the backend isn't yet deployed with /settings.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try { const s = await getSettingsCached(); if (!cancelled && s) setSettings({ ...DEFAULT_SETTINGS, ...s }); }
+      catch { /* keep defaults */ }
+    })();
+    return () => { cancelled = true; };
+  }, []);
+
+  // Realtime catalog stream: an admin menu/settings change pushes an event here, so open
+  // sessions refetch and update live (no cache lag). The browser auto-reconnects on drop.
+  useEffect(() => {
+    const baseURL = import.meta.env.VITE_API_BASE_URL || 'https://steamybitesbackend.onrender.com/api';
+    let es;
+    try {
+      es = new EventSource(`${baseURL}/stream/catalog`);
+      es.onmessage = async (e) => {
+        try {
+          const { type } = JSON.parse(e.data);
+          if (type === 'settings') {
+            try { localStorage.removeItem('cache_settings'); } catch {}
+            const s = await getSettingsCached(); if (s) setSettings({ ...DEFAULT_SETTINGS, ...s });
+          } else if (type === 'menu') {
+            try { localStorage.removeItem('cache_menu'); } catch {}
+            const data = await getMenuCached(); const flat = normalizeServerMenu(data); if (flat) setMenuItems(flat);
+          }
+        } catch { /* ignore */ }
+      };
+    } catch { /* SSE unsupported / blocked — cache + reload still work */ }
+    return () => { try { es && es.close(); } catch {} };
   }, []);
 
   // Token expiry handler. Clear the local user, surface a toast, and bounce
@@ -2773,6 +2820,7 @@ function AppInner() {
         setPage={setPage}
         isDark={isDark}
         user={user}
+        settings={settings}
       />
     </div>
   );
