@@ -555,6 +555,8 @@ app.get('/api/stream/catalog', (req, res) => {
     res.setHeader('Cache-Control', 'no-cache');
     res.setHeader('Connection', 'keep-alive');
     res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('X-Accel-Buffering', 'no'); // stop any proxy from buffering the stream
+    res.flushHeaders?.();
     res.write(':connected\n\n');
     catalogSseClients.add(res);
     const heartbeat = setInterval(() => {

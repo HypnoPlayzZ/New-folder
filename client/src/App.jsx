@@ -2910,11 +2910,25 @@ function AppInner() {
   // Falls back to defaults if the backend isn't yet deployed with /settings.
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      try { const s = await getSettingsCached(); if (!cancelled && s) setSettings({ ...DEFAULT_SETTINGS, ...s }); }
-      catch { /* keep defaults */ }
-    })();
-    return () => { cancelled = true; };
+    const refresh = async (force) => {
+      try { const s = await getSettingsCached(force); if (!cancelled && s) setSettings({ ...DEFAULT_SETTINGS, ...s }); }
+      catch { /* keep last-known / defaults */ }
+    };
+    refresh(false); // initial load (cache ok)
+    // Reliability net for realtime: the SSE below is instant, but it can drop (mobile
+    // background, network change, Render idle spin-down). Poll fresh every 30s and on tab
+    // focus so store open/close (and fee/threshold changes) always propagate even if SSE dies.
+    const poll = setInterval(() => refresh(true), 30000);
+    const onFocus = () => refresh(true);
+    const onVis = () => { if (!document.hidden) refresh(true); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      cancelled = true;
+      clearInterval(poll);
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVis);
+    };
   }, []);
 
   // Realtime catalog stream: an admin menu/settings change pushes an event here, so open
@@ -2928,8 +2942,7 @@ function AppInner() {
         try {
           const { type } = JSON.parse(e.data);
           if (type === 'settings') {
-            try { localStorage.removeItem('cache_settings'); } catch {}
-            const s = await getSettingsCached(); if (s) setSettings({ ...DEFAULT_SETTINGS, ...s });
+            const s = await getSettingsCached(true); if (s) setSettings({ ...DEFAULT_SETTINGS, ...s });
           } else if (type === 'menu') {
             try { localStorage.removeItem('cache_menu'); } catch {}
             const data = await getMenuCached(); const flat = normalizeServerMenu(data); if (flat) setMenuItems(flat);

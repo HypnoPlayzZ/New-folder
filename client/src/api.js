@@ -124,9 +124,14 @@ export const DEFAULT_SETTINGS = {
     storeAddress: '',
 };
 
-export async function getSettingsCached() {
-    const cached = readCache('cache_settings', 5 * 60 * 1000); // 5 minutes
-    if (cached) return cached;
+// Settings drive time-sensitive state (store open/closed, delivery fee). Keep the cache
+// short, and allow a forced fresh fetch (used by the poll / focus / realtime refresh) so
+// an admin toggling the store is reflected quickly instead of being masked by the cache.
+export async function getSettingsCached(force = false) {
+    if (!force) {
+        const cached = readCache('cache_settings', 60 * 1000); // 60s
+        if (cached) return cached;
+    }
     const res = await api.get('/settings');
     writeCache('cache_settings', res.data);
     return res.data;
