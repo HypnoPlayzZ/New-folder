@@ -7,9 +7,9 @@ import './supper.css';
  * into the existing app (setPage), no new data flows.
  */
 export default function SupperHome({ setPage, isDark }) {
-  const ground = isDark ? '#050505' : '#f4f4f4';
-  const ink = isDark ? '#ededed' : '#111214';
-  const dim = isDark ? '#9aa0a6' : '#5f6368';
+  const ground = isDark ? '#050505' : '#f7eedd';
+  const ink = isDark ? '#ededed' : '#1e4636';
+  const dim = isDark ? '#9aa0a6' : '#5f6b61';
 
   return (
     <div style={{ background: ground, color: ink }}>

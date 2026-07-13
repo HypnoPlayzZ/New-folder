@@ -14,10 +14,10 @@
 }
 [data-theme="light"] {
   --sc-acc: #a6741f;
-  --sc-pop: #c62828;
-  --sc-hair: rgba(43, 38, 32, 0.2);
-  --sc-hair2: rgba(43, 38, 32, 0.1);
-  --sc-ink: #2b2620;
+  --sc-pop: #d9a441;
+  --sc-hair: rgba(30, 70, 54, 0.22);
+  --sc-hair2: rgba(30, 70, 54, 0.1);
+  --sc-ink: #1e4636;
 }
 
 .sc-display {
@@ -333,6 +333,11 @@
 [data-theme="light"] .sc-hero-video-wrap::after {
   background: linear-gradient(180deg, transparent 30%, var(--sc-hero-ground, #f4f4f4) 88%);
   opacity: 0.9;
+}
+[data-theme="light"] .sc-hero-video-wrap {
+  /* Cream/day: hide the dark cinematic footage so the hero reads as a clean cream field
+     with the green badge + type instead of an inverted, off-color video slab. */
+  display: none;
 }
 .sc-arch {
   display: none;

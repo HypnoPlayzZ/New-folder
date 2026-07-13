@@ -119,9 +119,9 @@ const themes = {
     inputBg: "rgba(247,238,221,0.06)", navBg: "rgba(18,16,11,0.85)",
   },
   light: {
-    bg: "#f7eedd", surface: "#fffdf8", card: "rgba(43,38,32,0.03)",
-    border: "rgba(43,38,32,0.12)", text: "#2b2620", muted: "#7a7266", faint: "#a89e8c",
-    inputBg: "rgba(43,38,32,0.04)", navBg: "rgba(247,238,221,0.92)",
+    bg: "#f7eedd", surface: "#fffdf8", card: "rgba(30,70,54,0.045)",
+    border: "rgba(30,70,54,0.16)", text: "#1e4636", muted: "#5f6b61", faint: "#8a938a",
+    inputBg: "rgba(30,70,54,0.05)", navBg: "rgba(247,238,221,0.92)",
   }
 };
 
@@ -626,7 +626,7 @@ function AuthPage({ setUser, setPage, isDark }) {
             </div>
             <div className="relative z-10 flex flex-col items-center">
               <img src={isDark ? "/logo-badge-dark.svg" : "/logo-badge-light.svg"} alt="SteamyBites" className="h-14 w-auto object-contain drop-shadow-xl" onError={e => { e.target.style.display = 'none'; }} />
-              <img src="/steamy-wordmark-dark.svg" alt="Steamy Bites" className="h-3 w-auto mt-1.5 drop-shadow" onError={e => { e.target.style.display = 'none'; }} />
+              <img src={isDark ? "/steamy-wordmark-dark.svg" : "/steamy-wordmark-light.svg"} alt="Steamy Bites" className="h-3 w-auto mt-1.5 drop-shadow" onError={e => { e.target.style.display = 'none'; }} />
             </div>
           </div>
 
@@ -2647,7 +2647,7 @@ function AppInner() {
     if (token && name) return { name, email: localStorage.getItem('customer_email') || '' };
     return null;
   });
-  const [isDark, setIsDark] = useState(true);
+  const [isDark, setIsDark] = useState(false);
   const [menuItems, setMenuItems] = useState([]);
   const [menuLoading, setMenuLoading] = useState(true);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
