@@ -1373,11 +1373,13 @@ adminRouter.post('/register', async (req, res) => {
 });
 
 adminRouter.get('/orders', async (req, res) => {
-    // Only surface actionable orders: online orders once Razorpay confirms payment
-    // (paymentStatus 'Paid'), and COD orders immediately (COD currently disabled
-    // client-side). Never-paid / abandoned online orders stay hidden from admin
-    // until payment succeeds.
-    const orders = await Order.find({ $or: [{ paymentStatus: 'Paid' }, { paymentMethod: 'COD' }] })
+    // STRICT policy: an order reaches the admin dashboard ONLY after payment has
+    // actually succeeded (paymentStatus 'Paid'). Never-paid / abandoned / pending
+    // orders stay hidden. This also excludes legacy COD orders, which are created
+    // as 'Received' but remain unpaid until delivery — with COD disabled they must
+    // never surface or ring the new-order bell. (If COD is re-enabled later, add a
+    // separate, explicit clause for confirmed COD orders here.)
+    const orders = await Order.find({ paymentStatus: 'Paid' })
         .populate('items.menuItemId').populate('user', 'name email').sort({ createdAt: -1 });
     res.json(orders);
 });

@@ -113,7 +113,12 @@ const OrderManager = ({ onNewOrder } = {}) => {
         setError('');
         try {
             const res = await api.get('/admin/orders');
-            const fetched = Array.isArray(res.data) ? res.data : [];
+            // Defense-in-depth: an order belongs in the admin dashboard ONLY after
+            // payment has succeeded. Even if the API ever returns something unpaid
+            // (a legacy COD order, or an older backend), filter to PAID-only here so
+            // unpaid orders never display AND never ring the new-order bell.
+            const fetched = (Array.isArray(res.data) ? res.data : [])
+                .filter(o => o.paymentStatus === 'Paid');
             setOrders(fetched);
 
             // Detect new order at top (only if asked)
@@ -218,7 +223,9 @@ const OrderManager = ({ onNewOrder } = {}) => {
     // and not acknowledged). Keeps ringing as more arrive; stops when all are accepted
     // (acknowledged, or advanced past 'Received').
     useEffect(() => {
-        const pending = (orders || []).filter(o => o.status === 'Received' && !o.isAcknowledged).length;
+        // Only PAID, unacknowledged new orders ring the bell. An unpaid order (e.g. a
+        // legacy COD order that is 'Received' but never paid) must never trigger the alarm.
+        const pending = (orders || []).filter(o => o.status === 'Received' && !o.isAcknowledged && o.paymentStatus === 'Paid').length;
         if (pending > 0) startAlarm(); else stopAlarm();
     }, [orders]);
 
